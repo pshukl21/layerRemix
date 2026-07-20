@@ -1,0 +1,6 @@
+{
+  "name": "LayerHub",
+  "description": "A high-end digital gallery for creators to discover, fork, and remix high-resolution artwork.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
