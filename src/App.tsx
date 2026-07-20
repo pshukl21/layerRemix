@@ -8,7 +8,7 @@ import { ProfileScreen } from './components/ProfileScreen';
 import { UploadScreen } from './components/UploadScreen';
 import { DetailScreen } from './components/DetailScreen';
 import { AuthModal } from './components/AuthModal';
-import { INITIAL_ARTWORKS } from './data';
+//import { INITIAL_ARTWORKS } from './data';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
@@ -17,7 +17,7 @@ import { fetchArtworks, publishArtwork } from './lib/artworks';
 // The static demo pieces (from data.ts) are shown alongside real uploads so
 // the gallery never looks empty on a fresh install. They're flagged isDemo
 // so downloads/forking treat them as read-only sample content.
-const DEMO_ARTWORKS: Artwork[] = INITIAL_ARTWORKS.map((art) => ({ ...art, isDemo: true }));
+//const DEMO_ARTWORKS: Artwork[] = INITIAL_ARTWORKS.map((art) => ({ ...art, isDemo: true }));
 
 export default function App() {
   const { user } = useAuth();
@@ -29,7 +29,7 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signIn' | 'signUp'>('signIn');
 
-  const artworks = [...realArtworks, ...DEMO_ARTWORKS];
+  const artworks = realArtworks;
   const selectedArtwork = artworks.find((art) => art.id === selectedArtworkId);
 
   const loadArtworks = useCallback(async () => {
