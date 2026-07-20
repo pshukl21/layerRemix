@@ -1,32 +1,31 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Upload, Search, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR } from '../lib/artworks';
 
 interface HeaderProps {
-  currentScreen: 'explore' | 'profile' | 'upload' | 'detail';
-  onNavigate: (screen: 'explore' | 'profile' | 'upload' | 'detail', artworkId?: string) => void;
   onSearch: (query: string) => void;
   searchQuery: string;
   onRequireAuth: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  currentScreen,
-  onNavigate,
-  onSearch,
-  searchQuery,
-  onRequireAuth,
-}) => {
+export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequireAuth }) => {
   const { user, profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isExplore = location.pathname === '/';
+  const isProfile = location.pathname === '/profile';
+  const isUpload = location.pathname === '/upload';
 
   const handleUploadClick = () => {
     if (!user) {
       onRequireAuth();
       return;
     }
-    onNavigate('upload');
+    navigate('/upload');
   };
 
   const handleAvatarClick = () => {
@@ -40,21 +39,21 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="fixed top-0 w-full z-50 flex justify-between items-center px-6 md:px-12 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
       <div className="flex items-center gap-8">
-        <span
-          onClick={() => onNavigate('explore')}
+        <Link
+          to="/"
           className="font-bold text-2xl tracking-tighter text-slate-900 cursor-pointer hover:opacity-95 select-none"
         >
-          LayerRemix
-        </span>
+          LayerHub
+        </Link>
         <nav className="hidden md:flex gap-6 items-center">
-          <button
-            onClick={() => onNavigate('explore')}
+          <Link
+            to="/"
             className={`font-semibold transition-colors duration-200 text-sm ${
-              currentScreen === 'explore' ? 'text-blue-600 border-b-2 border-blue-600 pb-1 mt-1' : 'text-slate-600 hover:text-blue-600'
+              isExplore ? 'text-blue-600 border-b-2 border-blue-600 pb-1 mt-1' : 'text-slate-600 hover:text-blue-600'
             }`}
           >
             Explore Art
-          </button>
+          </Link>
         </nav>
       </div>
 
@@ -75,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={handleUploadClick}
             className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
-              currentScreen === 'upload'
+              isUpload
                 ? 'bg-slate-200 text-slate-800'
                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs'
             }`}
@@ -89,7 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div
                 onClick={handleAvatarClick}
                 className={`w-9 h-9 rounded-full border overflow-hidden cursor-pointer hover:border-blue-600 transition-all ${
-                  currentScreen === 'profile' ? 'border-blue-600' : 'border-slate-200'
+                  isProfile ? 'border-blue-600' : 'border-slate-200'
                 }`}
               >
                 <img
@@ -109,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <button
                       onClick={() => {
                         setMenuOpen(false);
-                        onNavigate('profile');
+                        navigate('/profile');
                       }}
                       className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                     >
@@ -119,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
                       onClick={() => {
                         setMenuOpen(false);
                         signOut();
-                        onNavigate('explore');
+                        navigate('/');
                       }}
                       className="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 cursor-pointer flex items-center gap-2"
                     >

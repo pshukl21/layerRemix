@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { LogIn } from 'lucide-react';
+import { LogIn, SearchX } from 'lucide-react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ExploreScreen } from './components/ExploreScreen';
@@ -13,18 +14,92 @@ import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
 import { fetchArtworks, publishArtwork, updateArtwork } from './lib/artworks';
 
+interface PublishInput {
+  title: string;
+  description: string;
+  tags: string[];
+  previewFile: File;
+  sourceFile: File | null;
+}
+
+interface UpdateInput {
+  title: string;
+  description: string;
+  tags: string[];
+  newPreviewFile: File | null;
+}
+
+// Resolves the :id route param to an artwork and renders DetailScreen,
+// so a direct link/refresh/share to /art/:id always shows the right piece.
+function DetailRoute({
+  artworks,
+  loadingArtworks,
+  onSelectArtwork,
+  onNavigateToProfile,
+  onPublishFork,
+  onUpdateArtwork,
+  onRequireAuth,
+}: {
+  artworks: Artwork[];
+  loadingArtworks: boolean;
+  onSelectArtwork: (id: string) => void;
+  onNavigateToProfile: () => void;
+  onPublishFork: (parentArtworkId: string, forkDetails: PublishInput) => Promise<{ error: string | null }>;
+  onUpdateArtwork: (artworkId: string, updates: UpdateInput) => Promise<{ error: string | null }>;
+  onRequireAuth: () => void;
+}) {
+  const { id } = useParams<{ id: string }>();
+  const artwork = artworks.find((art) => art.id === id);
+
+  if (!artwork) {
+    if (loadingArtworks) {
+      return (
+        <div className="w-full min-h-screen flex items-center justify-center text-slate-400 text-sm font-semibold">
+          Loading…
+        </div>
+      );
+    }
+    return (
+      <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
+        <SearchX className="w-10 h-10 text-slate-300 mb-4" />
+        <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Artwork not found</h1>
+        <p className="text-sm text-slate-500 font-semibold mb-6 max-w-sm">
+          This piece may have been removed, or the link isn't quite right.
+        </p>
+        <button
+          onClick={() => onSelectArtwork('')}
+          className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer shadow-sm"
+        >
+          Back to Explore
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <DetailScreen
+      artwork={artwork}
+      artworks={artworks}
+      onSelectArtwork={onSelectArtwork}
+      onNavigateToProfile={onNavigateToProfile}
+      onPublishFork={onPublishFork}
+      onUpdateArtwork={onUpdateArtwork}
+      onRequireAuth={onRequireAuth}
+    />
+  );
+}
+
 export default function App() {
   const { user } = useAuth();
   const [realArtworks, setRealArtworks] = useState<Artwork[]>([]);
   const [loadingArtworks, setLoadingArtworks] = useState(true);
-  const [currentScreen, setCurrentScreen] = useState<'explore' | 'profile' | 'upload' | 'detail'>('explore');
-  const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signIn' | 'signUp'>('signIn');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const artworks = realArtworks;
-  const selectedArtwork = artworks.find((art) => art.id === selectedArtworkId);
 
   const loadArtworks = useCallback(async () => {
     if (!isSupabaseConfigured) {
@@ -46,36 +121,14 @@ export default function App() {
     setAuthModalOpen(true);
   };
 
-  const handleNavigate = (screen: 'explore' | 'profile' | 'upload' | 'detail', artworkId?: string) => {
-    setCurrentScreen(screen);
-    if (screen === 'detail' && artworkId) {
-      setSelectedArtworkId(artworkId);
-    } else if (screen !== 'detail') {
-      setSelectedArtworkId(null);
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const handleSelectArtwork = (artworkId: string) => {
-    if (artworkId) {
-      setSelectedArtworkId(artworkId);
-      setCurrentScreen('detail');
-    } else {
-      setSelectedArtworkId(null);
-      setCurrentScreen('explore');
-    }
+    navigate(artworkId ? `/art/${artworkId}` : '/');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Publish a brand-new (non-remix) artwork: uploads files to Storage, inserts
-  // the DB row, then prepends it to local state so it shows up immediately.
-  const handlePublishArtwork = async (newArt: {
-    title: string;
-    description: string;
-    tags: string[];
-    previewFile: File;
-    sourceFile: File | null;
-  }): Promise<{ error: string | null }> => {
+  // the DB row, then prepends it to local state and navigates to its page.
+  const handlePublishArtwork = async (newArt: PublishInput): Promise<{ error: string | null }> => {
     if (!user) {
       openAuthModal('signIn');
       return { error: 'Please sign in first.' };
@@ -89,8 +142,7 @@ export default function App() {
       return { error: error || 'Something went wrong publishing this artwork.' };
     }
     setRealArtworks((prev) => [artwork, ...prev]);
-    setSelectedArtworkId(artwork.id);
-    setCurrentScreen('detail');
+    navigate(`/art/${artwork.id}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return { error: null };
   };
@@ -98,13 +150,7 @@ export default function App() {
   // Publish a fork/remix of an existing artwork.
   const handlePublishFork = async (
     parentArtworkId: string,
-    forkDetails: {
-      title: string;
-      description: string;
-      tags: string[];
-      previewFile: File;
-      sourceFile: File | null;
-    }
+    forkDetails: PublishInput
   ): Promise<{ error: string | null }> => {
     if (!user) {
       openAuthModal('signIn');
@@ -125,8 +171,7 @@ export default function App() {
       );
       return [artwork, ...updatedParent];
     });
-    setSelectedArtworkId(artwork.id);
-    setCurrentScreen('detail');
+    navigate(`/art/${artwork.id}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return { error: null };
   };
@@ -135,7 +180,7 @@ export default function App() {
   // replaces its cover image. The source PSD file is never touched here.
   const handleUpdateArtwork = async (
     artworkId: string,
-    updates: { title: string; description: string; tags: string[]; newPreviewFile: File | null }
+    updates: UpdateInput
   ): Promise<{ error: string | null }> => {
     if (!user) {
       openAuthModal('signIn');
@@ -170,8 +215,6 @@ export default function App() {
       )}
 
       <Header
-        currentScreen={currentScreen}
-        onNavigate={handleNavigate}
         searchQuery={searchQuery}
         onSearch={setSearchQuery}
         onRequireAuth={() => openAuthModal('signIn')}
@@ -180,66 +223,95 @@ export default function App() {
       <div className={`flex-grow ${!isSupabaseConfigured ? 'pt-8' : ''}`}>
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentScreen + (selectedArtworkId || '')}
+            key={location.pathname}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
             className="w-full h-full"
           >
-            {currentScreen === 'explore' && (
-              <ExploreScreen
-                artworks={artworks}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                onSelectArtwork={handleSelectArtwork}
+            <Routes location={location}>
+              <Route
+                path="/"
+                element={
+                  <ExploreScreen
+                    artworks={artworks}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    onSelectArtwork={handleSelectArtwork}
+                  />
+                }
               />
-            )}
 
-            {currentScreen === 'profile' && (
-              <ProfileScreen
-                artworks={artworks}
-                onSelectArtwork={handleSelectArtwork}
-                onRequireAuth={() => openAuthModal('signIn')}
+              <Route
+                path="/profile"
+                element={
+                  <ProfileScreen
+                    artworks={artworks}
+                    onSelectArtwork={handleSelectArtwork}
+                    onRequireAuth={() => openAuthModal('signIn')}
+                  />
+                }
               />
-            )}
 
-            {currentScreen === 'upload' && (
-              user ? (
-                <UploadScreen onPublish={handlePublishArtwork} />
-              ) : (
-                <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
-                  <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Sign in to publish artwork</h1>
-                  <p className="text-sm text-slate-500 font-semibold mb-6 max-w-sm">
-                    You'll need an account to upload and share your work on LayerHub.
-                  </p>
-                  <button
-                    onClick={() => openAuthModal('signIn')}
-                    className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer flex items-center gap-2 shadow-sm"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    Sign In
-                  </button>
-                </div>
-              )
-            )}
-
-            {currentScreen === 'detail' && selectedArtwork && (
-              <DetailScreen
-                artwork={selectedArtwork}
-                artworks={artworks}
-                onSelectArtwork={handleSelectArtwork}
-                onNavigateToProfile={() => handleNavigate('profile')}
-                onPublishFork={handlePublishFork}
-                onUpdateArtwork={handleUpdateArtwork}
-                onRequireAuth={() => openAuthModal('signIn')}
+              <Route
+                path="/upload"
+                element={
+                  user ? (
+                    <UploadScreen onPublish={handlePublishArtwork} />
+                  ) : (
+                    <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
+                      <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Sign in to publish artwork</h1>
+                      <p className="text-sm text-slate-500 font-semibold mb-6 max-w-sm">
+                        You'll need an account to upload and share your work on LayerHub.
+                      </p>
+                      <button
+                        onClick={() => openAuthModal('signIn')}
+                        className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer flex items-center gap-2 shadow-sm"
+                      >
+                        <LogIn className="w-4 h-4" />
+                        Sign In
+                      </button>
+                    </div>
+                  )
+                }
               />
-            )}
+
+              <Route
+                path="/art/:id"
+                element={
+                  <DetailRoute
+                    artworks={artworks}
+                    loadingArtworks={loadingArtworks}
+                    onSelectArtwork={handleSelectArtwork}
+                    onNavigateToProfile={() => navigate('/profile')}
+                    onPublishFork={handlePublishFork}
+                    onUpdateArtwork={handleUpdateArtwork}
+                    onRequireAuth={() => openAuthModal('signIn')}
+                  />
+                }
+              />
+
+              <Route
+                path="*"
+                element={
+                  <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
+                    <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Page not found</h1>
+                    <button
+                      onClick={() => navigate('/')}
+                      className="mt-4 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer shadow-sm"
+                    >
+                      Back to Explore
+                    </button>
+                  </div>
+                }
+              />
+            </Routes>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      <Footer onNavigate={handleNavigate} />
+      <Footer />
 
       <AuthModal
         open={authModalOpen}
