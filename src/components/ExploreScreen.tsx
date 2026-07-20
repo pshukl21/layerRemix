@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Search, SlidersHorizontal, Download, GitFork, ArrowDown, ExternalLink } from 'lucide-react';
 import { Artwork } from '../types';
@@ -28,6 +28,27 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   };
 
   const activeSearch = searchQuery || localSearch;
+
+  // Real "hot tags": count how often each tag appears across every artwork,
+  // and surface the most-used ones (case-insensitive, but keep original casing).
+  const hotTags = useMemo(() => {
+    const counts = new Map<string, { display: string; count: number }>();
+    for (const art of artworks) {
+      for (const tag of art.tags) {
+        const key = tag.toLowerCase();
+        const existing = counts.get(key);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          counts.set(key, { display: tag, count: 1 });
+        }
+      }
+    }
+    return Array.from(counts.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6)
+      .map((entry) => entry.display);
+  }, [artworks]);
 
   // Filter and sort logic
   const filteredArtworks = artworks
@@ -88,7 +109,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
           >
-            Pass the PSD.
+            The digital artist's canvas.
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -123,18 +144,20 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           </motion.form>
 
           {/* Hot Tags suggestion */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
-            <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
-            {['Cyberpunk', 'Glassmorphism', 'Abstract', '3DRender', 'Surrealism'].map((tag) => (
-              <button
-                key={tag}
-                onClick={() => handleTagClick(tag)}
-                className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3.5 py-1 rounded-full transition-all cursor-pointer"
-              >
-                #{tag}
-              </button>
-            ))}
-          </div>
+          {hotTags.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
+              <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
+              {hotTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => handleTagClick(tag)}
+                  className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3.5 py-1 rounded-full transition-all cursor-pointer"
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
