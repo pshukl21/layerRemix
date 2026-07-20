@@ -54,6 +54,7 @@ function rowToArtwork(row: ArtworkRow, parentUsername?: string): Artwork {
     resolution: row.resolution || undefined,
     timeAgo: timeAgo(row.created_at),
     ownerId: row.owner_id,
+    imagePath: row.image_path,
     sourceFilePath: row.source_file_path || undefined,
     sourceFileName: row.source_file_name || undefined,
   };
@@ -155,6 +156,62 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
         .update({ forks: (parent.forks || 0) + 1 })
         .eq('id', input.parentArtworkId);
     }
+  }
+
+  return { artwork: rowToArtwork(data as ArtworkRow), error: null };
+}
+
+interface UpdateArtworkInput {
+  artworkId: string;
+  ownerId: string;
+  title: string;
+  description: string;
+  tags: string[];
+  newPreviewFile?: File | null;
+  previousImagePath?: string;
+}
+
+// Updates an artwork's editable fields (title, description, tags) and,
+// optionally, replaces its cover/preview image. The source PSD file itself
+// is intentionally never touched here — only the preview image can change.
+export async function updateArtwork(
+  input: UpdateArtworkInput
+): Promise<{ artwork: Artwork | null; error: string | null }> {
+  const updates: Record<string, unknown> = {
+    title: input.title,
+    description: input.description,
+    tags: input.tags,
+  };
+
+  let newImagePath: string | null = null;
+  if (input.newPreviewFile) {
+    const ext = input.newPreviewFile.name.split('.').pop() || 'jpg';
+    newImagePath = `${input.ownerId}/${Date.now()}-preview.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from(PREVIEWS_BUCKET)
+      .upload(newImagePath, input.newPreviewFile, { upsert: false });
+    if (uploadError) {
+      return { artwork: null, error: `Preview upload failed: ${uploadError.message}` };
+    }
+    updates.image_path = newImagePath;
+  }
+
+  const { data, error } = await supabase
+    .from('artworks')
+    .update(updates)
+    .eq('id', input.artworkId)
+    .select('*, owner:profiles(username, display_name, avatar_url)')
+    .single();
+
+  if (error || !data) {
+    return { artwork: null, error: error?.message || 'Could not update the artwork.' };
+  }
+
+  // Best-effort cleanup of the old preview file now that the DB row points
+  // at the new one. Non-fatal if it fails (e.g. storage delete policy not
+  // yet applied) — the update itself has already succeeded.
+  if (newImagePath && input.previousImagePath) {
+    await supabase.storage.from(PREVIEWS_BUCKET).remove([input.previousImagePath]).catch(() => {});
   }
 
   return { artwork: rowToArtwork(data as ArtworkRow), error: null };

@@ -8,16 +8,10 @@ import { ProfileScreen } from './components/ProfileScreen';
 import { UploadScreen } from './components/UploadScreen';
 import { DetailScreen } from './components/DetailScreen';
 import { AuthModal } from './components/AuthModal';
-//import { INITIAL_ARTWORKS } from './data';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
-import { fetchArtworks, publishArtwork } from './lib/artworks';
-
-// The static demo pieces (from data.ts) are shown alongside real uploads so
-// the gallery never looks empty on a fresh install. They're flagged isDemo
-// so downloads/forking treat them as read-only sample content.
-//const DEMO_ARTWORKS: Artwork[] = INITIAL_ARTWORKS.map((art) => ({ ...art, isDemo: true }));
+import { fetchArtworks, publishArtwork, updateArtwork } from './lib/artworks';
 
 export default function App() {
   const { user } = useAuth();
@@ -137,6 +131,36 @@ export default function App() {
     return { error: null };
   };
 
+  // Edits an existing artwork's title/description/tags, and optionally
+  // replaces its cover image. The source PSD file is never touched here.
+  const handleUpdateArtwork = async (
+    artworkId: string,
+    updates: { title: string; description: string; tags: string[]; newPreviewFile: File | null }
+  ): Promise<{ error: string | null }> => {
+    if (!user) {
+      openAuthModal('signIn');
+      return { error: 'Please sign in first.' };
+    }
+    const current = realArtworks.find((art) => art.id === artworkId);
+    if (!current) {
+      return { error: 'Could not find that artwork.' };
+    }
+    const { artwork, error } = await updateArtwork({
+      artworkId,
+      ownerId: user.id,
+      title: updates.title,
+      description: updates.description,
+      tags: updates.tags,
+      newPreviewFile: updates.newPreviewFile,
+      previousImagePath: updates.newPreviewFile ? current.imagePath : undefined,
+    });
+    if (error || !artwork) {
+      return { error: error || 'Something went wrong updating this artwork.' };
+    }
+    setRealArtworks((prev) => prev.map((art) => (art.id === artworkId ? artwork : art)));
+    return { error: null };
+  };
+
   return (
     <div className="min-h-screen bg-[#F2F2F7] text-slate-900 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-600">
       {!isSupabaseConfigured && (
@@ -207,6 +231,7 @@ export default function App() {
                 onSelectArtwork={handleSelectArtwork}
                 onNavigateToProfile={() => handleNavigate('profile')}
                 onPublishFork={handlePublishFork}
+                onUpdateArtwork={handleUpdateArtwork}
                 onRequireAuth={() => openAuthModal('signIn')}
               />
             )}

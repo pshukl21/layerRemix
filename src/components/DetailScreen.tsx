@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers } from 'lucide-react';
+import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads } from '../lib/artworks';
+import { EditArtworkModal } from './EditArtworkModal';
 
 interface DetailScreenProps {
   artwork: Artwork;
@@ -18,6 +19,10 @@ interface DetailScreenProps {
     previewFile: File;
     sourceFile: File | null;
   }) => Promise<{ error: string | null }>;
+  onUpdateArtwork?: (
+    artworkId: string,
+    updates: { title: string; description: string; tags: string[]; newPreviewFile: File | null }
+  ) => Promise<{ error: string | null }>;
 }
 
 export const DetailScreen: React.FC<DetailScreenProps> = ({
@@ -27,12 +32,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   onNavigateToProfile,
   onRequireAuth,
   onPublishFork,
+  onUpdateArtwork,
 }) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [viewMode, setViewMode] = useState<'showcase' | 'tree' | 'fork'>('showcase');
   const [forkSubmitting, setForkSubmitting] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   // Fork/Remix state form
   const [forkTitle, setForkTitle] = useState(`${artwork.title} (Remixed)`);
@@ -544,6 +551,15 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <GitFork className="w-4 h-4 text-blue-600" />
                   Fork Design
                 </button>
+                {user && user.id === artwork.ownerId && !artwork.isDemo && (
+                  <button
+                    onClick={() => setEditModalOpen(true)}
+                    className="w-full border border-slate-200 bg-white text-slate-800 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    <Pencil className="w-4 h-4 text-blue-600" />
+                    Edit Details
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setViewMode('tree');
@@ -853,6 +869,15 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
             </div>
           </form>
         </motion.div>
+      )}
+
+      {onUpdateArtwork && (
+        <EditArtworkModal
+          open={editModalOpen}
+          artwork={artwork}
+          onClose={() => setEditModalOpen(false)}
+          onSave={onUpdateArtwork}
+        />
       )}
     </div>
   );

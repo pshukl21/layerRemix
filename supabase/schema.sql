@@ -121,6 +121,13 @@ create policy "Users can upload their own preview images"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+create policy "Users can delete their own preview images"
+  on storage.objects for delete
+  using (
+    bucket_id = 'previews'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
 create policy "Source files are publicly readable"
   on storage.objects for select
   using (bucket_id = 'source-files');

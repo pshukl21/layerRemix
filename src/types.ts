@@ -16,6 +16,7 @@ export interface Artwork {
   timeAgo: string;
   // Real-backend fields (absent on the static demo seed artworks)
   ownerId?: string;
+  imagePath?: string;
   sourceFilePath?: string;
   sourceFileName?: string;
   isDemo?: boolean;
