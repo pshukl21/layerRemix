@@ -105,7 +105,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             className="mb-4"
           >
             <span className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
-              ⚡ Creative Hub
+              🎨 OPEN-SOURCE ARTWORK
             </span>
           </motion.div>
           <motion.h1 
