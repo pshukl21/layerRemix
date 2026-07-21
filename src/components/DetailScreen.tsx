@@ -680,34 +680,36 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
      
           {/* Timeline of Changes Section (This view is directly on the main page of each project) */}
           <section className="border-t border-slate-200 pt-12">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-              <div className="flex flex-col gap-2">
-                <span className="text-blue-600 text-[10px] font-bold tracking-widest uppercase">Ecosystem Timeline</span>
-                <h2 className="text-xl md:text-2xl font-black tracking-tight text-slate-900">
-                  {artwork.type === 'Original' ? (
-                    <>Development Tree of original artwork by <span className="text-blue-600">@{artwork.author}</span></>
-                  ) : (
-                    <>Lineage Tree from Original by <span className="text-blue-600">@{rootOriginal.author}</span></>
-                  )}
-                </h2>
-                <p className="text-xs text-slate-400 font-semibold max-w-2xl">
-                  Visual tree tracking every remix, branch, and change. The root original is always at the top of the history list.
-                </p>
+            <div className="bg-white border border-slate-200 rounded-xl p-6 md:p-10 shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+                <div className="flex flex-col gap-2">
+                  <span className="text-blue-600 text-[10px] font-bold tracking-widest uppercase">Ecosystem Timeline</span>
+                  <h2 className="text-xl md:text-2xl font-black tracking-tight text-slate-900">
+                    {artwork.type === 'Original' ? (
+                      <>Development Tree of original artwork by <span className="text-blue-600">@{artwork.author}</span></>
+                    ) : (
+                      <>Lineage Tree from Original by <span className="text-blue-600">@{rootOriginal.author}</span></>
+                    )}
+                  </h2>
+                  <p className="text-xs text-slate-400 font-semibold max-w-2xl">
+                    Visual tree tracking every remix, branch, and change. The root original is always at the top of the history list.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setViewMode('tree');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-blue-600 hover:text-blue-700 flex items-center gap-1.5 transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer select-none shrink-0"
+                >
+                  Expand Tree View
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
-              <button 
-                onClick={() => {
-                  setViewMode('tree');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="text-blue-600 hover:text-blue-700 flex items-center gap-1.5 transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer select-none"
-              >
-                Expand Tree View
-                <ArrowRight className="w-4 h-4" />
-              </button>
+       
+              {/* Chronological connected timeline component */}
+              {renderTimeline(true)}
             </div>
-     
-            {/* Chronological connected timeline component */}
-            {renderTimeline(true)}
           </section>
         </motion.div>
       )}
