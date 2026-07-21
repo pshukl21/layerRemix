@@ -29,11 +29,13 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
   const activeSearch = searchQuery || localSearch;
 
-  // Real "hot tags": count how often each tag appears across every artwork,
-  // and surface the most-used ones (case-insensitive, but keep original casing).
+  // Real "hot tags": count how often each tag appears across every original
+  // artwork (remixes aren't shown here, so their tags aren't counted either —
+  // that would suggest tags with nothing to click through to on this page).
   const hotTags = useMemo(() => {
     const counts = new Map<string, { display: string; count: number }>();
     for (const art of artworks) {
+      if (art.type !== 'Original') continue;
       for (const tag of art.tags) {
         const key = tag.toLowerCase();
         const existing = counts.get(key);
@@ -50,8 +52,11 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       .map((entry) => entry.display);
   }, [artworks]);
 
-  // Filter and sort logic
+  // Filter and sort logic — remixes are never shown as top-level gallery
+  // cards; they only appear nested under their original in that artwork's
+  // "Ecosystem Development Tree" view.
   const filteredArtworks = artworks
+    .filter((art) => art.type === 'Original')
     .filter((art) => {
       if (!activeSearch) return true;
       const lowerSearch = activeSearch.toLowerCase();
