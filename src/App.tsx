@@ -263,7 +263,7 @@ export default function App() {
                     <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
                       <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Sign in to publish artwork</h1>
                       <p className="text-sm text-slate-500 font-semibold mb-6 max-w-sm">
-                        You'll need an account to upload and share your work on LayerHub.
+                        You'll need an account to upload and share your work on LayerRemix.
                       </p>
                       <button
                         onClick={() => openAuthModal('signIn')}

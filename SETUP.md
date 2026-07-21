@@ -1,4 +1,4 @@
-# LayerHub — Setup Guide
+# LayerRemix — Setup Guide
 
 This app now has real accounts (sign up / log in), a real database, and real
 file uploads/downloads, powered by [Supabase](https://supabase.com) (a free
@@ -68,6 +68,15 @@ Vercel, Netlify, Cloudflare Pages, GitHub Pages, etc. Just set the same
 `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` as environment variables in
 that host's dashboard. No separate server process is needed — the browser
 talks directly to Supabase.
+
+> The app uses real client-side routes (e.g. `/art/some-id`) so artwork
+> pages are shareable and bookmarkable. That means a direct visit or a
+> page refresh on one of those URLs needs your host to serve `index.html`
+> for every path instead of 404ing. `vercel.json` (for Vercel) and
+> `public/_redirects` (for Netlify) are already included in this project
+> to handle that — no extra setup needed on those two hosts. If you use a
+> different host, look for a "SPA fallback" or "rewrite all routes to
+> index.html" option in its docs.
 
 ## How it all fits together
 

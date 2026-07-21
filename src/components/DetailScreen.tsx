@@ -658,7 +658,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
             <div className="mt-12 pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
               <span>{totalVersions} active version(s) in development tree</span>
-              <span>LayerHub GitEngine v1.2</span>
+              <span>LayerRemix GitEngine v1.2</span>
             </div>
           </div>
         </motion.div>

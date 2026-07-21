@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
           to="/"
           className="font-bold text-2xl tracking-tighter text-slate-900 cursor-pointer hover:opacity-95 select-none"
         >
-          LayerHub
+          LayerRemix
         </Link>
         <nav className="hidden md:flex gap-6 items-center">
           <Link

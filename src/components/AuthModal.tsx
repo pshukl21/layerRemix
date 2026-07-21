@@ -91,14 +91,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
             </button>
 
             <div className="mb-6 text-center">
-              <span className="font-bold text-2xl tracking-tighter text-slate-900">LayerHub</span>
+              <span className="font-bold text-2xl tracking-tighter text-slate-900">LayerRemix</span>
               <h2 className="mt-3 text-lg font-black text-slate-900">
                 {mode === 'signIn' ? 'Welcome back' : 'Create your account'}
               </h2>
               <p className="text-xs text-slate-500 font-semibold mt-1">
                 {mode === 'signIn'
                   ? 'Sign in to upload, fork, and download files.'
-                  : 'Join LayerHub to publish and download artwork.'}
+                  : 'Join LayerRemix to publish and download artwork.'}
               </p>
             </div>
 

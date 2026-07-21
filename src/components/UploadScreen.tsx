@@ -160,7 +160,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
           Publish New Work
         </h1>
         <p className="text-sm md:text-base text-slate-500 font-semibold">
-          Share your latest masterpiece with the LayerHub community.
+          Share your latest masterpiece with the LayerRemix community.
         </p>
       </header>
 

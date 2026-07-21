@@ -1,5 +1,5 @@
 -- ============================================================================
--- LayerHub database schema
+-- LayerRemix database schema
 -- Run this once in your Supabase project's SQL Editor (Dashboard -> SQL Editor
 -- -> New query -> paste this whole file -> Run).
 -- ============================================================================

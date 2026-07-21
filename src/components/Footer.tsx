@@ -9,10 +9,10 @@ export const Footer: React.FC = () => {
           to="/"
           className="font-bold text-xl tracking-tighter text-slate-900 cursor-pointer"
         >
-          LayerHub
+          LayerRemix
         </Link>
         <p className="text-slate-500 text-[11px] font-medium tracking-wide">
-          © 2026 LayerHub. The digital artist's canvas.
+          © 2026 LayerRemix. The digital artist's canvas.
         </p>
       </div>
       <nav className="flex gap-6 text-[12px] font-bold uppercase tracking-wider text-slate-600">
