@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Search, SlidersHorizontal, Download, GitFork, ArrowDown, ExternalLink } from 'lucide-react';
+import { Search, Download, GitFork, ArrowDown, ExternalLink } from 'lucide-react';
 import { Artwork } from '../types';
 
 interface ExploreScreenProps {
@@ -114,7 +114,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
           >
-            Scrapped PDSs turned to finished art.
+            The digital artist's canvas.
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -169,32 +169,30 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       {/* Main Grid Content */}
       <main className="max-w-7xl mx-auto px-6 md:px-12 py-8">
         {/* Navigation Filters */}
-        <div className="flex items-center justify-between mb-8 overflow-x-auto border-b border-slate-200 pb-2">
-          <div className="flex gap-8 whitespace-nowrap">
+        <div className="flex items-center mb-8 overflow-x-auto">
+          <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm whitespace-nowrap">
             {(['trending', 'remixed', 'recent'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`font-bold text-xs uppercase tracking-widest pb-3 transition-all relative cursor-pointer ${
-                  activeTab === tab ? 'text-blue-600' : 'text-slate-400 hover:text-slate-700'
+                className={`relative font-bold text-xs uppercase tracking-widest px-4 py-2 rounded-md transition-colors cursor-pointer ${
+                  activeTab === tab ? 'text-white' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                {tab === 'trending' && 'Trending'}
-                {tab === 'remixed' && 'Most Remixed'}
-                {tab === 'recent' && 'Recent'}
                 {activeTab === tab && (
-                  <motion.div 
+                  <motion.div
                     layoutId="exploreActiveTab"
-                    className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-full" 
+                    className="absolute inset-0 bg-blue-600 rounded-md"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
                   />
                 )}
+                <span className="relative z-10">
+                  {tab === 'trending' && 'Trending'}
+                  {tab === 'remixed' && 'Most Remixed'}
+                  {tab === 'recent' && 'Recent'}
+                </span>
               </button>
             ))}
-          </div>
-
-          <div className="flex items-center gap-2 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors">
-            <SlidersHorizontal className="w-4 h-4" />
-            <span className="font-bold text-xs uppercase tracking-wider">Filters</span>
           </div>
         </div>
 

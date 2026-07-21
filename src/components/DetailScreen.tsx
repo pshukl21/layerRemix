@@ -486,7 +486,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <div
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
-                    className="flex-1 aspect-[16/10] overflow-hidden ps-checkerboard p-1.5 cursor-crosshair relative"
+                    className="flex-1 aspect-[16/10] overflow-hidden bg-white p-1.5 cursor-crosshair relative"
                   >
                     <div className="w-full h-full rounded-md overflow-hidden relative ps-marching-ants">
                       <img
