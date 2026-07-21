@@ -51,14 +51,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   if (!user || !profile) {
     return (
-      <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
+      <div className="w-full min-h-screen text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
         <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Sign in to view your profile</h1>
         <p className="text-sm text-slate-500 font-semibold mb-6 max-w-sm">
           Create an account or sign in to publish artwork, fork designs, and see everything you've uploaded.
         </p>
         <button
           onClick={onRequireAuth}
-          className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer flex items-center gap-2 shadow-sm"
+          className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer flex items-center gap-2 shadow-sm"
         >
           <LogIn className="w-4 h-4" />
           Sign In
@@ -93,17 +93,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               handleMouseMove(e, art.id);
             }}
             onMouseLeave={handleMouseLeave}
-            className="group relative border border-slate-200 hover:border-blue-300 bg-white rounded-[28px] p-3 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+            className="group relative border border-slate-200 hover:border-blue-300 bg-white rounded-xl p-3 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
           >
-            <div className="aspect-[4/5] relative overflow-hidden ps-checkerboard rounded-[20px] border border-slate-200 p-1">
+            <div className="aspect-[4/5] relative overflow-hidden ps-checkerboard rounded-lg border border-slate-200 p-1">
               <img
                 style={isHovered ? tiltStyle : {}}
-                className="w-full h-full object-cover transition-transform duration-500 ease-out rounded-[14px]"
+                className="w-full h-full object-cover transition-transform duration-500 ease-out rounded-md"
                 src={art.image}
                 alt={art.title}
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5 rounded-[20px]">
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5 rounded-lg">
                 <div className="flex justify-between items-center text-white">
                   <div className="flex flex-col">
                     <span className="font-bold text-sm tracking-wide">{art.title}</span>
@@ -137,8 +137,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   );
 
   return (
-    <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
-      <section className="bg-white border border-slate-200 rounded-[32px] p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-10 mb-12 mt-4">
+    <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
+      <section className="bg-white border border-slate-200 rounded-xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-10 mb-12 mt-4">
         <div className="relative group select-none shrink-0">
           <div className="w-32 h-32 md:w-44 md:h-44 rounded-full border-2 border-blue-600 p-1.5 bg-slate-50 shadow-md">
             <img
@@ -159,7 +159,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
                 {profile.displayName}
               </h1>
-              <span className="text-[10px] bg-blue-50 border border-blue-100 px-3 py-1 rounded-full uppercase tracking-widest font-black text-blue-600 self-center">
+              <span className="text-[10px] bg-blue-50 border border-blue-100 px-3 py-1 rounded-lg uppercase tracking-widest font-black text-blue-600 self-center">
                 @{profile.username}
               </span>
             </div>

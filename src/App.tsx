@@ -60,7 +60,7 @@ function DetailRoute({
       );
     }
     return (
-      <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
+      <div className="w-full min-h-screen text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
         <SearchX className="w-10 h-10 text-slate-300 mb-4" />
         <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Artwork not found</h1>
         <p className="text-sm text-slate-500 font-semibold mb-6 max-w-sm">
@@ -68,7 +68,7 @@ function DetailRoute({
         </p>
         <button
           onClick={() => onSelectArtwork('')}
-          className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer shadow-sm"
+          className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer shadow-sm"
         >
           Back to Explore
         </button>
@@ -209,7 +209,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7] text-slate-900 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-600">
+    <div className="min-h-screen ps-blueprint-bg text-slate-900 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-600">
       {!isSupabaseConfigured && (
         <div className="fixed top-0 w-full z-[60] bg-amber-400 text-amber-950 text-xs font-bold text-center py-2 px-4">
           Backend isn't configured yet — accounts, uploads, and downloads won't work until Supabase is set up. See SETUP.md.
@@ -262,14 +262,14 @@ export default function App() {
                   user ? (
                     <UploadScreen onPublish={handlePublishArtwork} />
                   ) : (
-                    <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
+                    <div className="w-full min-h-screen text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
                       <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Sign in to publish artwork</h1>
                       <p className="text-sm text-slate-500 font-semibold mb-6 max-w-sm">
                         You'll need an account to upload and share your work on LayerRemix.
                       </p>
                       <button
                         onClick={() => openAuthModal('signIn')}
-                        className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer flex items-center gap-2 shadow-sm"
+                        className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer flex items-center gap-2 shadow-sm"
                       >
                         <LogIn className="w-4 h-4" />
                         Sign In
@@ -297,11 +297,11 @@ export default function App() {
               <Route
                 path="*"
                 element={
-                  <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
+                  <div className="w-full min-h-screen text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
                     <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Page not found</h1>
                     <button
                       onClick={() => navigate('/')}
-                      className="mt-4 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer shadow-sm"
+                      className="mt-4 px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-widest transition-all active:scale-95 cursor-pointer shadow-sm"
                     >
                       Back to Explore
                     </button>

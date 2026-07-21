@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil } from 'lucide-react';
+import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit } from '../lib/artworks';
@@ -342,7 +342,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
               }}
-              className={`flex-grow flex-1 bg-white border rounded-[24px] p-3 md:p-4 shadow-3xs flex flex-col sm:flex-row items-center gap-4 cursor-pointer hover:shadow-sm transition-all ${
+              className={`flex-grow flex-1 bg-white border rounded-lg p-3 md:p-4 shadow-3xs flex flex-col sm:flex-row items-center gap-4 cursor-pointer hover:shadow-sm transition-all ${
                 isCurrent 
                   ? 'border-blue-500 ring-1 ring-blue-500/10 bg-blue-50/5' 
                   : 'border-slate-200 hover:border-slate-300'
@@ -361,7 +361,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
               {/* Text details */}
               <div className="flex-grow flex-1 min-w-0 text-center sm:text-left">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mb-1">
-                  <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border ${
+                  <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-lg border ${
                     isCurrent
                       ? 'bg-blue-100 text-blue-600 border-blue-200'
                       : 'bg-slate-50 text-slate-500 border-slate-200'
@@ -369,7 +369,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                     {isOriginal ? 'Original' : 'Remix'}
                   </span>
                   {isCurrent && (
-                    <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                    <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-lg flex items-center gap-0.5">
                       <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                       Viewing
                     </span>
@@ -404,12 +404,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
               {/* Action column */}
               <div className="shrink-0 flex items-center justify-center w-full sm:w-auto">
                 {isCurrent ? (
-                  <div className="text-[9px] font-black text-blue-600 uppercase tracking-widest py-1.5 px-3.5 bg-blue-100/50 rounded-full border border-blue-200 flex items-center gap-1">
+                  <div className="text-[9px] font-black text-blue-600 uppercase tracking-widest py-1.5 px-3.5 bg-blue-100/50 rounded-lg border border-blue-200 flex items-center gap-1">
                     <Eye className="w-3 h-3" />
                     Active
                   </div>
                 ) : (
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-500 py-1.5 px-4 rounded-full bg-white transition-all shadow-3xs flex items-center gap-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-500 py-1.5 px-4 rounded-lg bg-white transition-all shadow-3xs flex items-center gap-1">
                     Explore
                     <ArrowRight className="w-2.5 h-2.5" />
                   </span>
@@ -439,7 +439,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
 
   return (
-    <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
+    <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
       {/* Dynamically adapting Back button / breadcrumb */}
       {viewMode === 'showcase' ? (
         <button 
@@ -471,29 +471,49 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         >
           {/* Main Art Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
-            {/* Left column: Image showcase as a giant premium Bento Card */}
+            {/* Left column: Image showcase as a Photoshop-style "canvas window" */}
             <div className="lg:col-span-8 flex flex-col gap-6">
-              <div 
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                className="bg-white border border-slate-200 rounded-[32px] p-3 overflow-hidden group relative cursor-crosshair shadow-sm hover:shadow-md transition-all"
-              >
-                <div className="aspect-[16/10] overflow-hidden ps-checkerboard rounded-[24px] p-1.5">
-                  <div className="w-full h-full rounded-[18px] overflow-hidden">
-                    <img
-                      style={tiltStyle}
-                      className="w-full h-full object-cover transition-transform duration-500 ease-out"
-                      src={artwork.image}
-                      alt={artwork.title}
-                      referrerPolicy="no-referrer"
-                    />
+              <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all">
+                {/* Ruler corner + horizontal ruler */}
+                <div className="flex">
+                  <div className="w-[22px] h-[22px] shrink-0 bg-[#eef1f5] border-r border-b border-slate-300" />
+                  <div className="flex-1 ps-ruler-h" />
+                </div>
+                <div className="flex">
+                  {/* Vertical ruler */}
+                  <div className="ps-ruler-v shrink-0" />
+
+                  <div
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    className="flex-1 aspect-[16/10] overflow-hidden ps-checkerboard p-1.5 cursor-crosshair relative"
+                  >
+                    <div className="w-full h-full rounded-md overflow-hidden relative ps-marching-ants">
+                      <img
+                        style={tiltStyle}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out"
+                        src={artwork.image}
+                        alt={artwork.title}
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    {/* Resolution indicator banner */}
+                    <div className="absolute inset-x-1.5 bottom-1.5 bg-gradient-to-t from-slate-950/80 to-transparent p-6 opacity-0 group-hover:opacity-100 transition-opacity flex items-end rounded-b-md">
+                      <span className="text-[10px] font-bold tracking-widest uppercase text-white/95 bg-slate-950/40 px-3.5 py-2 rounded-lg border border-white/10 backdrop-blur-md ps-stat">
+                        {artwork.resolution || '4096 x 2304 PX • 32-BIT COLOR'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                {/* Resolution indicator banner */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 to-transparent p-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-end rounded-b-[32px]">
-                  <span className="text-[10px] font-bold tracking-widest uppercase text-white/95 bg-slate-950/40 px-3.5 py-2 rounded-full border border-white/10 backdrop-blur-md ps-stat">
-                    {artwork.resolution || '4096 x 2304 PX • 32-BIT COLOR'}
+
+                {/* Persistent status bar — always visible, Photoshop-doc-window style */}
+                <div className="ps-statusbar">
+                  <span className="flex items-center gap-1.5">
+                    <ZoomIn className="w-3 h-3" />
+                    100%
                   </span>
+                  <span>{artwork.resolution || '4096 x 2304 PX'}</span>
+                  <span>{artwork.type === 'Original' ? 'Original' : 'Remix'} · RGB/8</span>
                 </div>
               </div>
             </div>
@@ -502,10 +522,10 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
             <div className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-24">
               
               {/* Card 1: Core details, Author, Tags & Description */}
-              <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm flex flex-col gap-4">
+              <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="bg-blue-50 text-blue-600 font-bold text-[9px] uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-blue-100">
+                    <span className="bg-blue-50 text-blue-600 font-bold text-[9px] uppercase tracking-wider px-2.5 py-0.5 rounded-lg border border-blue-100">
                       {artwork.type === 'Original' ? 'Original Work' : 'Remixed Design'}
                     </span>
                     <span className="text-slate-400 text-[10px] font-bold">{artwork.timeAgo}</span>
@@ -561,7 +581,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   {artwork.tags.map((tag) => (
                     <span 
                       key={tag}
-                      className="px-3 py-1 bg-slate-100 border border-slate-200/60 text-slate-500 rounded-full text-[10px] font-bold tracking-wider uppercase"
+                      className="px-3 py-1 bg-slate-100 border border-slate-200/60 text-slate-500 rounded-lg text-[10px] font-bold tracking-wider uppercase"
                     >
                       #{tag}
                     </span>
@@ -570,8 +590,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
               </div>
      
               {/* Card 2: Core Action Buttons */}
-              <div className="bg-white border border-slate-200 rounded-[32px] shadow-sm overflow-hidden">
-                <div className="ps-panel-header rounded-t-[32px]">
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="ps-panel-header rounded-t-lg">
                   <span className="w-2 h-2 rounded-full bg-blue-500" />
                   <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Downloads & Lineage</h2>
                 </div>
@@ -579,7 +599,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 <button
                   onClick={handleDownloadClick}
                   disabled={downloading}
-                  className="w-full bg-blue-600 text-white py-3.5 rounded-full font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm disabled:opacity-60 cursor-pointer"
+                  className="w-full bg-blue-600 text-white py-3.5 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm disabled:opacity-60 cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   {downloading
@@ -592,48 +612,66 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   {isOwnArtwork ? 'Free — this is your upload' : 'Costs 1 download credit'}
                 </p>
                 {downloadError && (
-                  <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
+                  <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">
                     {downloadError}
                   </p>
                 )}
-                <button
-                  onClick={handleForkClick}
-                  className="w-full border border-slate-200 bg-white text-slate-800 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <GitFork className="w-4 h-4 text-blue-600" />
-                  Fork Design
-                </button>
-                {user && user.id === artwork.ownerId && !artwork.isDemo && (
+
+                {/* Secondary actions as a compact icon toolbar, Photoshop-tool-strip style */}
+                <div className="grid grid-cols-3 gap-1.5 bg-slate-100 border border-slate-200 rounded-lg p-1.5 mt-1">
                   <button
-                    onClick={() => setEditModalOpen(true)}
-                    className="w-full border border-slate-200 bg-white text-slate-800 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all cursor-pointer"
+                    onClick={handleForkClick}
+                    title="Fork Design"
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-md bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 transition-all cursor-pointer active:scale-95"
                   >
-                    <Pencil className="w-4 h-4 text-blue-600" />
-                    Edit Details
+                    <GitFork className="w-4 h-4 text-blue-600" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider">Fork</span>
                   </button>
-                )}
-                <button
-                  onClick={() => {
-                    setViewMode('tree');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="w-full border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <History className="w-4 h-4 text-blue-600" />
-                  View Timeline Tree
-                </button>
+                  <button
+                    onClick={() => {
+                      setViewMode('tree');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    title="View Timeline Tree"
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-md bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 transition-all cursor-pointer active:scale-95"
+                  >
+                    <History className="w-4 h-4 text-blue-600" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider">Tree</span>
+                  </button>
+                  {user && user.id === artwork.ownerId && !artwork.isDemo ? (
+                    <button
+                      onClick={() => setEditModalOpen(true)}
+                      title="Edit Details"
+                      className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-md bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 transition-all cursor-pointer active:scale-95"
+                    >
+                      <Pencil className="w-4 h-4 text-blue-600" />
+                      <span className="text-[9px] font-bold uppercase tracking-wider">Edit</span>
+                    </button>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-md text-slate-300">
+                      <Layers className="w-4 h-4" />
+                      <span className="text-[9px] font-bold uppercase tracking-wider">—</span>
+                    </div>
+                  )}
+                </div>
                 </div>
               </div>
 
               {/* Card 3: Core Stats counters */}
-              <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm grid grid-cols-2 gap-4 text-center select-none ps-stat">
-                <div className="flex flex-col p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-slate-900 text-xl font-black">{artwork.forks}</span>
-                  <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Forks</span>
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="ps-panel-header rounded-t-lg">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Engagement Stats</h2>
                 </div>
-                <div className="flex flex-col p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <span className="text-slate-900 text-xl font-black">{artwork.views}</span>
-                  <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Views</span>
+                <div className="grid grid-cols-2 gap-4 text-center select-none ps-stat p-6">
+                  <div className="flex flex-col p-4 bg-slate-50 border border-slate-100 rounded-lg">
+                    <span className="text-slate-900 text-xl font-black">{artwork.forks}</span>
+                    <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Forks</span>
+                  </div>
+                  <div className="flex flex-col p-4 bg-slate-50 border border-slate-100 rounded-lg">
+                    <span className="text-slate-900 text-xl font-black">{artwork.views}</span>
+                    <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Views</span>
+                  </div>
                 </div>
               </div>
 
@@ -682,7 +720,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           transition={{ duration: 0.4 }}
           className="space-y-8"
         >
-          <header className="bg-white border border-slate-200 rounded-[32px] p-8 shadow-sm">
+          <header className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm">
             <span className="text-blue-600 text-xs font-black uppercase tracking-widest mb-1.5 block">
               Artwork Heritage
             </span>
@@ -695,7 +733,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
             </p>
           </header>
 
-          <div className="bg-white border border-slate-200 rounded-[32px] p-6 md:p-10 shadow-sm relative overflow-hidden">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 md:p-10 shadow-sm relative overflow-hidden">
             {/* Background design accents */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(rgba(15,23,42,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.15)_1px,transparent_1px)] bg-[size:24px_24px]" />
             
@@ -725,7 +763,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           transition={{ duration: 0.3 }}
           className="space-y-8"
         >
-          <header className="bg-white border border-slate-200 rounded-[32px] p-8 shadow-sm">
+          <header className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm">
             <span className="text-blue-600 text-xs font-black uppercase tracking-widest mb-1.5 block">
               Remix Engine
             </span>
@@ -742,7 +780,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
             <div className="lg:col-span-7 space-y-6">
               
               {/* Parent Artwork reference info */}
-              <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm flex items-center gap-4">
+              <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center gap-4">
                 <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 border border-slate-100 bg-slate-50">
                   <img src={artwork.image} className="w-full h-full object-cover" alt="Parent project" />
                 </div>
@@ -760,14 +798,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
               </div>
 
               {/* Source PSD upload box */}
-              <div className="bg-white border border-slate-200 rounded-[32px] p-3 shadow-sm">
+              <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
                 <div
                   onClick={() => forkPsdInputRef.current?.click()}
                   onDragEnter={handleForkPsdDrag}
                   onDragOver={handleForkPsdDrag}
                   onDragLeave={handleForkPsdDrag}
                   onDrop={handleForkPsdDrop}
-                  className={`border-2 border-dashed rounded-[24px] p-12 transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
+                  className={`border-2 border-dashed rounded-lg p-12 transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
                     psdDragActive 
                       ? 'border-blue-500 bg-blue-50/30' 
                       : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50/20'
@@ -792,14 +830,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
               </div>
 
               {/* Preview image upload box */}
-              <div className="bg-white border border-slate-200 rounded-[32px] p-3 shadow-sm">
+              <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
                 <div
                   onClick={() => forkImgInputRef.current?.click()}
                   onDragEnter={handleForkImgDrag}
                   onDragOver={handleForkImgDrag}
                   onDragLeave={handleForkImgDrag}
                   onDrop={handleForkImgDrop}
-                  className={`border-2 border-dashed rounded-[24px] p-12 h-80 transition-all cursor-pointer flex flex-col items-center justify-center text-center group relative overflow-hidden ${
+                  className={`border-2 border-dashed rounded-lg p-12 h-80 transition-all cursor-pointer flex flex-col items-center justify-center text-center group relative overflow-hidden ${
                     imgDragActive 
                       ? 'border-blue-500 bg-blue-50/30' 
                       : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50/20'
@@ -816,12 +854,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   {forkImgPreview ? (
                     <>
                       <img 
-                        className="absolute inset-0 w-full h-full object-cover rounded-[24px] z-0" 
+                        className="absolute inset-0 w-full h-full object-cover rounded-lg z-0" 
                         src={forkImgPreview} 
                         alt="Fork Preview Render"
                         referrerPolicy="no-referrer"
                       />
-                      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10 p-4 rounded-[24px]">
+                      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10 p-4 rounded-lg">
                         <ImageIcon className="w-8 h-8 text-blue-400 mb-2" />
                         <span className="text-xs font-bold text-white uppercase tracking-wider">Change Preview Image</span>
                       </div>
@@ -842,7 +880,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
             {/* Right Column: Metadata form */}
             <div className="lg:col-span-5">
-              <div className="bg-white border border-slate-200 p-8 rounded-[32px] space-y-6 lg:sticky lg:top-24 shadow-sm">
+              <div className="bg-white border border-slate-200 p-8 rounded-xl space-y-6 lg:sticky lg:top-24 shadow-sm">
                 
                 {/* Title */}
                 <div className="space-y-2">
@@ -913,7 +951,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 <button 
                   type="submit"
                   disabled={forkSubmitting}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-full text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-lg text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-4 h-4 fill-white/10" />
                   {forkSubmitting ? 'Publishing…' : 'Publish Remix'}

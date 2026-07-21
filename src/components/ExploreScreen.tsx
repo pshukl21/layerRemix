@@ -89,9 +89,9 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-24 pb-12">
+    <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
       {/* Hero Section styled as a premium Large Bento Card */}
-      <section className="relative h-[420px] md:h-[480px] flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-[32px] mx-4 md:mx-12 my-6 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
+      <section className="relative h-[420px] md:h-[480px] flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-xl mx-4 md:mx-12 my-6 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
         {/* Decorative Bento Grid Line Overlays */}
         <div className="absolute inset-0 opacity-[0.14] pointer-events-none ps-grid-bg" />
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-500/5 blur-[120px]" />
@@ -104,7 +104,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.5 }}
             className="mb-4"
           >
-            <span className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
+            <span className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
               ⚡ Creative Hub
             </span>
           </motion.div>
@@ -156,7 +156,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 <button
                   key={tag}
                   onClick={() => handleTagClick(tag)}
-                  className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3.5 py-1 rounded-full transition-all cursor-pointer"
+                  className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3.5 py-1 rounded-md transition-all cursor-pointer"
                 >
                   #{tag}
                 </button>
@@ -200,7 +200,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
         {/* Art Cards Grid */}
         {filteredArtworks.length === 0 ? (
-          <div className="py-24 text-center bg-white rounded-[32px] border border-slate-200 p-8 shadow-sm">
+          <div className="py-24 text-center bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
             <p className="text-slate-400 text-sm mb-2 font-semibold">No artwork matches your search criteria.</p>
             <button 
               onClick={() => { setLocalSearch(''); setSearchQuery(''); }}
@@ -217,10 +217,10 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 layout
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.3 }}
-                className="group relative flex flex-col gap-4 p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-[28px] shadow-sm hover:shadow-md transition-all duration-300"
+                className="group relative flex flex-col gap-4 p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
               >
                 {/* Image Wrap — checkerboard matte peeks around the edges, Photoshop-canvas style */}
-                <div className="aspect-[4/5] overflow-hidden rounded-[20px] relative ps-checkerboard border border-slate-200 p-1">
+                <div className="aspect-[4/5] overflow-hidden rounded-lg relative ps-checkerboard border border-slate-200 p-1">
                   <div className="w-full h-full rounded-2xl overflow-hidden relative">
                     <img
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -273,7 +273,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
         {/* Load More Pagination Button */}
         {filteredArtworks.length > 0 && (
           <div className="flex justify-center pb-8">
-            <button className="px-8 py-3.5 border border-slate-200 bg-white shadow-sm hover:border-blue-600 text-slate-800 hover:text-blue-600 transition-all rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95">
+            <button className="px-8 py-3.5 border border-slate-200 bg-white shadow-sm hover:border-blue-600 text-slate-800 hover:text-blue-600 transition-all rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95">
               <span>Discover More Art</span>
               <ArrowDown className="w-4 h-4 animate-bounce text-blue-600" />
             </button>

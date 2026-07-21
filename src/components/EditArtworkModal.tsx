@@ -103,7 +103,7 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg bg-white rounded-[32px] shadow-2xl border border-slate-200 p-8 my-auto"
+            className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 p-8 my-auto"
           >
             <button
               onClick={onClose}
@@ -210,14 +210,14 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-3.5 rounded-full border border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-widest hover:border-slate-300 transition-all cursor-pointer"
+                  className="flex-1 py-3.5 rounded-lg border border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-widest hover:border-slate-300 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-3.5 rounded-full text-white font-bold text-xs tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-3.5 rounded-lg text-white font-bold text-xs tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-4 h-4 fill-white/10" />
                   {submitting ? 'Saving…' : 'Save Changes'}

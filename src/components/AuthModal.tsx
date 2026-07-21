@@ -81,7 +81,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-sm bg-white rounded-[32px] shadow-2xl border border-slate-200 p-8"
+            className="relative w-full max-w-sm bg-white rounded-xl shadow-2xl border border-slate-200 p-8"
           >
             <button
               onClick={handleClose}
@@ -162,7 +162,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-3.5 rounded-full text-white font-bold text-xs tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-3.5 rounded-lg text-white font-bold text-xs tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-4 h-4 fill-white/10" />
                 {submitting ? 'Please wait…' : mode === 'signIn' ? 'Sign In' : 'Create Account'}

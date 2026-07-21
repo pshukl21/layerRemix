@@ -154,7 +154,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#F2F2F7] text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
+    <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
       <header className="mb-12 mt-4 text-center md:text-left">
         <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 mb-2 font-sans">
           Publish New Work
@@ -168,14 +168,14 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
         {/* Left Column: File Drop-Zones */}
         <div className="lg:col-span-7 space-y-6">
           {/* Source PSD upload box */}
-          <div className="bg-white border border-slate-200 rounded-[32px] p-3 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
             <div
               onClick={() => psdInputRef.current?.click()}
               onDragEnter={handlePsdDrag}
               onDragOver={handlePsdDrag}
               onDragLeave={handlePsdDrag}
               onDrop={handlePsdDrop}
-              className={`border-2 border-dashed rounded-[24px] p-12 transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
+              className={`border-2 border-dashed rounded-lg p-12 transition-all cursor-pointer flex flex-col items-center justify-center text-center group ${
                 psdDragActive 
                   ? 'border-blue-500 bg-blue-50/30' 
                   : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50/20'
@@ -200,14 +200,14 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
           </div>
 
           {/* Preview image upload box */}
-          <div className="bg-white border border-slate-200 rounded-[32px] p-3 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
             <div
               onClick={() => imgInputRef.current?.click()}
               onDragEnter={handleImgDrag}
               onDragOver={handleImgDrag}
               onDragLeave={handleImgDrag}
               onDrop={handleImgDrop}
-              className={`border-2 border-dashed rounded-[24px] p-12 h-80 transition-all cursor-pointer flex flex-col items-center justify-center text-center group relative overflow-hidden ${
+              className={`border-2 border-dashed rounded-lg p-12 h-80 transition-all cursor-pointer flex flex-col items-center justify-center text-center group relative overflow-hidden ${
                 imgDragActive 
                   ? 'border-blue-500 bg-blue-50/30' 
                   : previewImage
@@ -231,7 +231,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
                     alt="Preview Render"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10 p-4 rounded-[24px]">
+                  <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10 p-4 rounded-lg">
                     <ImageIcon className="w-8 h-8 text-blue-400 mb-2" />
                     <span className="text-xs font-bold text-white uppercase tracking-wider">Change Preview Image</span>
                   </div>
@@ -251,7 +251,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
 
         {/* Right Column: Metadata Form */}
         <div className="lg:col-span-5">
-          <div className="bg-white border border-slate-200 p-8 rounded-[32px] space-y-6 lg:sticky lg:top-24 shadow-sm">
+          <div className="bg-white border border-slate-200 p-8 rounded-xl space-y-6 lg:sticky lg:top-24 shadow-sm">
             {/* Title Input */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
@@ -297,7 +297,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
                   <span
                     key={tag}
                     onClick={() => handlePresetTagClick(tag)}
-                    className="bg-slate-100 border border-slate-200/80 text-slate-600 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-300 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide cursor-pointer transition-all"
+                    className="bg-slate-100 border border-slate-200/80 text-slate-600 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-300 px-3 py-1 rounded-lg text-[10px] font-bold tracking-wide cursor-pointer transition-all"
                   >
                     #{tag}
                   </span>
@@ -332,7 +332,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
             <button 
               type="submit"
               disabled={submitting}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-full text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-lg text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4 fill-white/10" />
               {submitting ? 'Publishing…' : 'Publish Art'}

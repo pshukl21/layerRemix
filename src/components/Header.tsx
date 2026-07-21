@@ -73,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
         <div className="flex items-center gap-4">
           <button
             onClick={handleUploadClick}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
               isUpload
                 ? 'bg-slate-200 text-slate-800'
                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs'
@@ -144,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
           ) : (
             <button
               onClick={onRequireAuth}
-              className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider border border-slate-200 text-slate-700 hover:border-blue-600 hover:text-blue-600 transition-all active:scale-95 cursor-pointer"
+              className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-slate-200 text-slate-700 hover:border-blue-600 hover:text-blue-600 transition-all active:scale-95 cursor-pointer"
             >
               Sign In
             </button>
