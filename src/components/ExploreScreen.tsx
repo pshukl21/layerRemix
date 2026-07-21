@@ -114,7 +114,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
           >
-            The digital artist's canvas.
+            Where scrapped PSDs become finished art.
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
