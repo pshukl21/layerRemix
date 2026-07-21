@@ -2,21 +2,6 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"path": "../layerhub (4)/public"
-		},
-		{
-			"path": "../layerhub (2)/assets"
-		},
-		{
-			"path": "../layerhub (2)/public"
-		},
-		{
-			"path": "../layerhub (2)/src"
-		},
-		{
-			"path": "../layerhub (2)/supabase"
 		}
 	],
 	"settings": {}
