@@ -168,14 +168,14 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
                   }}
                   onDragLeave={() => setDragActive(false)}
                   onDrop={handleDrop}
-                  className={`relative aspect-[16/9] rounded-2xl border-2 border-dashed overflow-hidden cursor-pointer transition-colors flex items-center justify-center ${
-                    dragActive ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                  className={`relative aspect-[16/9] rounded-2xl border-2 border-dashed overflow-hidden cursor-pointer transition-colors flex items-center justify-center ps-checkerboard p-1 ${
+                    dragActive ? 'border-blue-600 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
                   <img
                     src={previewUrl || artwork.image}
                     alt="Cover preview"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-xl"
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-slate-950/0 hover:bg-slate-950/40 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">

@@ -95,10 +95,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             onMouseLeave={handleMouseLeave}
             className="group relative border border-slate-200 hover:border-blue-300 bg-white rounded-[28px] p-3 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
           >
-            <div className="aspect-[4/5] relative overflow-hidden bg-slate-50 rounded-[20px] border border-slate-100">
+            <div className="aspect-[4/5] relative overflow-hidden ps-checkerboard rounded-[20px] border border-slate-200 p-1">
               <img
                 style={isHovered ? tiltStyle : {}}
-                className="w-full h-full object-cover transition-transform duration-500 ease-out"
+                className="w-full h-full object-cover transition-transform duration-500 ease-out rounded-[14px]"
                 src={art.image}
                 alt={art.title}
                 referrerPolicy="no-referrer"
@@ -168,7 +168,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center md:justify-start gap-4">
+          <div className="flex flex-wrap justify-center md:justify-start gap-4 ps-stat">
             <div className="flex flex-col items-center justify-center bg-amber-50 border border-amber-200 px-6 py-3 rounded-2xl min-w-[100px] shadow-2xs">
               <span className="flex items-center gap-1.5 text-xl md:text-2xl font-black text-amber-600">
                 <Coins className="w-5 h-5" />

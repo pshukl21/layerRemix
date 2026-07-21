@@ -210,7 +210,9 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               className={`border-2 border-dashed rounded-[24px] p-12 h-80 transition-all cursor-pointer flex flex-col items-center justify-center text-center group relative overflow-hidden ${
                 imgDragActive 
                   ? 'border-blue-500 bg-blue-50/30' 
-                  : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50/20'
+                  : previewImage
+                  ? 'border-slate-200 hover:border-blue-500'
+                  : 'border-slate-200 hover:border-blue-500 ps-checkerboard'
               }`}
             >
               <input

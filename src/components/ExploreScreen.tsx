@@ -93,7 +93,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       {/* Hero Section styled as a premium Large Bento Card */}
       <section className="relative h-[420px] md:h-[480px] flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-[32px] mx-4 md:mx-12 my-6 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
         {/* Decorative Bento Grid Line Overlays */}
-        <div className="absolute inset-0 opacity-[0.07] pointer-events-none bg-[linear-gradient(rgba(15,23,42,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.15)_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="absolute inset-0 opacity-[0.14] pointer-events-none ps-grid-bg" />
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-500/5 blur-[120px]" />
         <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-500/10 blur-[120px]" />
 
@@ -105,7 +105,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             className="mb-4"
           >
             <span className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
-            🎨 Creative Hub
+              ⚡ Creative Hub
             </span>
           </motion.div>
           <motion.h1 
@@ -114,7 +114,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
           >
-            Where unfinished PSDs become finished art.
+            The digital artist's canvas.
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -219,23 +219,25 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 transition={{ duration: 0.3 }}
                 className="group relative flex flex-col gap-4 p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-[28px] shadow-sm hover:shadow-md transition-all duration-300"
               >
-                {/* Image Wrap */}
-                <div className="aspect-[4/5] overflow-hidden rounded-[20px] relative bg-slate-50 border border-slate-100">
-                  <img
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    src={art.image}
-                    alt={art.title}
-                    referrerPolicy="no-referrer"
-                  />
-                  {/* Subtle fade overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                    <button
-                      onClick={() => onSelectArtwork(art.id)}
-                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                    >
-                      View Project
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
+                {/* Image Wrap — checkerboard matte peeks around the edges, Photoshop-canvas style */}
+                <div className="aspect-[4/5] overflow-hidden rounded-[20px] relative ps-checkerboard border border-slate-200 p-1">
+                  <div className="w-full h-full rounded-2xl overflow-hidden relative">
+                    <img
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      src={art.image}
+                      alt={art.title}
+                      referrerPolicy="no-referrer"
+                    />
+                    {/* Subtle fade overlay on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                      <button
+                        onClick={() => onSelectArtwork(art.id)}
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                      >
+                        View Project
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -251,7 +253,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     <span className="text-xs text-slate-400 font-bold">
                       by @{art.author}
                     </span>
-                    <div className="flex gap-3 text-slate-400 text-xs font-semibold">
+                    <div className="flex gap-3 text-slate-400 text-xs font-semibold ps-stat">
                       <div className="flex items-center gap-1" title="Downloads">
                         <Download className="w-3.5 h-3.5" />
                         <span>{art.downloads}</span>

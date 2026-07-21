@@ -259,33 +259,37 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     document.body.removeChild(link);
   };
 
-  const handleDownloadClick = async () => {
+  const handleDownloadClick = () => {
     if (!user) {
       onRequireAuth();
       return;
     }
     setDownloadError(null);
 
-    if (!isOwnArtwork) {
-      if ((profile?.credits ?? 0) < 1) {
-        setDownloadError("You're out of download credits. Publish an original piece or a remix to earn more.");
-        return;
-      }
-      setDownloading(true);
-      const { error } = await spendDownloadCredit(user.id);
-      if (error) {
-        setDownloading(false);
-        setDownloadError(error);
-        return;
-      }
-      await refreshProfile();
-      setDownloading(false);
+    if (!isOwnArtwork && (profile?.credits ?? 0) < 1) {
+      setDownloadError("You're out of download credits. Publish an original piece or a remix to earn more.");
+      return;
     }
 
+    // Trigger the download immediately, synchronously, within this click —
+    // browsers silently ignore programmatic downloads once you `await`
+    // something first, since the "real user click" window has closed by then.
+    triggerFileDownload(downloadTarget.url, downloadTarget.filename);
     if (!artwork.isDemo) {
       incrementDownloads(artwork.id, Number(artwork.downloads) || 0);
     }
-    triggerFileDownload(downloadTarget.url, downloadTarget.filename);
+
+    if (!isOwnArtwork) {
+      setDownloading(true);
+      spendDownloadCredit(user.id).then(({ error }) => {
+        setDownloading(false);
+        if (error) {
+          setDownloadError(error);
+          return;
+        }
+        refreshProfile();
+      });
+    }
   };
 
   const renderTimeline = (compact: boolean = false) => {
@@ -474,18 +478,20 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 onMouseLeave={handleMouseLeave}
                 className="bg-white border border-slate-200 rounded-[32px] p-3 overflow-hidden group relative cursor-crosshair shadow-sm hover:shadow-md transition-all"
               >
-                <div className="aspect-[16/10] overflow-hidden bg-slate-100 rounded-[24px]">
-                  <img
-                    style={tiltStyle}
-                    className="w-full h-full object-cover transition-transform duration-500 ease-out"
-                    src={artwork.image}
-                    alt={artwork.title}
-                    referrerPolicy="no-referrer"
-                  />
+                <div className="aspect-[16/10] overflow-hidden ps-checkerboard rounded-[24px] p-1.5">
+                  <div className="w-full h-full rounded-[18px] overflow-hidden">
+                    <img
+                      style={tiltStyle}
+                      className="w-full h-full object-cover transition-transform duration-500 ease-out"
+                      src={artwork.image}
+                      alt={artwork.title}
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
                 </div>
                 {/* Resolution indicator banner */}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 to-transparent p-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-end rounded-b-[32px]">
-                  <span className="text-[10px] font-bold tracking-widest uppercase text-white/95 bg-slate-950/40 px-3.5 py-2 rounded-full border border-white/10 backdrop-blur-md">
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-white/95 bg-slate-950/40 px-3.5 py-2 rounded-full border border-white/10 backdrop-blur-md ps-stat">
                     {artwork.resolution || '4096 x 2304 PX • 32-BIT COLOR'}
                   </span>
                 </div>
@@ -564,8 +570,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
               </div>
      
               {/* Card 2: Core Action Buttons */}
-              <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm flex flex-col gap-3">
-                <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Downloads & Lineage</h2>
+              <div className="bg-white border border-slate-200 rounded-[32px] shadow-sm overflow-hidden">
+                <div className="ps-panel-header rounded-t-[32px]">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Downloads & Lineage</h2>
+                </div>
+                <div className="p-6 flex flex-col gap-3">
                 <button
                   onClick={handleDownloadClick}
                   disabled={downloading}
@@ -612,10 +622,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <History className="w-4 h-4 text-blue-600" />
                   View Timeline Tree
                 </button>
+                </div>
               </div>
-     
+
               {/* Card 3: Core Stats counters */}
-              <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm grid grid-cols-2 gap-4 text-center select-none">
+              <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm grid grid-cols-2 gap-4 text-center select-none ps-stat">
                 <div className="flex flex-col p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                   <span className="text-slate-900 text-xl font-black">{artwork.forks}</span>
                   <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Forks</span>
