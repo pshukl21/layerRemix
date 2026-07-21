@@ -11,6 +11,7 @@ interface AuthContextValue {
   signUp: (email: string, password: string, username: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -22,6 +23,7 @@ function mapProfile(row: any): Profile {
     displayName: row.display_name,
     avatarUrl: row.avatar_url,
     bio: row.bio || '',
+    credits: typeof row.credits === 'number' ? row.credits : 0,
     createdAt: row.created_at,
   };
 }
@@ -98,8 +100,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
+  // Re-fetches the current user's profile row — used after actions that
+  // change server-side state we display (e.g. spending or earning credits).
+  const refreshProfile = async () => {
+    if (user) {
+      await loadProfile(user.id);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, session, loading, signUp, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

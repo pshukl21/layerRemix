@@ -95,7 +95,73 @@ create policy "Users can delete their own artworks"
   using (auth.uid() = owner_id);
 
 -- ---------------------------------------------------------------------------
--- 3. STORAGE BUCKETS
+-- 4. DOWNLOAD CREDITS ("Give to Get" karma system)
+-- Every user starts with 1 credit. Publishing an original artwork earns 3
+-- more; publishing a remix earns 2 more. Downloading someone else's file
+-- costs 1 credit.
+--
+-- Credits are only ever granted by the trigger below — a side effect of a
+-- real artwork row being inserted, which is already gated by the "Users can
+-- publish their own artworks" RLS policy above. There is intentionally no
+-- client-callable "add credits" function, so nobody can mint credits without
+-- actually publishing something.
+-- ---------------------------------------------------------------------------
+alter table public.profiles
+  add column if not exists credits integer not null default 1;
+
+create or replace function public.handle_new_artwork_credits()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  reward integer;
+begin
+  reward := case when new.type = 'Remix' then 2 else 3 end;
+  update public.profiles
+  set credits = credits + reward
+  where id = new.owner_id;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_artwork_published on public.artworks;
+create trigger on_artwork_published
+  after insert on public.artworks
+  for each row execute procedure public.handle_new_artwork_credits();
+
+-- Atomically spends one credit for the currently authenticated user.
+-- Restricted to auth.uid() = p_user_id so nobody can spend down someone
+-- else's balance; raises an exception if they have no credits left.
+create or replace function public.spend_credit(p_user_id uuid)
+returns integer
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  new_balance integer;
+begin
+  if auth.uid() is null or auth.uid() <> p_user_id then
+    raise exception 'Not authorized';
+  end if;
+
+  update public.profiles
+  set credits = credits - 1
+  where id = p_user_id and credits > 0
+  returning credits into new_balance;
+
+  if new_balance is null then
+    raise exception 'Not enough credits';
+  end if;
+
+  return new_balance;
+end;
+$$;
+
+grant execute on function public.spend_credit(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 5. STORAGE BUCKETS
 -- "previews" holds public gallery thumbnails/preview images.
 -- "source-files" holds the original uploaded files (e.g. .psd).
 -- Both are public-read buckets so the gallery + downloads work with plain

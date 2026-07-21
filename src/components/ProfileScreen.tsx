@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Check, Heart, Download, LogIn } from 'lucide-react';
+import { Check, Heart, Download, LogIn, Coins } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads } from '../lib/artworks';
@@ -169,6 +169,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </div>
 
           <div className="flex flex-wrap justify-center md:justify-start gap-4">
+            <div className="flex flex-col items-center justify-center bg-amber-50 border border-amber-200 px-6 py-3 rounded-2xl min-w-[100px] shadow-2xs">
+              <span className="flex items-center gap-1.5 text-xl md:text-2xl font-black text-amber-600">
+                <Coins className="w-5 h-5" />
+                {profile.credits}
+              </span>
+              <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Credits</span>
+            </div>
             <div className="flex flex-col items-center justify-center bg-slate-50 border border-slate-100 px-6 py-3 rounded-2xl min-w-[100px] shadow-2xs">
               <span className="text-xl md:text-2xl font-black text-blue-600">{remixedArt.length}</span>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Remixes</span>
@@ -182,6 +189,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Creations</span>
             </div>
           </div>
+          <p className="text-[11px] text-slate-400 font-semibold mt-3 text-center md:text-left">
+            Downloading someone else's file costs 1 credit. Publish an original piece to earn 3, or a remix to earn 2.
+          </p>
         </div>
       </section>
 

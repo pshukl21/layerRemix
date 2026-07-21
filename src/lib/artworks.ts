@@ -231,3 +231,17 @@ export function getDownloadTarget(artwork: Artwork): { url: string; filename: st
 export async function incrementDownloads(artworkId: string, currentCount: number): Promise<void> {
   await supabase.from('artworks').update({ downloads: currentCount + 1 }).eq('id', artworkId);
 }
+
+// Atomically spends one download credit for the given user via the
+// `spend_credit` RPC (server-side guarded — see supabase/schema.sql).
+// Returns the new balance on success, or an error if they had none left.
+export async function spendDownloadCredit(userId: string): Promise<{ credits: number | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('spend_credit', { p_user_id: userId });
+  if (error) {
+    if (error.message.includes('Not enough credits')) {
+      return { credits: null, error: "You're out of download credits. Publish an original piece or a remix to earn more." };
+    }
+    return { credits: null, error: error.message };
+  }
+  return { credits: data as number, error: null };
+}

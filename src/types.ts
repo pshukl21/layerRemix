@@ -40,5 +40,6 @@ export interface Profile {
   displayName: string;
   avatarUrl: string | null;
   bio: string;
+  credits: number;
   createdAt: string;
 }

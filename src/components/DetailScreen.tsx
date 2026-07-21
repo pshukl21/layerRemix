@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { getDownloadTarget, incrementDownloads } from '../lib/artworks';
+import { getDownloadTarget, incrementDownloads, spendDownloadCredit } from '../lib/artworks';
 import { EditArtworkModal } from './EditArtworkModal';
 
 interface DetailScreenProps {
@@ -34,7 +34,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   onPublishFork,
   onUpdateArtwork,
 }) => {
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [viewMode, setViewMode] = useState<'showcase' | 'tree' | 'fork'>('showcase');
   const [forkSubmitting, setForkSubmitting] = useState(false);
@@ -244,18 +244,49 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDownloadClick = (e: React.MouseEvent) => {
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadTarget = getDownloadTarget(artwork);
+  const isOwnArtwork = !!user && user.id === artwork.ownerId;
+
+  const triggerFileDownload = (url: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadClick = async () => {
     if (!user) {
-      e.preventDefault();
       onRequireAuth();
       return;
     }
+    setDownloadError(null);
+
+    if (!isOwnArtwork) {
+      if ((profile?.credits ?? 0) < 1) {
+        setDownloadError("You're out of download credits. Publish an original piece or a remix to earn more.");
+        return;
+      }
+      setDownloading(true);
+      const { error } = await spendDownloadCredit(user.id);
+      if (error) {
+        setDownloading(false);
+        setDownloadError(error);
+        return;
+      }
+      await refreshProfile();
+      setDownloading(false);
+    }
+
     if (!artwork.isDemo) {
       incrementDownloads(artwork.id, Number(artwork.downloads) || 0);
     }
+    triggerFileDownload(downloadTarget.url, downloadTarget.filename);
   };
-
-  const downloadTarget = getDownloadTarget(artwork);
 
   const renderTimeline = (compact: boolean = false) => {
     const renderTreeNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
@@ -535,15 +566,26 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
               {/* Card 2: Core Action Buttons */}
               <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm flex flex-col gap-3">
                 <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Downloads & Lineage</h2>
-                <a
-                  href={downloadTarget.url}
-                  download={downloadTarget.filename}
+                <button
                   onClick={handleDownloadClick}
-                  className="w-full bg-blue-600 text-white py-3.5 rounded-full font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm"
+                  disabled={downloading}
+                  className="w-full bg-blue-600 text-white py-3.5 rounded-full font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm disabled:opacity-60 cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
-                  {artwork.sourceFilePath ? 'Download PSD' : 'Download Image'}
-                </a>
+                  {downloading
+                    ? 'Downloading…'
+                    : artwork.sourceFilePath
+                    ? 'Download PSD'
+                    : 'Download Image'}
+                </button>
+                <p className="text-[11px] font-semibold text-slate-400 text-center -mt-1.5">
+                  {isOwnArtwork ? 'Free — this is your upload' : 'Costs 1 download credit'}
+                </p>
+                {downloadError && (
+                  <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
+                    {downloadError}
+                  </p>
+                )}
                 <button
                   onClick={handleForkClick}
                   className="w-full border border-slate-200 bg-white text-slate-800 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all cursor-pointer"

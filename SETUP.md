@@ -108,3 +108,27 @@ talks directly to Supabase.
 | Login/signup UI | `src/components/AuthModal.tsx` |
 | Fetching/publishing artworks, download URLs | `src/lib/artworks.ts` |
 | Database schema + storage policies | `supabase/schema.sql` |
+
+## Download credits ("Give to Get")
+
+Every user starts with **1 credit**. Publishing an **original** artwork earns
+**+3**; publishing a **remix** earns **+2**. Downloading someone else's file
+costs **1 credit** — downloading your own uploads is always free. Credits
+show up next to your avatar in the header and on your profile page.
+
+To change the reward/cost amounts, edit the numbers in
+`supabase/schema.sql` under section 4 (`handle_new_artwork_credits` for
+rewards, `spend_credit` for the download cost) and re-run that function
+definition in the SQL Editor.
+
+**Important limitation to know about:** because the `source-files` storage
+bucket is public-read (so plain download links work without a backend
+server), the credit check only happens through the app's Download button —
+it doesn't stop someone who already has the direct file URL (e.g. from
+browser dev tools) from downloading without spending a credit. This is a
+reasonable trade-off for a fast-to-build client-only app, but it's not a
+hard security boundary. If you want downloads to be fully unbypassable,
+that requires making the bucket private and issuing short-lived signed
+URLs from a server-side function (like a Supabase Edge Function) that
+checks and spends the credit before handing out the link — happy to build
+that out if it becomes important.

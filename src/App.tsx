@@ -90,7 +90,7 @@ function DetailRoute({
 }
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [realArtworks, setRealArtworks] = useState<Artwork[]>([]);
   const [loadingArtworks, setLoadingArtworks] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -142,6 +142,7 @@ export default function App() {
       return { error: error || 'Something went wrong publishing this artwork.' };
     }
     setRealArtworks((prev) => [artwork, ...prev]);
+    await refreshProfile();
     navigate(`/art/${artwork.id}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return { error: null };
@@ -171,6 +172,7 @@ export default function App() {
       );
       return [artwork, ...updatedParent];
     });
+    await refreshProfile();
     navigate(`/art/${artwork.id}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return { error: null };
