@@ -190,7 +190,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </div>
           </div>
           <p className="text-[11px] text-slate-400 font-semibold mt-3 text-center md:text-left">
-            Downloading someone else's file costs 1 credit. Publish an original piece to earn 3, or a remix to earn 2.
+            Downloading someone else's file costs 1 credit. Publish an original piece or a remix to earn 1 more.
           </p>
         </div>
       </section>

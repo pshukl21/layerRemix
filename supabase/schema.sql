@@ -96,9 +96,9 @@ create policy "Users can delete their own artworks"
 
 -- ---------------------------------------------------------------------------
 -- 4. DOWNLOAD CREDITS ("Give to Get" karma system)
--- Every user starts with 1 credit. Publishing an original artwork earns 3
--- more; publishing a remix earns 2 more. Downloading someone else's file
--- costs 1 credit.
+-- Every user starts with 1 credit. Publishing an original artwork or a
+-- remix both earn 1 credit (1 upload/remix = 1 download). Downloading
+-- someone else's file costs 1 credit.
 --
 -- Credits are only ever granted by the trigger below — a side effect of a
 -- real artwork row being inserted, which is already gated by the "Users can
@@ -114,12 +114,9 @@ returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
-declare
-  reward integer;
 begin
-  reward := case when new.type = 'Remix' then 2 else 3 end;
   update public.profiles
-  set credits = credits + reward
+  set credits = credits + 1
   where id = new.owner_id;
   return new;
 end;
