@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X } from 'lucide-react';
+import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, ChevronDown, Link2 } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit } from '../lib/artworks';
@@ -344,137 +344,95 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       const hasChildren = node.children.length > 0;
 
       return (
-        <div key={item.id} className="relative flex flex-col">
-          {/* Node row */}
-          <div className="flex items-start gap-4 md:gap-6 group relative">
-            
-            {/* Connector Dot/Icon */}
-            <div className="shrink-0 flex items-center justify-center relative select-none">
-              {depth > 0 && (
-                <div className="absolute -left-6 md:-left-8 top-8 w-6 md:w-8 h-[2px] border-t-2 border-dashed border-blue-200" />
-              )}
+        <div key={item.id} className="flex flex-col">
+          {/* Layer row */}
+          <div
+            onClick={() => {
+              if (!isCurrent) {
+                onSelectArtwork(item.id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            style={{ paddingLeft: `${14 + depth * 26}px` }}
+            className={`flex items-center gap-2.5 pr-3 md:pr-4 py-2.5 border-b transition-colors cursor-pointer ${
+              isCurrent
+                ? 'bg-blue-600 border-blue-500'
+                : 'border-zinc-700/70 hover:bg-zinc-700/40'
+            }`}
+          >
+            {/* Visibility eye */}
+            <Eye className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-white' : 'text-zinc-400'}`} />
 
-              <div 
-                onClick={() => {
-                  if (!isCurrent) {
-                    onSelectArtwork(item.id);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }
-                }}
-                className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex flex-col items-center justify-center border-2 transition-all cursor-pointer ${
-                  isCurrent 
-                    ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/10 scale-105' 
-                    : 'bg-white border-slate-200 text-slate-400 hover:border-blue-500 hover:text-blue-600'
-                }`}
-              >
-                <span className="text-[7px] md:text-[8px] font-black uppercase tracking-wider leading-none mb-1">
-                  {isOriginal ? 'Root' : `v${depth}`}
-                </span>
-                {isOriginal ? (
-                  <Layers className="w-4 h-4 md:w-5 md:h-5" />
-                ) : (
-                  <GitFork className="w-4 h-4 md:w-5 md:h-5 rotate-180" />
-                )}
-              </div>
+            {/* Thumbnail */}
+            <div className="w-9 h-9 rounded overflow-hidden bg-zinc-900 border border-zinc-600 shrink-0">
+              <img
+                className="w-full h-full object-cover"
+                src={item.image}
+                alt={item.title}
+                referrerPolicy="no-referrer"
+              />
             </div>
 
-            {/* Premium Bento Card */}
-            <div 
-              onClick={() => {
-                if (!isCurrent) {
-                  onSelectArtwork(item.id);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
-              className={`flex-grow flex-1 bg-white border rounded-lg p-3 md:p-4 shadow-3xs flex flex-col sm:flex-row items-center gap-4 cursor-pointer hover:shadow-sm transition-all ${
-                isCurrent 
-                  ? 'border-blue-500 ring-1 ring-blue-500/10 bg-blue-50/5' 
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              {/* Thumbnail */}
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0 shadow-3xs">
-                <img 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  src={item.image} 
-                  alt={item.title} 
+            {/* Chain link + author avatar, echoing a linked layer mask thumbnail */}
+            <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+              <Link2 className={`w-3 h-3 ${isCurrent ? 'text-white/60' : 'text-zinc-500'}`} />
+              <div className="w-6 h-6 rounded-full overflow-hidden bg-zinc-700 border border-zinc-600">
+                <img
+                  className="w-full h-full object-cover"
+                  src={item.authorAvatar}
+                  alt={item.author}
                   referrerPolicy="no-referrer"
                 />
               </div>
-
-              {/* Text details */}
-              <div className="flex-grow flex-1 min-w-0 text-center sm:text-left">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mb-1">
-                  <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-lg border ${
-                    isCurrent
-                      ? 'bg-blue-100 text-blue-600 border-blue-200'
-                      : 'bg-slate-50 text-slate-500 border-slate-200'
-                  }`}>
-                    {isOriginal ? 'Original' : 'Remix'}
-                  </span>
-                  {isCurrent && (
-                    <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-lg flex items-center gap-0.5">
-                      <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                      Viewing
-                    </span>
-                  )}
-                  {item.parentArtworkId && (
-                    <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">
-                      Remix of @{item.parentAuthor || 'creator'}
-                    </span>
-                  )}
-                </div>
-
-                <h3 className={`text-sm md:text-base font-black tracking-tight ${isCurrent ? 'text-blue-600' : 'text-slate-800'} truncate`}>
-                  {item.title}
-                </h3>
-                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                  by @{item.author} • {item.timeAgo}
-                </p>
-                <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mt-1.5 line-clamp-2 sm:line-clamp-1">
-                  {item.description}
-                </p>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-1 mt-2 justify-center sm:justify-start">
-                  {item.tags.slice(0, 2).map(t => (
-                    <span key={t} className="text-[8px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action column */}
-              <div className="shrink-0 flex items-center justify-center w-full sm:w-auto">
-                {isCurrent ? (
-                  <div className="text-[9px] font-black text-blue-600 uppercase tracking-widest py-1.5 px-3.5 bg-blue-100/50 rounded-lg border border-blue-200 flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    Active
-                  </div>
-                ) : (
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-500 py-1.5 px-4 rounded-lg bg-white transition-all shadow-3xs flex items-center gap-1">
-                    Explore
-                    <ArrowRight className="w-2.5 h-2.5" />
-                  </span>
-                )}
-              </div>
             </div>
+
+            {/* Name + meta */}
+            <div className="flex-1 min-w-0">
+              <p className={`text-xs font-bold truncate ${isCurrent ? 'text-white' : 'text-zinc-100'}`}>
+                {item.title}
+              </p>
+              <p className={`text-[10px] font-semibold truncate ${isCurrent ? 'text-white/70' : 'text-zinc-500'}`}>
+                by @{item.author} · {item.timeAgo}
+              </p>
+            </div>
+
+            {isOriginal ? (
+              <span className={`hidden md:inline text-[9px] font-black uppercase tracking-widest shrink-0 ${isCurrent ? 'text-white/80' : 'text-zinc-500'}`}>
+                Root
+              </span>
+            ) : (
+              <span className={`hidden md:inline text-[11px] italic font-bold shrink-0 ${isCurrent ? 'text-white/80' : 'text-zinc-400'}`} title="Remix">
+                fx
+              </span>
+            )}
+
+            {isCurrent && (
+              <span className="text-[8px] font-black uppercase tracking-widest text-blue-600 bg-white px-1.5 py-0.5 rounded shrink-0">
+                Viewing
+              </span>
+            )}
+
+            {hasChildren && (
+              <ChevronDown className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-white/70' : 'text-zinc-500'}`} />
+            )}
           </div>
 
-          {/* Render direct children nested */}
-          {hasChildren && (
-            <div className="relative flex flex-col pl-6 md:pl-8 ml-6 md:ml-8 border-l-2 border-dashed border-blue-200/60 py-3 space-y-4">
-              {node.children.map(childNode => renderTreeNode(childNode, depth + 1))}
-            </div>
-          )}
+          {/* Children render as nested rows, indented further */}
+          {hasChildren && node.children.map((childNode) => renderTreeNode(childNode, depth + 1))}
         </div>
       );
     };
 
     return (
-      <div className={`relative ${compact ? 'mt-4' : 'mt-8'} overflow-x-auto pb-4`}>
-        <div className="min-w-[300px] space-y-6">
+      <div className={`relative ${compact ? 'mt-4' : 'mt-8'} rounded-lg border border-zinc-700 bg-[#3f3f46] shadow-sm overflow-hidden`}>
+        {/* Panel title bar, Photoshop "Layers" panel style */}
+        <div className="flex items-center justify-between px-4 py-2.5 bg-[#333336] border-b border-zinc-700">
+          <span className="text-xs font-bold text-white tracking-wide">Layers</span>
+          <div className="flex items-center gap-2 text-zinc-400">
+            <Layers className="w-3.5 h-3.5" />
+          </div>
+        </div>
+        <div className={compact ? 'max-h-[420px] overflow-y-auto' : ''}>
           {renderTreeNode(rootTreeNode, 0)}
         </div>
       </div>
