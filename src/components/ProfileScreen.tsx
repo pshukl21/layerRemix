@@ -95,7 +95,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             onMouseLeave={handleMouseLeave}
             className="group relative border border-slate-200 hover:border-blue-300 bg-white rounded-xl p-3 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
           >
-            <div className="aspect-[4/5] relative overflow-hidden ps-checkerboard rounded-lg border border-slate-200 p-1">
+            <div className="rounded-lg border border-slate-200 overflow-hidden">
+              <div className="flex items-center gap-1.5 bg-[#3f3f46] px-2.5 py-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 shrink-0" />
+                <span className="text-[9px] font-bold text-zinc-200 truncate ps-stat">{art.title}.psd</span>
+              </div>
+              <div className="aspect-[4/5] relative overflow-hidden ps-checkerboard p-1">
               <img
                 style={isHovered ? tiltStyle : {}}
                 className="w-full h-full object-cover transition-transform duration-500 ease-out rounded-md"
@@ -114,7 +119,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   <div className="flex gap-2 text-white">
                     <button
                       onClick={(e) => handleFavorite(art.id, e)}
-                      className="hover:text-blue-400 transition-colors p-1.5 bg-slate-900/40 border border-white/10 rounded-full backdrop-blur-xs cursor-pointer"
+                      className="hover:text-blue-400 transition-colors p-1.5 bg-slate-900/40 border border-white/10 rounded-lg backdrop-blur-xs cursor-pointer"
                     >
                       <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
                     </button>
@@ -122,12 +127,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                       href={downloadTarget.url}
                       download={downloadTarget.filename}
                       onClick={(e) => handleDownloadClick(art, e)}
-                      className="hover:text-blue-400 transition-colors p-1.5 bg-slate-900/40 border border-white/10 rounded-full backdrop-blur-xs cursor-pointer"
+                      className="hover:text-blue-400 transition-colors p-1.5 bg-slate-900/40 border border-white/10 rounded-lg backdrop-blur-xs cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
                     </a>
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           </div>

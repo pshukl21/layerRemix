@@ -105,7 +105,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             className="mb-4"
           >
             <span className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
-              🎨 OPEN-SOURCE ARTWORK
+              ⚡ Creative Hub
             </span>
           </motion.div>
           <motion.h1 
@@ -114,7 +114,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
           >
-            Where scrapped PSDs become finished art.
+            The digital artist's canvas.
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -217,9 +217,14 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 transition={{ duration: 0.3 }}
                 className="group relative flex flex-col gap-4 p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
               >
-                {/* Image Wrap — checkerboard matte peeks around the edges, Photoshop-canvas style */}
-                <div className="aspect-[4/5] overflow-hidden rounded-lg relative ps-checkerboard border border-slate-200 p-1">
-                  <div className="w-full h-full rounded-2xl overflow-hidden relative">
+                {/* Image Wrap — document tab bar + checkerboard matte, Photoshop-canvas style */}
+                <div className="rounded-lg border border-slate-200 overflow-hidden">
+                  <div className="flex items-center gap-1.5 bg-[#3f3f46] px-2.5 py-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 shrink-0" />
+                    <span className="text-[9px] font-bold text-zinc-200 truncate ps-stat">{art.title}.psd</span>
+                  </div>
+                  <div className="aspect-[4/5] overflow-hidden relative ps-checkerboard p-1">
+                  <div className="w-full h-full rounded-md overflow-hidden relative">
                     <img
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       src={art.image}
@@ -236,6 +241,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                         <ExternalLink className="w-3.5 h-3.5" />
                       </button>
                     </div>
+                  </div>
                   </div>
                 </div>
 

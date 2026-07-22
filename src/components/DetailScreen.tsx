@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn } from 'lucide-react';
+import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit } from '../lib/artworks';
@@ -518,6 +518,23 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
             {/* Left column: Image showcase as a Photoshop-style "canvas window" */}
             <div className="lg:col-span-8 flex flex-col gap-6">
               <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all">
+                {/* Document tab bar, Photoshop-style */}
+                <div className="flex items-center gap-2 bg-[#3f3f46] px-4 py-2 border-b border-zinc-600">
+                  <button
+                    onClick={() => onSelectArtwork('')}
+                    title="Back to Explore"
+                    className="text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-xs font-bold text-white truncate">
+                    {artwork.sourceFileName || `${artwork.title}.psd`}
+                  </span>
+                  <span className="text-xs text-zinc-400 font-semibold shrink-0 ps-stat">
+                    @ 100% {artwork.type === 'Remix' ? '(Remix, RGB/8)' : '(RGB/8)'}
+                  </span>
+                </div>
+
                 {/* Ruler corner + horizontal ruler */}
                 <div className="flex">
                   <div className="w-[22px] h-[22px] shrink-0 bg-[#27272a] border-r border-b border-zinc-600" />
