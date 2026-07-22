@@ -109,13 +109,13 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             </span>
           </motion.div>
           <motion.h1
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight whitespace-nowrap"
-            >
-              Scrapped PSDs to finished art.
-          </motion.h1>  
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight whitespace-nowrap text-center mx-auto w-full"
+          >
+            Scrapped PSDs to finished art.
+          </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
