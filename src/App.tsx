@@ -20,6 +20,7 @@ interface PublishInput {
   tags: string[];
   previewFile: File;
   sourceFile: File | null;
+  resolution: string;
 }
 
 interface UpdateInput {

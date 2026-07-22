@@ -92,6 +92,7 @@ interface PublishInput {
   ownerId: string;
   type: 'Original' | 'Remix';
   parentArtworkId?: string;
+  resolution: string;
 }
 
 // Uploads the preview image (+ optional source file) to Storage, then inserts
@@ -134,7 +135,7 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
       type: input.type,
       parent_artwork_id: input.parentArtworkId || null,
       owner_id: input.ownerId,
-      resolution: '4000 x 3000 PX • 16-BIT COLOR',
+      resolution: input.resolution,
     })
     .select('*, owner:profiles(username, display_name, avatar_url)')
     .single();

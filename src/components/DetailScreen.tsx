@@ -4,6 +4,7 @@ import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp,
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit } from '../lib/artworks';
+import { parsePsdHeader, formatPsdResolution, getImageDimensions, formatImageResolution } from '../lib/psd';
 import { EditArtworkModal } from './EditArtworkModal';
 
 interface DetailScreenProps {
@@ -18,12 +19,46 @@ interface DetailScreenProps {
     tags: string[];
     previewFile: File;
     sourceFile: File | null;
+    resolution: string;
   }) => Promise<{ error: string | null }>;
   onUpdateArtwork?: (
     artworkId: string,
     updates: { title: string; description: string; tags: string[]; newPreviewFile: File | null }
   ) => Promise<{ error: string | null }>;
 }
+
+// Decorative Photoshop-style rulers with real numbered ticks. Purely
+// aesthetic (not tied to the artwork's actual pixel grid), rendered as dark
+// chrome so they stay legible against any page background.
+const RULER_MARKS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100];
+
+const RulerH: React.FC = () => (
+  <div className="flex-1 h-[22px] bg-[#27272a] border-b border-zinc-600 relative overflow-hidden flex">
+    {RULER_MARKS.map((mark) => (
+      <div key={mark} className="flex-1 relative border-l border-zinc-600 first:border-l-0">
+        <span className="absolute top-0.5 left-1 text-[9px] font-bold text-zinc-300 leading-none ps-stat">{mark}</span>
+        <div className="absolute bottom-0 left-1/4 w-px h-1 bg-zinc-600" />
+        <div className="absolute bottom-0 left-1/2 w-px h-1.5 bg-zinc-500" />
+        <div className="absolute bottom-0 left-3/4 w-px h-1 bg-zinc-600" />
+      </div>
+    ))}
+  </div>
+);
+
+const RulerV: React.FC = () => (
+  <div className="w-[22px] shrink-0 bg-[#27272a] border-r border-zinc-600 relative overflow-hidden flex flex-col">
+    {RULER_MARKS.map((mark) => (
+      <div key={mark} className="flex-1 relative border-t border-zinc-600 first:border-t-0">
+        <div className="absolute top-0.5 left-0 right-0 flex flex-col items-center leading-[8px] gap-px">
+          {String(mark).split('').map((digit, i) => (
+            <span key={i} className="text-[7px] font-bold text-zinc-300">{digit}</span>
+          ))}
+        </div>
+        <div className="absolute right-0 top-1/2 h-px w-1.5 bg-zinc-500" />
+      </div>
+    ))}
+  </div>
+);
 
 export const DetailScreen: React.FC<DetailScreenProps> = ({
   artwork,
@@ -217,12 +252,21 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
     if (onPublishFork) {
       setForkSubmitting(true);
+      let resolution = 'Unknown dimensions';
+      const psdInfo = await parsePsdHeader(forkPsdFile);
+      if (psdInfo) {
+        resolution = formatPsdResolution(psdInfo);
+      } else {
+        const imgDims = await getImageDimensions(forkImgFile);
+        if (imgDims) resolution = formatImageResolution(imgDims);
+      }
       const { error } = await onPublishFork(artwork.id, {
         title: forkTitle,
         description: forkDescription,
         tags: forkTags.split(',').map(t => t.trim()).filter(Boolean),
         previewFile: forkImgFile,
         sourceFile: forkPsdFile,
+        resolution,
       });
       setForkSubmitting(false);
       if (error) {
@@ -476,12 +520,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
               <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all">
                 {/* Ruler corner + horizontal ruler */}
                 <div className="flex">
-                  <div className="w-[22px] h-[22px] shrink-0 bg-[#eef1f5] border-r border-b border-slate-300" />
-                  <div className="flex-1 ps-ruler-h" />
+                  <div className="w-[22px] h-[22px] shrink-0 bg-[#27272a] border-r border-b border-zinc-600" />
+                  <RulerH />
                 </div>
                 <div className="flex">
                   {/* Vertical ruler */}
-                  <div className="ps-ruler-v shrink-0" />
+                  <RulerV />
 
                   <div
                     onMouseMove={handleMouseMove}
@@ -500,7 +544,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                     {/* Resolution indicator banner */}
                     <div className="absolute inset-x-1.5 bottom-1.5 bg-gradient-to-t from-slate-950/80 to-transparent p-6 opacity-0 group-hover:opacity-100 transition-opacity flex items-end rounded-b-md">
                       <span className="text-[10px] font-bold tracking-widest uppercase text-white/95 bg-slate-950/40 px-3.5 py-2 rounded-lg border border-white/10 backdrop-blur-md ps-stat">
-                        {artwork.resolution || '4096 x 2304 PX • 32-BIT COLOR'}
+                        {artwork.resolution || 'Unknown dimensions'}
                       </span>
                     </div>
                   </div>
@@ -512,7 +556,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                     <ZoomIn className="w-3 h-3" />
                     100%
                   </span>
-                  <span>{artwork.resolution || '4096 x 2304 PX'}</span>
+                  <span>{artwork.resolution || 'Unknown dimensions'}</span>
                   <span>{artwork.type === 'Original' ? 'Original' : 'Remix'} · RGB/8</span>
                 </div>
               </div>

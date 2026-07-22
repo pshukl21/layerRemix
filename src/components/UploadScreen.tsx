@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileUp, Image as ImageIcon, Sparkles, Check } from 'lucide-react';
+import { parsePsdHeader, formatPsdResolution, getImageDimensions, formatImageResolution } from '../lib/psd';
 
 interface UploadScreenProps {
   onPublish: (newArtwork: {
@@ -8,6 +9,7 @@ interface UploadScreenProps {
     tags: string[];
     previewFile: File;
     sourceFile: File | null;
+    resolution: string;
   }) => Promise<{ error: string | null }>;
 }
 
@@ -139,6 +141,23 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       .map((t) => t.trim())
       .filter((t) => t !== '');
 
+    // Read the real dimensions from the uploaded file rather than guessing —
+    // prefer the PSD's own header if one was provided, since that's the
+    // authoritative source; otherwise fall back to the preview image itself.
+    let resolution = 'Unknown dimensions';
+    if (psdFile) {
+      const psdInfo = await parsePsdHeader(psdFile);
+      if (psdInfo) {
+        resolution = formatPsdResolution(psdInfo);
+      }
+    }
+    if (resolution === 'Unknown dimensions') {
+      const imgDims = await getImageDimensions(previewImageFile);
+      if (imgDims) {
+        resolution = formatImageResolution(imgDims);
+      }
+    }
+
     setSubmitting(true);
     const { error } = await onPublish({
       title,
@@ -146,6 +165,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       tags: tagsArray.length > 0 ? tagsArray : ['DigitalArt'],
       previewFile: previewImageFile,
       sourceFile: psdFile,
+      resolution,
     });
     setSubmitting(false);
     if (error) {

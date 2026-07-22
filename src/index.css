@@ -48,45 +48,6 @@
   background-size: 18px 18px, 18px 18px, 90px 90px, 90px 90px;
 }
 
-/* Photoshop-style ruler strip — tick marks every 10px with a labeled mark
-   every 50px. Used along the top/left edge of the main artwork canvas. */
-.ps-ruler-h {
-  height: 22px;
-  background-color: #eef1f5;
-  border-bottom: 1px solid #cbd5e1;
-  background-image:
-    repeating-linear-gradient(
-      to right,
-      #94a3b8 0, #94a3b8 1px,
-      transparent 1px, transparent 50px
-    ),
-    repeating-linear-gradient(
-      to right,
-      #cbd5e1 0, #cbd5e1 1px,
-      transparent 1px, transparent 10px
-    );
-  background-size: 50px 100%, 10px 100%;
-  background-position: 0 bottom, 0 bottom;
-}
-.ps-ruler-v {
-  width: 22px;
-  background-color: #eef1f5;
-  border-right: 1px solid #cbd5e1;
-  background-image:
-    repeating-linear-gradient(
-      to bottom,
-      #94a3b8 0, #94a3b8 1px,
-      transparent 1px, transparent 50px
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      #cbd5e1 0, #cbd5e1 1px,
-      transparent 1px, transparent 10px
-    );
-  background-size: 100% 50px, 100% 10px;
-  background-position: right 0, right 0;
-}
-
 /* Classic "marching ants" selection outline — an animated dashed frame,
    the single most recognizable Photoshop selection cue. */
 .ps-marching-ants {
