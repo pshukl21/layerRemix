@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // Reverted to standard framer-motion import
 import { Search, Download, GitFork, ArrowDown, ExternalLink } from 'lucide-react';
 import { Artwork } from '../types';
 
@@ -109,11 +109,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.6, delay: 0.1 }}
             className="w-full max-w-full text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
           >
-            Scrapped{' '}
-            <code className="bg-slate-800 text-slate-100 font-mono text-2xl sm:text-3xl md:text-4xl lg:text-5xl px-3 py-1 rounded-xl align-middle border border-slate-700 shadow-inner inline-block mx-1">
-              .psd
-            </code>{' '}
-            to finished art.
+            Scrapped PSDs to finished art.
           </motion.h1>
 
           <motion.p 
