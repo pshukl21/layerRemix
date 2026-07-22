@@ -105,7 +105,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             className="mb-4"
           >
             <span className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
-              ⚡ Creative Hub
+            🎨 OPEN-SOURCE ARTWORK
             </span>
           </motion.div>
           <motion.h1 
@@ -114,7 +114,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
           >
-            The digital artist's canvas.
+            Where scrapped PSDs become finished art.
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
