@@ -1022,13 +1022,18 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       )}
 
       {onUpdateArtwork && (
-        <EditArtworkModal
-          open={editModalOpen}
-          artwork={artwork}
-          onClose={() => setEditModalOpen(false)}
-          onSave={onUpdateArtwork}
-          onDelete={onDeleteArtwork}
-        />
+        <>
+          <p className="fixed bottom-2 left-2 z-[200] bg-black text-white text-[10px] font-bold px-2 py-1 rounded">
+            debug: onDeleteArtwork is {typeof onDeleteArtwork} ({String(!!onDeleteArtwork)})
+          </p>
+          <EditArtworkModal
+            open={editModalOpen}
+            artwork={artwork}
+            onClose={() => setEditModalOpen(false)}
+            onSave={onUpdateArtwork}
+            onDelete={onDeleteArtwork}
+          />
+        </>
       )}
     </div>
   );
