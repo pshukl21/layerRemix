@@ -244,9 +244,11 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
               </div>
             </form>
 
+            <p className="text-center text-[9px] text-slate-300 font-bold mt-4 select-none">build-check-v2</p>
+
             {onDelete && (
-              <div className="mt-6 pt-5 border-t border-slate-200">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Danger Zone</p>
+              <div className="mt-6 pt-5 border-t-2 border-red-200">
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">⚠ Danger Zone</p>
                 {!deleteConfirming ? (
                   <button
                     type="button"
