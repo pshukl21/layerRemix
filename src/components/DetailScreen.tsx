@@ -25,6 +25,7 @@ interface DetailScreenProps {
     artworkId: string,
     updates: { title: string; description: string; tags: string[]; newPreviewFile: File | null }
   ) => Promise<{ error: string | null }>;
+  onDeleteArtwork?: (artworkId: string) => Promise<{ error: string | null }>;
 }
 
 // Decorative Photoshop-style rulers with real numbered ticks. Purely
@@ -68,6 +69,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   onRequireAuth,
   onPublishFork,
   onUpdateArtwork,
+  onDeleteArtwork,
 }) => {
   const { user, profile, refreshProfile } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
@@ -1025,6 +1027,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           artwork={artwork}
           onClose={() => setEditModalOpen(false)}
           onSave={onUpdateArtwork}
+          onDelete={onDeleteArtwork}
         />
       )}
     </div>

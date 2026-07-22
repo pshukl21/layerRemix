@@ -201,3 +201,10 @@ create policy "Users can upload their own source files"
     bucket_id = 'source-files'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+create policy "Users can delete their own source files"
+  on storage.objects for delete
+  using (
+    bucket_id = 'source-files'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );

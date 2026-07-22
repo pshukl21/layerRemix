@@ -12,7 +12,7 @@ import { AuthModal } from './components/AuthModal';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
-import { fetchArtworks, publishArtwork, updateArtwork } from './lib/artworks';
+import { fetchArtworks, publishArtwork, updateArtwork, deleteArtwork } from './lib/artworks';
 
 interface PublishInput {
   title: string;
@@ -209,6 +209,25 @@ export default function App() {
     return { error: null };
   };
 
+  // Permanently deletes one of the current user's own artworks.
+  const handleDeleteArtwork = async (artworkId: string): Promise<{ error: string | null }> => {
+    if (!user) {
+      openAuthModal('signIn');
+      return { error: 'Please sign in first.' };
+    }
+    const current = realArtworks.find((art) => art.id === artworkId);
+    if (!current || current.ownerId !== user.id) {
+      return { error: 'Could not find that artwork.' };
+    }
+    const { error } = await deleteArtwork(artworkId, current.imagePath, current.sourceFilePath);
+    if (error) {
+      return { error };
+    }
+    setRealArtworks((prev) => prev.filter((art) => art.id !== artworkId));
+    navigate('/');
+    return { error: null };
+  };
+
   return (
     <div className="min-h-screen ps-blueprint-bg text-slate-900 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-600">
       {!isSupabaseConfigured && (
@@ -290,6 +309,7 @@ export default function App() {
                     onNavigateToProfile={() => navigate('/profile')}
                     onPublishFork={handlePublishFork}
                     onUpdateArtwork={handleUpdateArtwork}
+                    onDeleteArtwork={handleDeleteArtwork}
                     onRequireAuth={() => openAuthModal('signIn')}
                   />
                 }

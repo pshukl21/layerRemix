@@ -246,3 +246,26 @@ export async function spendDownloadCredit(userId: string): Promise<{ credits: nu
   }
   return { credits: data as number, error: null };
 }
+
+// Deletes an artwork row (RLS restricts this to the owner) and best-effort
+// cleans up its files from storage. The DB delete is the source of truth —
+// if storage cleanup fails partway, the artwork is still gone from the site.
+export async function deleteArtwork(
+  artworkId: string,
+  imagePath?: string,
+  sourceFilePath?: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('artworks').delete().eq('id', artworkId);
+  if (error) {
+    return { error: error.message };
+  }
+
+  if (imagePath) {
+    await supabase.storage.from(PREVIEWS_BUCKET).remove([imagePath]);
+  }
+  if (sourceFilePath) {
+    await supabase.storage.from(SOURCE_FILES_BUCKET).remove([sourceFilePath]);
+  }
+
+  return { error: null };
+}

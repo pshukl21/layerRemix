@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Sparkles, ImageIcon, UploadCloud } from 'lucide-react';
+import { X, Sparkles, ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
 import { Artwork } from '../types';
 
 interface EditArtworkModalProps {
@@ -16,9 +16,10 @@ interface EditArtworkModalProps {
       newPreviewFile: File | null;
     }
   ) => Promise<{ error: string | null }>;
+  onDelete?: (artworkId: string) => Promise<{ error: string | null }>;
 }
 
-export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwork, onClose, onSave }) => {
+export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwork, onClose, onSave, onDelete }) => {
   const [title, setTitle] = useState(artwork?.title || '');
   const [description, setDescription] = useState(artwork?.description || '');
   const [tagsInput, setTagsInput] = useState(artwork?.tags.join(', ') || '');
@@ -27,6 +28,9 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
   const [dragActive, setDragActive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset local form state whenever a new artwork is opened for editing.
@@ -38,6 +42,8 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
       setNewPreviewFile(null);
       setPreviewUrl(null);
       setError(null);
+      setDeleteConfirming(false);
+      setDeleteError(null);
     }
   }, [open, artwork]);
 
@@ -82,6 +88,19 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
     setSubmitting(false);
     if (saveError) {
       setError(saveError);
+      return;
+    }
+    onClose();
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setDeleteError(null);
+    setDeleting(true);
+    const { error: deleteErr } = await onDelete(artwork.id);
+    setDeleting(false);
+    if (deleteErr) {
+      setDeleteError(deleteErr);
       return;
     }
     onClose();
@@ -224,6 +243,51 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
                 </button>
               </div>
             </form>
+
+            {onDelete && (
+              <div className="mt-6 pt-5 border-t border-slate-200">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Danger Zone</p>
+                {!deleteConfirming ? (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirming(true)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete This Artwork
+                  </button>
+                ) : (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col gap-3">
+                    <p className="text-xs font-semibold text-red-700">
+                      This permanently deletes "{artwork.title}" and its files. This can't be undone. Are you sure?
+                    </p>
+                    {deleteError && (
+                      <p className="text-xs font-semibold text-red-700 bg-red-100 border border-red-200 rounded-lg px-3 py-2">
+                        {deleteError}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirming(false)}
+                        className="flex-1 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 font-bold text-xs uppercase tracking-widest hover:border-slate-300 transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {deleting ? 'Deleting…' : 'Confirm Delete'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
