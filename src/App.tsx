@@ -39,6 +39,7 @@ function DetailRoute({
   onNavigateToProfile,
   onPublishFork,
   onUpdateArtwork,
+  onDeleteArtwork,
   onRequireAuth,
 }: {
   artworks: Artwork[];
@@ -47,6 +48,7 @@ function DetailRoute({
   onNavigateToProfile: () => void;
   onPublishFork: (parentArtworkId: string, forkDetails: PublishInput) => Promise<{ error: string | null }>;
   onUpdateArtwork: (artworkId: string, updates: UpdateInput) => Promise<{ error: string | null }>;
+  onDeleteArtwork: (artworkId: string) => Promise<{ error: string | null }>;
   onRequireAuth: () => void;
 }) {
   const { id } = useParams<{ id: string }>();
@@ -85,6 +87,7 @@ function DetailRoute({
       onNavigateToProfile={onNavigateToProfile}
       onPublishFork={onPublishFork}
       onUpdateArtwork={onUpdateArtwork}
+      onDeleteArtwork={onDeleteArtwork}
       onRequireAuth={onRequireAuth}
     />
   );
