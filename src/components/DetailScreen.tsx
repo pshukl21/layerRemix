@@ -339,6 +339,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   };
 
   const renderTimeline = (compact: boolean = false) => {
+    const subtreeContainsCurrent = (node: TreeNode): boolean => {
+      if (node.artwork.id === artwork.id) return true;
+      return node.children.some(subtreeContainsCurrent);
+    };
+
     const renderTreeNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
       const item = node.artwork;
       const isCurrent = item.id === artwork.id;
@@ -353,7 +358,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
             {/* Connector Dot/Icon */}
             <div className="shrink-0 flex items-center justify-center relative select-none">
               {depth > 0 && (
-                <div className="absolute -left-6 md:-left-8 top-8 w-6 md:w-8 h-[2px] border-t-2 border-dashed border-blue-200" />
+                <>
+                  <div className={`absolute -left-6 md:-left-8 top-8 w-6 md:w-8 h-[2px] rounded-full ${
+                    subtreeContainsCurrent(node) ? 'bg-blue-600' : 'bg-blue-300'
+                  }`} />
+                  <div className={`absolute -left-6 md:-left-8 top-[30px] w-[7px] h-[7px] rounded-full ${
+                    subtreeContainsCurrent(node) ? 'bg-blue-600' : 'bg-blue-300'
+                  }`} />
+                </>
               )}
 
               <div 
@@ -466,7 +478,9 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
           {/* Render direct children nested */}
           {hasChildren && (
-            <div className="relative flex flex-col pl-6 md:pl-8 ml-6 md:ml-8 border-l-2 border-dashed border-blue-200/60 py-3 space-y-4">
+            <div className={`relative flex flex-col pl-6 md:pl-8 ml-6 md:ml-8 border-l-2 py-3 space-y-4 ${
+              node.children.some(subtreeContainsCurrent) ? 'border-blue-500' : 'border-blue-200'
+            }`}>
               {node.children.map(childNode => renderTreeNode(childNode, depth + 1))}
             </div>
           )}
