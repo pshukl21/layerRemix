@@ -339,11 +339,6 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   };
 
   const renderTimeline = (compact: boolean = false) => {
-    const subtreeContainsCurrent = (node: TreeNode): boolean => {
-      if (node.artwork.id === artwork.id) return true;
-      return node.children.some(subtreeContainsCurrent);
-    };
-
     const renderTreeNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
       const item = node.artwork;
       const isCurrent = item.id === artwork.id;
@@ -356,15 +351,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           <div className="flex items-start gap-4 md:gap-6 group relative">
             
             {/* Connector Dot/Icon */}
-            <div className="shrink-0 flex items-center justify-center relative select-none">
+            <div className="shrink-0 flex flex-col items-center relative select-none self-stretch">
               {depth > 0 && (
                 <>
-                  <div className={`absolute -left-6 md:-left-8 top-8 w-6 md:w-8 h-[2px] rounded-full ${
-                    subtreeContainsCurrent(node) ? 'bg-blue-600' : 'bg-blue-300'
-                  }`} />
-                  <div className={`absolute -left-6 md:-left-8 top-[30px] w-[7px] h-[7px] rounded-full ${
-                    subtreeContainsCurrent(node) ? 'bg-blue-600' : 'bg-blue-300'
-                  }`} />
+                  <div className="absolute -left-6 md:-left-8 top-8 w-6 md:w-8 h-px bg-blue-600" />
+                  <div className="absolute -left-[26px] md:-left-[34px] top-[30px] w-1.5 h-1.5 rounded-full bg-blue-600" />
                 </>
               )}
 
@@ -390,6 +381,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <GitFork className="w-4 h-4 md:w-5 md:h-5 rotate-180" />
                 )}
               </div>
+
+              {hasChildren && <div className="w-px flex-1 bg-blue-600 my-1" />}
             </div>
 
             {/* Premium Bento Card */}
@@ -478,9 +471,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
           {/* Render direct children nested */}
           {hasChildren && (
-            <div className={`relative flex flex-col pl-6 md:pl-8 ml-6 md:ml-8 border-l-2 py-3 space-y-4 ${
-              node.children.some(subtreeContainsCurrent) ? 'border-blue-500' : 'border-blue-200'
-            }`}>
+            <div className="relative flex flex-col pl-6 md:pl-8 ml-6 md:ml-8 border-l border-blue-600 py-3 space-y-4">
               {node.children.map(childNode => renderTreeNode(childNode, depth + 1))}
             </div>
           )}
