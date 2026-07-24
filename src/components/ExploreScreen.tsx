@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Search, Download, GitFork, ArrowDown, ExternalLink } from 'lucide-react';
 import { Artwork } from '../types';
 
@@ -46,7 +46,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
     }
     return Array.from(counts.values())
       .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
+      .slice(0, 6)
       .map((entry) => entry.display);
   }, [artworks]);
 
@@ -82,80 +82,96 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   };
 
   return (
-    <div className="w-full min-h-screen text-slate-900 pt-20 pb-12">
-      {/* Strategy 2: Compact Banner (Exposes Art Above the Fold) */}
-      <section className="relative py-5 px-6 overflow-hidden rounded-xl mx-4 md:mx-12 mt-4 mb-6 bg-gradient-to-r from-white via-slate-50 to-blue-50/20 border border-slate-200/80 shadow-xs">
-        {/* Subtle Decorative Line Grid */}
-        <div className="absolute inset-0 opacity-[0.08] pointer-events-none ps-grid-bg" />
+    <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
+      {/* Hero Section styled as a premium Large Bento Card */}
+      <section className="relative h-auto min-h-[420px] md:min-h-[480px] py-12 flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-xl mx-4 md:mx-12 my-6 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
+        {/* Decorative Bento Grid Line Overlays */}
+        <div className="absolute inset-0 opacity-[0.14] pointer-events-none ps-grid-bg" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-500/5 blur-[120px]" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-500/10 blur-[120px]" />
 
-        <div className="relative z-10 max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-6">
-          
-          {/* Left Side: Headline & Pitch */}
-          <div className="text-center lg:text-left max-w-xl">
-            <div className="inline-flex items-center gap-2 mb-2">
-              <span className="bg-blue-100/80 text-blue-600 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border border-blue-200/50">
-                🎨 OPEN-SOURCE ARTWORK
-              </span>
-            </div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-snug">
-              Where scrapped PSDs become finished art.
-            </h1>
-            <p className="text-xs font-semibold text-slate-500 mt-1">
-              Upload unfinished files, download source layers, and turn dormant projects into final artwork.
-            </p>
-          </div>
+        {/* Centered Hero Content Container */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="mb-4 inline-flex items-center justify-center"
+          >
+            <span className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
+              🎨 OPEN-SOURCE ARTWORK
+            </span>
+          </motion.div>
 
-          {/* Right Side: Integrated Search & Hot Tags */}
-          <div className="w-full lg:w-96 shrink-0 flex flex-col gap-2">
-            <form 
-              onSubmit={handleHeroSearchSubmit}
-              className="w-full bg-white rounded-xl p-1 flex items-center border border-slate-200/90 shadow-sm focus-within:border-blue-600 transition-all"
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="w-full max-w-full text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
+          >
+            Where scrapped PSDs become finished art.
+          </motion.h1>
+
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-sm md:text-base lg:text-lg text-slate-500 max-w-2xl mx-auto mb-8 font-semibold leading-relaxed"
+          >
+            Upload unfinished PSDs, download source layers, and turn dormant projects into final artwork.
+          </motion.p>
+
+          {/* Hero Search Bar */}
+          <motion.form 
+            onSubmit={handleHeroSearchSubmit}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="w-full max-w-xl mx-auto bg-slate-100/90 backdrop-blur-md rounded-full p-1.5 flex items-center border border-slate-200 shadow-md focus-within:border-blue-600 focus-within:bg-white transition-all"
+          >
+            <input
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              className="flex-grow bg-transparent border-none focus:outline-none focus:ring-0 text-sm px-6 text-slate-800 placeholder-slate-400 font-semibold"
+              placeholder="Search by tag: abstract, 3D, neon..."
+              type="text"
+            />
+            <button 
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-md"
             >
-              <input
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                className="flex-grow bg-transparent border-none focus:outline-none focus:ring-0 text-xs px-3 text-slate-800 placeholder-slate-400 font-semibold"
-                placeholder="Search tag: abstract, 3D, sports..."
-                type="text"
-              />
-              <button 
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-xs"
-              >
-                <Search className="w-3.5 h-3.5" />
-              </button>
-            </form>
+              <Search className="w-5 h-5" />
+            </button>
+          </motion.form>
 
-            {/* Hot Tags suggestion */}
-            {hotTags.length > 0 && (
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5">
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mr-0.5">Hot:</span>
-                {hotTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => handleTagClick(tag)}
-                    className="text-[10px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md transition-all cursor-pointer capitalize shadow-2xs"
-                  >
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
+          {/* Hot Tags suggestion */}
+          {hotTags.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
+              <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
+              {hotTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => handleTagClick(tag)}
+                  className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3.5 py-1 rounded-md transition-all cursor-pointer capitalize"
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
       {/* Main Grid Content */}
-      <main className="max-w-7xl mx-auto px-6 md:px-12 py-2">
+      <main className="max-w-7xl mx-auto px-6 md:px-12 py-8">
         {/* Navigation Filters */}
-        <div className="flex items-center mb-6 overflow-x-auto">
-          <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1 shadow-2xs whitespace-nowrap">
+        <div className="flex items-center mb-8 overflow-x-auto">
+          <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm whitespace-nowrap">
             {(['trending', 'remixed', 'recent'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative font-bold text-xs uppercase tracking-widest px-3.5 py-1.5 rounded-md transition-colors cursor-pointer ${
+                className={`relative font-bold text-xs uppercase tracking-widest px-4 py-2 rounded-md transition-colors cursor-pointer ${
                   activeTab === tab ? 'text-white' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -182,7 +198,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             <p className="text-slate-400 text-sm mb-2 font-semibold">No artwork matches your search criteria.</p>
             <button 
               onClick={() => { setLocalSearch(''); setSearchQuery(''); }}
-              className="text-blue-600 text-xs font-bold hover:underline cursor-pointer"
+              className="text-blue-600 text-xs font-bold hover:underline"
             >
               Reset all search filters
             </button>
@@ -195,7 +211,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 layout
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.3 }}
-                className="group relative flex flex-col gap-4 p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-xl shadow-xs hover:shadow-md transition-all duration-300"
+                className="group relative flex flex-col gap-4 p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
               >
                 {/* Image Wrap */}
                 <div className="rounded-lg border border-slate-200 overflow-hidden">
@@ -256,7 +272,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
         {/* Load More Pagination Button */}
         {filteredArtworks.length > 0 && (
           <div className="flex justify-center pb-8">
-            <button className="px-8 py-3.5 border border-slate-200 bg-white shadow-xs hover:border-blue-600 text-slate-800 hover:text-blue-600 transition-all rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95">
+            <button className="px-8 py-3.5 border border-slate-200 bg-white shadow-sm hover:border-blue-600 text-slate-800 hover:text-blue-600 transition-all rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95">
               <span>Discover More Art</span>
               <ArrowDown className="w-4 h-4 animate-bounce text-blue-600" />
             </button>
