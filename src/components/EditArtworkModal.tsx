@@ -152,12 +152,13 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                  Description
+                  What needs work or could be remixed?
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
+                  placeholder="e.g., Background FX need work, missing text layers, lighting feels off, needs a 3D element..."
                   className="w-full bg-slate-100/80 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-colors resize-none"
                 />
               </div>

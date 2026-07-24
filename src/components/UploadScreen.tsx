@@ -161,7 +161,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     setSubmitting(true);
     const { error } = await onPublish({
       title,
-      description: description || 'No description provided.',
+      description: description || 'No notes on what needs work yet.',
       tags: tagsArray.length > 0 ? tagsArray : ['DigitalArt'],
       previewFile: previewImageFile,
       sourceFile: psdFile,
@@ -286,16 +286,16 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               />
             </div>
 
-            {/* Description Input */}
+            {/* "What needs work" Input — replaces the old generic Description */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                Description
+                What needs work or could be remixed?
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full bg-transparent border-b border-slate-200 focus:border-blue-600 focus:outline-none transition-colors text-sm text-slate-800 py-3 px-0 resize-none font-semibold placeholder-slate-400 min-h-[100px]"
-                placeholder="Describe your creative process, tools used, or inspiration..."
+                placeholder="e.g., Background FX need work, missing text layers, lighting feels off, needs a 3D element..."
                 rows={4}
               />
             </div>
