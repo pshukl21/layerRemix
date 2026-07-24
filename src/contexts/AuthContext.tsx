@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, AVATARS_BUCKET } from '../lib/supabase';
 import { Profile } from '../types';
 
 interface AuthContextValue {
@@ -12,6 +12,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateAvatar: (file: File) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -108,8 +109,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Uploads a new profile photo, points the profile row at it, and cleans
+  // up the previous avatar file (best-effort — non-fatal if it fails).
+  const updateAvatar = async (file: File): Promise<{ error: string | null }> => {
+    if (!user) {
+      return { error: 'Please sign in first.' };
+    }
+    if (!file.type.startsWith('image/')) {
+      return { error: 'Please choose a valid image file.' };
+    }
+
+    const previousAvatarUrl = profile?.avatarUrl || null;
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage.from(AVATARS_BUCKET).upload(path, file, {
+      upsert: false,
+    });
+    if (uploadError) {
+      return { error: `Upload failed: ${uploadError.message}` };
+    }
+
+    const { data: publicUrlData } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path);
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: publicUrlData.publicUrl })
+      .eq('id', user.id);
+    if (updateError) {
+      return { error: updateError.message };
+    }
+
+    // Best-effort cleanup of the previous avatar file, if it lived in our
+    // own avatars bucket (skip default/external avatar URLs).
+    if (previousAvatarUrl && previousAvatarUrl.includes(`/${AVATARS_BUCKET}/`)) {
+      const previousPath = previousAvatarUrl.split(`/${AVATARS_BUCKET}/`)[1];
+      if (previousPath) {
+        await supabase.storage.from(AVATARS_BUCKET).remove([previousPath]).catch(() => {});
+      }
+    }
+
+    await refreshProfile();
+    return { error: null };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, session, loading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{ user, profile, session, loading, signUp, signIn, signOut, refreshProfile, updateAvatar }}
+    >
       {children}
     </AuthContext.Provider>
   );

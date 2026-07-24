@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Check, Heart, Download, LogIn, Coins } from 'lucide-react';
+import { Check, Heart, Download, LogIn, Coins, Camera } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads } from '../lib/artworks';
@@ -16,8 +16,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onSelectArtwork,
   onRequireAuth,
 }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, updateAvatar } = useAuth();
   const [activeTab, setActiveTab] = useState<'original' | 'remixed'>('original');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarError(null);
+    setAvatarUploading(true);
+    const { error } = await updateAvatar(file);
+    setAvatarUploading(false);
+    if (error) {
+      setAvatarError(error);
+    }
+  };
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
@@ -154,10 +170,36 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               referrerPolicy="no-referrer"
             />
           </div>
+          <button
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={avatarUploading}
+            title="Change profile photo"
+            className="absolute inset-1.5 rounded-full bg-slate-950/0 group-hover:bg-slate-950/50 transition-colors flex items-center justify-center cursor-pointer disabled:cursor-wait"
+          >
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-1 text-white">
+              <Camera className="w-6 h-6" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                {avatarUploading ? 'Uploading…' : 'Change'}
+              </span>
+            </span>
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarFileChange}
+          />
           <div className="absolute bottom-1 right-1 bg-blue-600 text-white p-1.5 rounded-full border-2 border-white flex items-center justify-center shadow-lg">
             <Check className="w-4 h-4 stroke-[3px]" />
           </div>
         </div>
+
+        {avatarError && (
+          <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 max-w-xs">
+            {avatarError}
+          </p>
+        )}
 
         <div className="flex-1 text-center md:text-left flex flex-col justify-between h-full">
           <div>

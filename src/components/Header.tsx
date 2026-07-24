@@ -41,8 +41,9 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
       <div className="flex items-center gap-8">
         <Link
           to="/"
-          className="font-bold text-2xl tracking-tighter text-slate-900 cursor-pointer hover:opacity-95 select-none"
+          className="flex items-center gap-2 font-bold text-2xl tracking-tighter text-slate-900 cursor-pointer hover:opacity-95 select-none"
         >
+          <img src="/logo-512.png" alt="" className="w-7 h-7 object-contain" />
           LayerRemix
         </Link>
         <nav className="hidden md:flex gap-6 items-center">

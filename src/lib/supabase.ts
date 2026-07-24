@@ -21,3 +21,4 @@ export const supabase = createClient(
 
 export const PREVIEWS_BUCKET = 'previews';
 export const SOURCE_FILES_BUCKET = 'source-files';
+export const AVATARS_BUCKET = 'avatars';
