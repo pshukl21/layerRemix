@@ -564,7 +564,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           transition={{ duration: 0.3 }}
         >
           {/* Main Art Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-8">
             {/* Left column: Image showcase as a Photoshop-style "canvas window" */}
             <div className="lg:col-span-8 flex flex-col gap-6">
               <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all">
@@ -762,29 +762,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 </div>
               </div>
 
-              {/* Card 3: Core Stats counters */}
-              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="ps-panel-header rounded-t-lg">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Engagement Stats</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-center select-none ps-stat p-6">
-                  <div className="flex flex-col p-4 bg-slate-50 border border-slate-100 rounded-lg">
-                    <span className="text-slate-900 text-xl font-black">{artwork.forks}</span>
-                    <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Forks</span>
-                  </div>
-                  <div className="flex flex-col p-4 bg-slate-50 border border-slate-100 rounded-lg">
-                    <span className="text-slate-900 text-xl font-black">{artwork.views}</span>
-                    <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Views</span>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
      
           {/* Timeline of Changes Section (This view is directly on the main page of each project) */}
-          <section className="border-t border-slate-200 pt-12">
+          <section className="border-t border-slate-200 pt-6">
             <div className="bg-white border border-slate-200 rounded-xl p-6 md:p-10 shadow-sm">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                 <div className="flex flex-col gap-2">
@@ -800,16 +782,30 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                     Visual tree tracking every remix, branch, and change. The root original is always at the top of the history list.
                   </p>
                 </div>
-                <button 
-                  onClick={() => {
-                    setViewMode('tree');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="text-blue-600 hover:text-blue-700 flex items-center gap-1.5 transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer select-none shrink-0"
-                >
-                  Expand Tree View
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-6 shrink-0">
+                  {/* Engagement stats, moved here from the sidebar */}
+                  <div className="flex items-center gap-4 ps-stat">
+                    <div className="flex flex-col items-center">
+                      <span className="text-slate-900 text-lg font-black leading-none">{artwork.forks}</span>
+                      <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-1">Forks</span>
+                    </div>
+                    <div className="w-px h-8 bg-slate-200" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-slate-900 text-lg font-black leading-none">{artwork.views}</span>
+                      <span className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-1">Views</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setViewMode('tree');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1.5 transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer select-none shrink-0"
+                  >
+                    Expand Tree View
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
        
               {/* Chronological connected timeline component */}
