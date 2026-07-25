@@ -64,22 +64,18 @@ const RulerV: React.FC = () => (
   </div>
 );
 
-// Computes the version label a NEW fork of `parent` should get — e.g. "V1"
-// for the first fork of an Original, "V2" for the second, and "V2.1" for a
-// fork of that "V2" fork. Derived purely from the tree structure (creation
-// order among siblings) rather than parsing any artwork's title text, so it
-// stays correct even if someone edits a title afterward.
-function computeNewForkVersionLabel(parent: Artwork, allArtworks: Artwork[]): string {
+// Shared helper: 1-based position of each ancestor among its own siblings,
+// walking from just below the root Original down to (but not including)
+// `node` itself. Both version-label functions below build on this.
+function getAncestorPositions(node: Artwork, allArtworks: Artwork[]): number[] {
   const byId = new Map(allArtworks.map((a) => [a.id, a]));
   const sortedChildrenOf = (parentId: string) =>
     allArtworks
       .filter((a) => a.parentArtworkId === parentId)
       .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
 
-  // Walk from the root Original down to `parent`, recording each ancestor's
-  // 1-based position among its own siblings.
   const ancestryChain: Artwork[] = [];
-  let current: Artwork | undefined = parent;
+  let current: Artwork | undefined = node;
   while (current) {
     ancestryChain.unshift(current);
     current = current.parentArtworkId ? byId.get(current.parentArtworkId) : undefined;
@@ -87,15 +83,35 @@ function computeNewForkVersionLabel(parent: Artwork, allArtworks: Artwork[]): st
 
   const parts: number[] = [];
   for (let i = 1; i < ancestryChain.length; i++) {
-    const node = ancestryChain[i];
+    const n = ancestryChain[i];
     const nodeParent = ancestryChain[i - 1];
-    const idx = sortedChildrenOf(nodeParent.id).findIndex((s) => s.id === node.id) + 1;
+    const idx = sortedChildrenOf(nodeParent.id).findIndex((s) => s.id === n.id) + 1;
     parts.push(idx || 1);
   }
+  return parts;
+}
 
-  // Finally, append the new fork's own position among parent's children.
-  parts.push(sortedChildrenOf(parent.id).length + 1);
+// Version label for an artwork that already exists in the tree — e.g. the
+// second fork of the Original is "V2"; a fork of that is "V2.1". Used for
+// display (the tree/timeline node badges), computed fresh from the tree
+// structure every time rather than trusting a stored/parsed value.
+function computeVersionLabel(target: Artwork, allArtworks: Artwork[]): string {
+  if (target.type === 'Original') return '';
+  return `V${getAncestorPositions(target, allArtworks).join('.')}`;
+}
 
+// Computes the version label a NEW fork of `parent` should get — e.g. "V1"
+// for the first fork of an Original, "V2" for the second, and "V2.1" for a
+// fork of that "V2" fork. Derived purely from the tree structure (creation
+// order among siblings) rather than parsing any artwork's title text, so it
+// stays correct even if someone edits a title afterward.
+function computeNewForkVersionLabel(parent: Artwork, allArtworks: Artwork[]): string {
+  // getAncestorPositions(parent, ...) already returns parent's own full
+  // position chain (e.g. [2, 1] for parent "V2.1") — we just need to add
+  // one more number: the new fork's position among parent's own children.
+  const parts = [...getAncestorPositions(parent, allArtworks)];
+  const childCount = allArtworks.filter((a) => a.parentArtworkId === parent.id).length;
+  parts.push(childCount + 1);
   return `V${parts.join('.')}`;
 }
 
@@ -457,7 +473,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 }`}
               >
                 <span className="text-[7px] md:text-[8px] font-black uppercase tracking-wider leading-none mb-1">
-                  {isOriginal ? 'Root' : `v${depth}`}
+                  {isOriginal ? 'Root' : computeVersionLabel(item, artworks)}
                 </span>
                 {isOriginal ? (
                   <Layers className="w-4 h-4 md:w-5 md:h-5" />
@@ -509,7 +525,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   )}
                   {item.parentArtworkId && (
                     <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wide">
-                      Remix of @{item.parentAuthor || 'creator'}
+                      Remix of @{artworks.find((a) => a.id === item.parentArtworkId)?.author || item.parentAuthor || 'unknown creator'}
                     </span>
                   )}
                 </div>
