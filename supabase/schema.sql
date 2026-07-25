@@ -96,7 +96,8 @@ create policy "Users can delete their own artworks"
 
 -- ---------------------------------------------------------------------------
 -- 4. DOWNLOAD CREDITS ("Give to Get" karma system)
--- Every user starts with 1 credit. Publishing an original artwork or a
+-- New users start with 0 credits — they earn their first one by publishing
+-- something. Publishing an original artwork or a
 -- remix both earn 1 credit (1 upload/remix = 1 download). Downloading
 -- someone else's file costs 1 credit.
 --
@@ -107,7 +108,7 @@ create policy "Users can delete their own artworks"
 -- actually publishing something.
 -- ---------------------------------------------------------------------------
 alter table public.profiles
-  add column if not exists credits integer not null default 1;
+  add column if not exists credits integer not null default 0;
 
 create or replace function public.handle_new_artwork_credits()
 returns trigger

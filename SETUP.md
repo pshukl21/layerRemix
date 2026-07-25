@@ -111,7 +111,8 @@ talks directly to Supabase.
 
 ## Download credits ("Give to Get")
 
-Every user starts with **1 credit**. Publishing an **original** artwork or a
+New users start with **0 credits** — they earn their first one by publishing
+something. Publishing an **original** artwork or a
 **remix** both earn **+1 credit** (1 upload/remix = 1 download). Downloading
 someone else's file costs **1 credit** — downloading your own uploads is
 always free. Credits show up next to your avatar in the header and on your

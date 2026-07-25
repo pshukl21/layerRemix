@@ -8,6 +8,7 @@ import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
+import { NeedCreditsModal } from './NeedCreditsModal';
 
 interface DetailScreenProps {
   artwork: Artwork;
@@ -395,6 +396,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [needCreditsModalOpen, setNeedCreditsModalOpen] = useState(false);
 
   const downloadTarget = getDownloadTarget(artwork);
   const isOwnArtwork = !!user && user.id === artwork.ownerId;
@@ -416,7 +418,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setDownloadError(null);
 
     if (!isOwnArtwork && (profile?.credits ?? 0) < 1) {
-      setDownloadError("You're out of download credits. Publish an original piece or a remix to earn more.");
+      setNeedCreditsModalOpen(true);
       return;
     }
 
@@ -433,7 +435,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       spendDownloadCredit(user.id).then(({ error }) => {
         setDownloading(false);
         if (error) {
-          setDownloadError(error);
+          if (error.includes('out of download credits')) {
+            setNeedCreditsModalOpen(true);
+          } else {
+            setDownloadError(error);
+          }
           return;
         }
         refreshProfile();
@@ -1162,6 +1168,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           onDelete={onDeleteArtwork}
         />
       )}
+
+      <NeedCreditsModal open={needCreditsModalOpen} onClose={() => setNeedCreditsModalOpen(false)} />
     </div>
   );
 };
