@@ -29,18 +29,28 @@ export function zipFile(file: File): Promise<File> {
     const reader = new FileReader();
     reader.onerror = () => reject(reader.error);
     reader.onload = () => {
-      const bytes = new Uint8Array(reader.result as ArrayBuffer);
-      zip(
-        { [file.name]: [bytes, { level: 0 }] },
-        (err, data) => {
-          if (err) {
-            reject(err);
-            return;
+      // Everything here runs inside a FileReader event callback, not the
+      // Promise executor's own synchronous scope — a throw in here would
+      // NOT automatically reject this promise unless we catch it ourselves.
+      // Without this try/catch, a failure here (e.g. from fflate's zip())
+      // becomes a truly uncaught exception, which — with no error boundary
+      // in the app — can unmount the entire React tree to a blank screen.
+      try {
+        const bytes = new Uint8Array(reader.result as ArrayBuffer);
+        zip(
+          { [file.name]: [bytes, { level: 0 }] },
+          (err, data) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            const zipName = file.name.replace(/\.[^./\\]+$/, '') + '.zip';
+            resolve(new File([data], zipName, { type: 'application/zip' }));
           }
-          const zipName = file.name.replace(/\.[^./\\]+$/, '') + '.zip';
-          resolve(new File([data], zipName, { type: 'application/zip' }));
-        }
-      );
+        );
+      } catch (err) {
+        reject(err);
+      }
     };
     reader.readAsArrayBuffer(file);
   });
