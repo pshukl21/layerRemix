@@ -85,40 +85,36 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
       {/* Compact header — art is the focal point, not the text */}
       <section className="max-w-7xl mx-auto px-6 md:px-12 pt-2 pb-6">
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm px-6 md:px-8 py-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 leading-tight">
-                Where scrapped PSDs become finished art.
-              </h1>
-              <p className="text-xs text-slate-500 font-semibold mt-1">
-                Upload unfinished PSDs, download source layers, and remix dormant projects.
-              </p>
-            </div>
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm px-6 py-8 flex flex-col items-center text-center">
+          <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 leading-tight max-w-xl">
+            Where scrapped PSDs become finished art.
+          </h1>
+          <p className="text-xs text-slate-500 font-semibold mt-1.5 max-w-md">
+            Upload unfinished PSDs, download source layers, and remix dormant projects.
+          </p>
 
-            <form
-              onSubmit={handleHeroSearchSubmit}
-              className="w-full md:w-80 bg-slate-100/80 rounded-lg p-1 flex items-center border border-slate-200 focus-within:border-blue-600 focus-within:bg-white transition-colors shrink-0"
+          <form
+            onSubmit={handleHeroSearchSubmit}
+            className="w-full max-w-md mt-5 bg-slate-100/80 rounded-lg p-1 flex items-center border border-slate-200 focus-within:border-blue-600 focus-within:bg-white transition-colors"
+          >
+            <input
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              className="flex-grow bg-transparent border-none focus:outline-none focus:ring-0 text-sm px-3 text-slate-800 placeholder-slate-400 font-semibold text-center"
+              placeholder="Search tags, titles..."
+              type="text"
+            />
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white h-8 w-8 rounded-md flex items-center justify-center shrink-0 transition-all cursor-pointer"
             >
-              <input
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                className="flex-grow bg-transparent border-none focus:outline-none focus:ring-0 text-sm px-3 text-slate-800 placeholder-slate-400 font-semibold"
-                placeholder="Search tags, titles..."
-                type="text"
-              />
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white h-8 w-8 rounded-md flex items-center justify-center shrink-0 transition-all cursor-pointer"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-            </form>
-          </div>
+              <Search className="w-4 h-4" />
+            </button>
+          </form>
 
           {/* Hot Tags suggestion */}
           {hotTags.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-slate-100">
+            <div className="w-full flex flex-wrap items-center justify-center gap-2 mt-5 pt-4 border-t border-slate-100">
               <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mr-0.5">Hot tags:</span>
               {hotTags.map((tag) => (
                 <button
