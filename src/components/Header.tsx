@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Upload, Search, LogOut, Coins } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,8 +13,23 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequireAuth }) => {
   const { user, profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Close the dropdown on any click outside it — a document-level listener
+  // is more reliable than a full-screen overlay div, which can get covered
+  // by other fixed/positioned elements and silently stop catching clicks.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuContainerRef.current && !menuContainerRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
 
   const isExplore = location.pathname === '/';
   const isProfile = location.pathname === '/profile';
@@ -85,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
           </button>
 
           {user ? (
-            <div className="relative flex items-center gap-2.5">
+            <div ref={menuContainerRef} className="relative flex items-center gap-2.5">
               <button
                 onClick={handleAvatarClick}
                 title="Download credits"
@@ -108,9 +123,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
                 />
               </div>
               {menuOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg z-20 py-2 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg z-20 py-2 overflow-hidden">
                     <div className="px-4 py-2.5 border-b border-slate-100">
                       <p className="text-xs font-bold text-slate-800 truncate">@{profile?.username || 'you'}</p>
                       <p className="flex items-center gap-1.5 text-[11px] font-bold text-amber-600 mt-1">
@@ -138,8 +151,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
                       <LogOut className="w-3.5 h-3.5" />
                       Sign Out
                     </button>
-                  </div>
-                </>
+                </div>
               )}
             </div>
           ) : (

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -397,6 +397,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const downloadTarget = getDownloadTarget(artwork);
   const isOwnArtwork = !!user && user.id === artwork.ownerId;
@@ -663,7 +664,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                     <div className="w-full h-full rounded-md overflow-hidden relative ps-marching-ants">
                       <img
                         style={tiltStyle}
-                        className="w-full h-full object-cover transition-transform duration-500 ease-out"
+                        onClick={() => setLightboxOpen(true)}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out cursor-zoom-in"
                         src={artwork.image}
                         alt={artwork.title}
                         referrerPolicy="no-referrer"
@@ -1168,6 +1170,35 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           onDelete={onDeleteArtwork}
         />
       )}
+
+      <AnimatePresence>
+        {lightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxOpen(false)}
+            className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-6 cursor-zoom-out"
+          >
+            <button
+              onClick={() => setLightboxOpen(false)}
+              className="absolute top-5 right-5 text-white/80 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-7 h-7" />
+            </button>
+            <motion.img
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              src={artwork.image}
+              alt={artwork.title}
+              referrerPolicy="no-referrer"
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-default"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

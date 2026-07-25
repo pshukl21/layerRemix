@@ -219,7 +219,10 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 shrink-0" />
                     <span className="text-[9px] font-bold text-zinc-200 truncate ps-stat">{art.title}.psd</span>
                   </div>
-                  <div className="aspect-[4/5] overflow-hidden relative">
+                  <div
+                    onClick={() => onSelectArtwork(art.id)}
+                    className="aspect-[4/5] overflow-hidden relative cursor-pointer"
+                  >
                     <div className="w-full h-full overflow-hidden relative">
                       <img
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
