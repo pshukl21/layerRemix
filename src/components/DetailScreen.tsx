@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check } from 'lucide-react';
 import { Artwork } from '../types';
@@ -541,7 +542,15 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   {item.title}
                 </h3>
                 <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                  by @{item.author} • {item.timeAgo}
+                  by{' '}
+                  <Link
+                    to={`/profile/${item.author}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="hover:text-blue-600 hover:underline"
+                  >
+                    @{item.author}
+                  </Link>{' '}
+                  • {item.timeAgo}
                 </p>
                 <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mt-1.5 line-clamp-2 sm:line-clamp-1">
                   {item.description}
@@ -722,15 +731,9 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
      
                   {/* Author Profile section */}
                   <div className="flex items-center gap-3 py-1 select-none">
-                    <div 
-                      onClick={() => {
-                        if (artwork.author === 'luna_creative') {
-                          onNavigateToProfile();
-                        }
-                      }}
-                      className={`w-9 h-9 rounded-full overflow-hidden border border-slate-200 ${
-                        artwork.author === 'luna_creative' ? 'cursor-pointer hover:border-blue-600' : ''
-                      }`}
+                    <Link
+                      to={`/profile/${artwork.author}`}
+                      className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 cursor-pointer hover:border-blue-600 transition-colors"
                     >
                       <img
                         className="w-full h-full object-cover"
@@ -738,20 +741,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                         alt={artwork.author}
                         referrerPolicy="no-referrer"
                       />
-                    </div>
+                    </Link>
                     <div className="flex flex-col">
-                      <span 
-                        onClick={() => {
-                          if (artwork.author === 'luna_creative') {
-                            onNavigateToProfile();
-                          }
-                        }}
-                        className={`font-bold text-sm text-blue-600 ${
-                          artwork.author === 'luna_creative' ? 'cursor-pointer hover:underline' : ''
-                        }`}
+                      <Link
+                        to={`/profile/${artwork.author}`}
+                        className="font-bold text-sm text-blue-600 cursor-pointer hover:underline w-fit"
                       >
                         @{artwork.author}
-                      </span>
+                      </Link>
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Creator</span>
                     </div>
                   </div>

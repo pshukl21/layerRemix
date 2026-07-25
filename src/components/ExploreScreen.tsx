@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Search, Download, GitFork, ArrowDown, ExternalLink } from 'lucide-react';
 import { Artwork } from '../types';
@@ -252,9 +253,13 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     {art.title}
                   </h3>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400 font-bold">
+                    <Link
+                      to={`/profile/${art.author}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs text-slate-400 font-bold hover:text-blue-600 hover:underline"
+                    >
                       by @{art.author}
-                    </span>
+                    </Link>
                     <div className="flex gap-3 text-slate-400 text-xs font-semibold ps-stat">
                       <div className="flex items-center gap-1" title="Downloads">
                         <Download className="w-3.5 h-3.5" />

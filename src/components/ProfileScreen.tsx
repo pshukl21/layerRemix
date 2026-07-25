@@ -1,22 +1,60 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Check, Heart, Download, LogIn, Coins, Camera, Pencil } from 'lucide-react';
-import { Artwork } from '../types';
+import { Check, Heart, Download, LogIn, Coins, Camera, Pencil, SearchX } from 'lucide-react';
+import { Artwork, Profile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads } from '../lib/artworks';
+import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername } from '../lib/artworks';
 
 interface ProfileScreenProps {
   artworks: Artwork[];
   onSelectArtwork: (artworkId: string) => void;
   onRequireAuth: () => void;
+  // When provided, shows that user's public profile (read-only) instead of
+  // the logged-in user's own profile. Omit (or pass the logged-in user's
+  // own username) to get the normal editable "my profile" experience.
+  viewedUsername?: string;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   artworks,
   onSelectArtwork,
   onRequireAuth,
+  viewedUsername,
 }) => {
-  const { user, profile, updateAvatar, updateBio } = useAuth();
+  const { user, profile: ownProfile, updateAvatar, updateBio } = useAuth();
+
+  const isOwnProfile = !viewedUsername || (!!ownProfile && viewedUsername === ownProfile.username);
+
+  const [viewedProfile, setViewedProfile] = useState<Profile | null>(null);
+  const [loadingViewedProfile, setLoadingViewedProfile] = useState(false);
+  const [viewedProfileNotFound, setViewedProfileNotFound] = useState(false);
+
+  useEffect(() => {
+    if (isOwnProfile || !viewedUsername) {
+      setViewedProfile(null);
+      setViewedProfileNotFound(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingViewedProfile(true);
+    setViewedProfileNotFound(false);
+    fetchProfileByUsername(viewedUsername).then((p) => {
+      if (cancelled) return;
+      setLoadingViewedProfile(false);
+      if (!p) {
+        setViewedProfileNotFound(true);
+      } else {
+        setViewedProfile(p);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewedUsername, isOwnProfile]);
+
+  const profile = isOwnProfile ? ownProfile : viewedProfile;
+
   const [editingBio, setEditingBio] = useState(false);
   const [bioInput, setBioInput] = useState('');
   const [bioSaving, setBioSaving] = useState(false);
@@ -40,7 +78,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   };
 
   const handleStartEditBio = () => {
-    setBioInput(profile?.bio || '');
+    setBioInput(ownProfile?.bio || '');
     setBioError(null);
     setEditingBio(true);
   };
@@ -93,7 +131,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   };
 
-  if (!user || !profile) {
+  // Own profile requires being signed in. Someone else's profile is public
+  // and viewable by anyone, signed in or not.
+  if (isOwnProfile && (!user || !ownProfile)) {
     return (
       <div className="w-full min-h-screen text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
         <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Sign in to view your profile</h1>
@@ -111,17 +151,42 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     );
   }
 
-  const originalArt = artworks.filter((art) => art.ownerId === user.id && art.type === 'Original');
-  const remixedArt = artworks.filter((art) => art.ownerId === user.id && art.type === 'Remix');
+  if (!isOwnProfile && loadingViewedProfile) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center text-slate-400 text-sm font-semibold">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!isOwnProfile && (viewedProfileNotFound || !profile)) {
+    return (
+      <div className="w-full min-h-screen text-slate-900 pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
+        <SearchX className="w-10 h-10 text-slate-300 mb-4" />
+        <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Creator not found</h1>
+        <p className="text-sm text-slate-500 font-semibold max-w-sm">
+          There's no profile at @{viewedUsername}.
+        </p>
+      </div>
+    );
+  }
+
+  if (!profile) return null;
+
+  const targetUserId = isOwnProfile ? user?.id : profile.id;
+  const originalArt = artworks.filter((art) => art.ownerId === targetUserId && art.type === 'Original');
+  const remixedArt = artworks.filter((art) => art.ownerId === targetUserId && art.type === 'Remix');
   const totalDownloads = artworks
-    .filter((art) => art.ownerId === user.id)
+    .filter((art) => art.ownerId === targetUserId)
     .reduce((sum, art) => sum + (Number(art.downloads) || 0), 0);
 
   const renderGrid = (list: Artwork[], showRemixLabel: boolean) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {list.length === 0 && (
         <p className="text-sm text-slate-400 font-semibold col-span-full text-center py-16">
-          Nothing here yet — head to Upload to publish your first piece.
+          {isOwnProfile
+            ? 'Nothing here yet — head to Upload to publish your first piece.'
+            : 'This creator hasn\u2019t published anything here yet.'}
         </p>
       )}
       {list.map((art) => {
@@ -157,7 +222,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   <div className="flex flex-col">
                     <span className="font-bold text-sm tracking-wide">{art.title}</span>
                     {showRemixLabel && (
-                      <span className="text-[10px] text-slate-300 font-bold">remixed by @{art.author}</span>
+                      <Link
+                        to={`/profile/${art.author}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[10px] text-slate-300 font-bold hover:text-white hover:underline w-fit"
+                      >
+                        remixed by @{art.author}
+                      </Link>
                     )}
                   </div>
                   <div className="flex gap-2 text-white">
@@ -198,26 +269,30 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               referrerPolicy="no-referrer"
             />
           </div>
-          <button
-            onClick={() => avatarInputRef.current?.click()}
-            disabled={avatarUploading}
-            title="Change profile photo"
-            className="absolute inset-1.5 rounded-full bg-slate-950/0 group-hover:bg-slate-950/50 transition-colors flex items-center justify-center cursor-pointer disabled:cursor-wait"
-          >
-            <span className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-1 text-white">
-              <Camera className="w-6 h-6" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">
-                {avatarUploading ? 'Uploading…' : 'Change'}
-              </span>
-            </span>
-          </button>
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatarFileChange}
-          />
+          {isOwnProfile && (
+            <>
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                title="Change profile photo"
+                className="absolute inset-1.5 rounded-full bg-slate-950/0 group-hover:bg-slate-950/50 transition-colors flex items-center justify-center cursor-pointer disabled:cursor-wait"
+              >
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-1 text-white">
+                  <Camera className="w-6 h-6" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">
+                    {avatarUploading ? 'Uploading…' : 'Change'}
+                  </span>
+                </span>
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+              />
+            </>
+          )}
           <div className="absolute bottom-1 right-1 bg-blue-600 text-white p-1.5 rounded-full border-2 border-white flex items-center justify-center shadow-lg">
             <Check className="w-4 h-4 stroke-[3px]" />
           </div>
@@ -239,7 +314,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 @{profile.username}
               </span>
             </div>
-            {editingBio ? (
+            {isOwnProfile && editingBio ? (
               <div className="max-w-2xl mb-6">
                 <textarea
                   value={bioInput}
@@ -273,27 +348,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             ) : (
               <div className="flex items-start gap-2 max-w-2xl mb-6 justify-center md:justify-start">
                 <p className="text-sm md:text-base text-slate-600 leading-relaxed font-semibold">
-                  {profile.bio || 'This creator hasn\u2019t written a bio yet.'}
+                  {profile.bio || (isOwnProfile ? 'This creator hasn\u2019t written a bio yet.' : 'This creator hasn\u2019t written a bio yet.')}
                 </p>
-                <button
-                  onClick={handleStartEditBio}
-                  title="Edit bio"
-                  className="text-slate-400 hover:text-blue-600 transition-colors cursor-pointer shrink-0 mt-1"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
+                {isOwnProfile && (
+                  <button
+                    onClick={handleStartEditBio}
+                    title="Edit bio"
+                    className="text-slate-400 hover:text-blue-600 transition-colors cursor-pointer shrink-0 mt-1"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             )}
           </div>
 
           <div className="flex flex-wrap justify-center md:justify-start gap-4 ps-stat">
-            <div className="flex flex-col items-center justify-center bg-amber-50 border border-amber-200 px-6 py-3 rounded-2xl min-w-[100px] shadow-2xs">
-              <span className="flex items-center gap-1.5 text-xl md:text-2xl font-black text-amber-600">
-                <Coins className="w-5 h-5" />
-                {profile.credits}
-              </span>
-              <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Credits</span>
-            </div>
+            {isOwnProfile && (
+              <div className="flex flex-col items-center justify-center bg-amber-50 border border-amber-200 px-6 py-3 rounded-2xl min-w-[100px] shadow-2xs">
+                <span className="flex items-center gap-1.5 text-xl md:text-2xl font-black text-amber-600">
+                  <Coins className="w-5 h-5" />
+                  {profile.credits}
+                </span>
+                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Credits</span>
+              </div>
+            )}
             <div className="flex flex-col items-center justify-center bg-slate-50 border border-slate-100 px-6 py-3 rounded-2xl min-w-[100px] shadow-2xs">
               <span className="text-xl md:text-2xl font-black text-blue-600">{remixedArt.length}</span>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Remixes</span>
@@ -307,9 +386,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Creations</span>
             </div>
           </div>
-          <p className="text-[11px] text-slate-400 font-semibold mt-3 text-center md:text-left">
-            Downloading someone else's file costs 1 credit. Publish an original piece or a remix to earn 1 more.
-          </p>
+          {isOwnProfile && (
+            <p className="text-[11px] text-slate-400 font-semibold mt-3 text-center md:text-left">
+              Downloading someone else's file costs 1 credit. Publish an original piece or a remix to earn 1 more.
+            </p>
+          )}
         </div>
       </section>
 

@@ -98,6 +98,27 @@ function DetailRoute({
   );
 }
 
+// Resolves the :username route param and shows that user's public profile.
+function ProfileByUsernameRoute({
+  artworks,
+  onSelectArtwork,
+  onRequireAuth,
+}: {
+  artworks: Artwork[];
+  onSelectArtwork: (id: string) => void;
+  onRequireAuth: () => void;
+}) {
+  const { username } = useParams<{ username: string }>();
+  return (
+    <ProfileScreen
+      artworks={artworks}
+      onSelectArtwork={onSelectArtwork}
+      onRequireAuth={onRequireAuth}
+      viewedUsername={username}
+    />
+  );
+}
+
 export default function App() {
   const { user, profile, refreshProfile } = useAuth();
   const [realArtworks, setRealArtworks] = useState<Artwork[]>([]);
@@ -296,6 +317,17 @@ export default function App() {
                 path="/profile"
                 element={
                   <ProfileScreen
+                    artworks={artworks}
+                    onSelectArtwork={handleSelectArtwork}
+                    onRequireAuth={() => openAuthModal('signIn')}
+                  />
+                }
+              />
+
+              <Route
+                path="/profile/:username"
+                element={
+                  <ProfileByUsernameRoute
                     artworks={artworks}
                     onSelectArtwork={handleSelectArtwork}
                     onRequireAuth={() => openAuthModal('signIn')}

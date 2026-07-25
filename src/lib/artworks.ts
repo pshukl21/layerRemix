@@ -1,5 +1,5 @@
 import { supabase, PREVIEWS_BUCKET, SOURCE_FILES_BUCKET } from './supabase';
-import { Artwork } from '../types';
+import { Artwork, Profile } from '../types';
 
 // Shape returned by a `select('*, owner:profiles(*)')` query against `artworks`.
 interface ArtworkRow {
@@ -65,6 +65,29 @@ export const DEFAULT_AVATAR =
   'https://api.dicebear.com/7.x/thumbs/svg?seed=layerhub-default';
 
 // Fetches every real (non-demo) artwork, newest first, joined with its owner's profile.
+// Fetches any user's public profile by username — used to view someone
+// else's profile page. Profiles are publicly readable, so this works
+// whether or not the visitor is signed in.
+export async function fetchProfileByUsername(username: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('username', username)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    username: data.username,
+    displayName: data.display_name,
+    avatarUrl: data.avatar_url,
+    bio: data.bio || '',
+    credits: typeof data.credits === 'number' ? data.credits : 0,
+    createdAt: data.created_at,
+  };
+}
+
 export async function fetchArtworks(): Promise<Artwork[]> {
   const { data, error } = await supabase
     .from('artworks')
