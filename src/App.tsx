@@ -9,6 +9,7 @@ import { ProfileScreen } from './components/ProfileScreen';
 import { UploadScreen } from './components/UploadScreen';
 import { DetailScreen } from './components/DetailScreen';
 import { AuthModal } from './components/AuthModal';
+import { NeedCreditsModal } from './components/NeedCreditsModal';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
@@ -42,6 +43,7 @@ function DetailRoute({
   onUpdateArtwork,
   onDeleteArtwork,
   onRequireAuth,
+  onRequireCredits,
 }: {
   artworks: Artwork[];
   loadingArtworks: boolean;
@@ -51,6 +53,7 @@ function DetailRoute({
   onUpdateArtwork: (artworkId: string, updates: UpdateInput) => Promise<{ error: string | null }>;
   onDeleteArtwork: (artworkId: string) => Promise<{ error: string | null }>;
   onRequireAuth: () => void;
+  onRequireCredits: () => void;
 }) {
   const { id } = useParams<{ id: string }>();
   const artwork = artworks.find((art) => art.id === id);
@@ -90,17 +93,19 @@ function DetailRoute({
       onUpdateArtwork={onUpdateArtwork}
       onDeleteArtwork={onDeleteArtwork}
       onRequireAuth={onRequireAuth}
+      onRequireCredits={onRequireCredits}
     />
   );
 }
 
 export default function App() {
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [realArtworks, setRealArtworks] = useState<Artwork[]>([]);
   const [loadingArtworks, setLoadingArtworks] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signIn' | 'signUp'>('signIn');
+  const [needCreditsModalOpen, setNeedCreditsModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -120,6 +125,24 @@ export default function App() {
   useEffect(() => {
     loadArtworks();
   }, [loadArtworks]);
+
+  // Proactively show the "you need a credit" explainer once per browser
+  // session for a brand-new account — someone with 0 credits who hasn't
+  // published anything yet. This is the same modal shown reactively when
+  // someone tries to download without credits; here it's shown once,
+  // unprompted, right after their first login, so they aren't surprised
+  // by it later.
+  useEffect(() => {
+    if (!user || !profile || loadingArtworks) return;
+    if (profile.credits > 0) return;
+    const hasPublishedAnything = artworks.some((art) => art.ownerId === user.id);
+    if (hasPublishedAnything) return;
+
+    const seenKey = `layerremix:welcomeCreditsShown:${user.id}`;
+    if (sessionStorage.getItem(seenKey)) return;
+    sessionStorage.setItem(seenKey, '1');
+    setNeedCreditsModalOpen(true);
+  }, [user, profile, artworks, loadingArtworks]);
 
   const openAuthModal = (mode: 'signIn' | 'signUp' = 'signIn') => {
     setAuthModalMode(mode);
@@ -315,6 +338,7 @@ export default function App() {
                     onUpdateArtwork={handleUpdateArtwork}
                     onDeleteArtwork={handleDeleteArtwork}
                     onRequireAuth={() => openAuthModal('signIn')}
+                    onRequireCredits={() => setNeedCreditsModalOpen(true)}
                   />
                 }
               />
@@ -344,6 +368,11 @@ export default function App() {
         open={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         initialMode={authModalMode}
+      />
+
+      <NeedCreditsModal
+        open={needCreditsModalOpen}
+        onClose={() => setNeedCreditsModalOpen(false)}
       />
     </div>
   );

@@ -8,7 +8,6 @@ import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
-import { NeedCreditsModal } from './NeedCreditsModal';
 
 interface DetailScreenProps {
   artwork: Artwork;
@@ -16,6 +15,7 @@ interface DetailScreenProps {
   onSelectArtwork: (artworkId: string) => void;
   onNavigateToProfile: () => void;
   onRequireAuth: () => void;
+  onRequireCredits: () => void;
   onPublishFork?: (parentArtworkId: string, forkDetails: {
     title: string;
     description: string;
@@ -122,6 +122,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   onSelectArtwork,
   onNavigateToProfile,
   onRequireAuth,
+  onRequireCredits,
   onPublishFork,
   onUpdateArtwork,
   onDeleteArtwork,
@@ -396,7 +397,6 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const [needCreditsModalOpen, setNeedCreditsModalOpen] = useState(false);
 
   const downloadTarget = getDownloadTarget(artwork);
   const isOwnArtwork = !!user && user.id === artwork.ownerId;
@@ -418,7 +418,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setDownloadError(null);
 
     if (!isOwnArtwork && (profile?.credits ?? 0) < 1) {
-      setNeedCreditsModalOpen(true);
+      onRequireCredits();
       return;
     }
 
@@ -436,7 +436,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         setDownloading(false);
         if (error) {
           if (error.includes('out of download credits')) {
-            setNeedCreditsModalOpen(true);
+            onRequireCredits();
           } else {
             setDownloadError(error);
           }
@@ -1168,8 +1168,6 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           onDelete={onDeleteArtwork}
         />
       )}
-
-      <NeedCreditsModal open={needCreditsModalOpen} onClose={() => setNeedCreditsModalOpen(false)} />
     </div>
   );
 };
