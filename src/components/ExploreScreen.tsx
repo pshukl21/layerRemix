@@ -83,44 +83,76 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
-      {/* Compact header — art is the focal point, not the text */}
-      <section className="max-w-7xl mx-auto px-6 md:px-12 pt-2 pb-6">
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm px-6 py-8 flex flex-col items-center text-center">
-          <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 leading-tight max-w-xl">
-            Where scrapped PSDs become finished art.
-          </h1>
-          <p className="text-xs text-slate-500 font-semibold mt-1.5 max-w-md">
-            Upload unfinished PSDs, download source layers, and remix dormant projects.
-          </p>
+      {/* Hero Section styled as a premium Large Bento Card */}
+      <section className="relative h-auto min-h-[420px] md:min-h-[480px] py-12 flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-xl mx-4 md:mx-12 my-6 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
+        {/* Decorative Bento Grid Line Overlays */}
+        <div className="absolute inset-0 opacity-[0.14] pointer-events-none ps-grid-bg" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-500/5 blur-[120px]" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-500/10 blur-[120px]" />
 
-          <form
+        {/* Centered Hero Content Container */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="mb-4 inline-flex items-center justify-center"
+          >
+            <span className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
+              🎨 OPEN-SOURCE ARTWORK
+            </span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="w-full max-w-full text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
+          >
+            Where scrapped PSDs become finished art.
+          </motion.h1>
+
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-sm md:text-base lg:text-lg text-slate-500 max-w-2xl mx-auto mb-8 font-semibold leading-relaxed"
+          >
+            Upload unfinished PSDs, download source layers, and turn dormant projects into final artwork.
+          </motion.p>
+
+          {/* Hero Search Bar */}
+          <motion.form 
             onSubmit={handleHeroSearchSubmit}
-            className="w-full max-w-md mt-5 bg-slate-100/80 rounded-lg p-1 flex items-center border border-slate-200 focus-within:border-blue-600 focus-within:bg-white transition-colors"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="w-full max-w-xl mx-auto bg-slate-100/90 backdrop-blur-md rounded-full p-1.5 flex items-center border border-slate-200 shadow-md focus-within:border-blue-600 focus-within:bg-white transition-all"
           >
             <input
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              className="flex-grow bg-transparent border-none focus:outline-none focus:ring-0 text-sm px-3 text-slate-800 placeholder-slate-400 font-semibold text-center"
-              placeholder="Search tags, titles..."
+              className="flex-grow bg-transparent border-none focus:outline-none focus:ring-0 text-sm px-6 text-slate-800 placeholder-slate-400 font-semibold"
+              placeholder="Search by tag: abstract, 3D, neon..."
               type="text"
             />
-            <button
+            <button 
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white h-8 w-8 rounded-md flex items-center justify-center shrink-0 transition-all cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-md"
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-5 h-5" />
             </button>
-          </form>
+          </motion.form>
 
           {/* Hot Tags suggestion */}
           {hotTags.length > 0 && (
-            <div className="w-full flex flex-wrap items-center justify-center gap-2 mt-5 pt-4 border-t border-slate-100">
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mr-0.5">Hot tags:</span>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
+              <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
               {hotTags.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => handleTagClick(tag)}
-                  className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3 py-0.5 rounded-md transition-all cursor-pointer capitalize"
+                  className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3.5 py-1 rounded-md transition-all cursor-pointer capitalize"
                 >
                   #{tag}
                 </button>
@@ -131,7 +163,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       </section>
 
       {/* Main Grid Content */}
-      <main className="max-w-7xl mx-auto px-6 md:px-12 py-2">
+      <main className="max-w-7xl mx-auto px-6 md:px-12 py-8">
         {/* Navigation Filters */}
         <div className="flex items-center mb-8 overflow-x-auto">
           <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm whitespace-nowrap">
