@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileUp, Image as ImageIcon, Sparkles, Check } from 'lucide-react';
-import { parsePsdHeader, formatPsdResolution, getImageDimensions, formatImageResolution } from '../lib/psd';
+import { Upload, FileUp, Image as ImageIcon, Sparkles, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib/psd';
 
 interface UploadScreenProps {
   onPublish: (newArtwork: {
@@ -26,12 +26,13 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const [psdDragActive, setPsdDragActive] = useState(false);
   const psdInputRef = useRef<HTMLInputElement>(null);
 
-  // Preview Image state — keep the File object (for upload) alongside a data
-  // URL (for the on-screen preview) since the two are needed for different things.
-  const [previewImageFile, setPreviewImageFile] = useState<File | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [imgDragActive, setImgDragActive] = useState(false);
-  const imgInputRef = useRef<HTMLInputElement>(null);
+  // The preview is never uploaded manually — it's extracted straight from the
+  // PSD's own embedded thumbnail (the same one Finder/Explorer show), so the
+  // gallery image can never be misleading or mismatched from the real file.
+  const [extractedThumbnail, setExtractedThumbnail] = useState<File | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
 
   // Selected tags preset
   const tagPresets = ['Illustration', 'Abstract', 'DigitalArt', 'Layered', 'Cyberpunk', '3D'];
@@ -45,6 +46,29 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       currentTags.push(tag);
       setTagsInput(currentTags.join(', '));
     }
+  };
+
+  const processPsdFile = async (file: File) => {
+    setPsdFile(file);
+    setExtractedThumbnail(null);
+    setThumbnailPreviewUrl(null);
+    setExtractionError(null);
+    setExtracting(true);
+
+    const thumbnail = await extractPsdThumbnail(file);
+    setExtracting(false);
+
+    if (!thumbnail) {
+      setExtractionError(
+        "We couldn't find an embedded preview inside this PSD. In Photoshop, go to Preferences → File Handling and set \"Maximize PSD and PSB File Compatibility\" to Always (or Ask), then re-save the file and upload it again."
+      );
+      return;
+    }
+
+    setExtractedThumbnail(thumbnail);
+    const reader = new FileReader();
+    reader.onload = () => setThumbnailPreviewUrl(reader.result as string);
+    reader.readAsDataURL(thumbnail);
   };
 
   // Drag-and-drop handlers for PSD file
@@ -64,59 +88,17 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     setPsdDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      if (file.name.endsWith('.psd') || file.name.includes('psd')) {
-        setPsdFile(file);
+      if (file.name.toLowerCase().endsWith('.psd') || file.name.toLowerCase().endsWith('.psb')) {
+        processPsdFile(file);
       } else {
-        alert('Please drop a valid Photoshop .psd file.');
+        alert('Please drop a valid Photoshop .psd (or .psb) file.');
       }
     }
   };
 
   const handlePsdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setPsdFile(e.target.files[0]);
-    }
-  };
-
-  // Drag-and-drop handlers for Preview Image
-  const handleImgDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setImgDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setImgDragActive(false);
-    }
-  };
-
-  const handleImgDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setImgDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type.startsWith('image/')) {
-        setPreviewImageFile(file);
-        const reader = new FileReader();
-        reader.onload = () => {
-          setPreviewImage(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        alert('Please upload a valid image file (PNG/JPG).');
-      }
-    }
-  };
-
-  const handleImgChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPreviewImageFile(file);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      processPsdFile(e.target.files[0]);
     }
   };
 
@@ -127,8 +109,12 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       alert('Please enter an artwork title.');
       return;
     }
-    if (!previewImageFile) {
-      alert('Please provide a preview image.');
+    if (!psdFile) {
+      alert('Please upload your .psd file.');
+      return;
+    }
+    if (!extractedThumbnail) {
+      alert("We need a valid preview extracted from your PSD before publishing — see the message under the upload box.");
       return;
     }
     if (!certified) {
@@ -141,21 +127,11 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       .map((t) => t.trim())
       .filter((t) => t !== '');
 
-    // Read the real dimensions from the uploaded file rather than guessing —
-    // prefer the PSD's own header if one was provided, since that's the
-    // authoritative source; otherwise fall back to the preview image itself.
+    // Real dimensions come straight from the PSD's own header.
     let resolution = 'Unknown dimensions';
-    if (psdFile) {
-      const psdInfo = await parsePsdHeader(psdFile);
-      if (psdInfo) {
-        resolution = formatPsdResolution(psdInfo);
-      }
-    }
-    if (resolution === 'Unknown dimensions') {
-      const imgDims = await getImageDimensions(previewImageFile);
-      if (imgDims) {
-        resolution = formatImageResolution(imgDims);
-      }
+    const psdInfo = await parsePsdHeader(psdFile);
+    if (psdInfo) {
+      resolution = formatPsdResolution(psdInfo);
     }
 
     setSubmitting(true);
@@ -163,7 +139,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       title,
       description: description || 'No notes on what needs work yet.',
       tags: tagsArray.length > 0 ? tagsArray : ['DigitalArt'],
-      previewFile: previewImageFile,
+      previewFile: extractedThumbnail,
       sourceFile: psdFile,
       resolution,
     });
@@ -185,7 +161,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       </header>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: File Drop-Zones */}
+        {/* Left Column: File Drop-Zone + Auto-Generated Preview */}
         <div className="lg:col-span-7 space-y-6">
           {/* Source PSD upload box */}
           <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
@@ -203,7 +179,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
             >
               <input
                 ref={psdInputRef}
-                accept=".psd"
+                accept=".psd,.psb"
                 className="hidden"
                 type="file"
                 onChange={handlePsdChange}
@@ -213,55 +189,55 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               <p className="text-xs text-slate-400 max-w-xs leading-relaxed font-semibold">
                 {psdFile 
                   ? `Selected: ${psdFile.name} (${(psdFile.size / (1024 * 1024)).toFixed(1)} MB)`
-                  : 'Drag and drop your project files here or click to browse. Max size 2GB.'
+                  : 'Drag and drop your project file here or click to browse. Max size depends on your plan.'
                 }
               </p>
             </div>
           </div>
 
-          {/* Preview image upload box */}
+          {/* Auto-generated preview — read-only, pulled straight from the PSD */}
           <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
-            <div
-              onClick={() => imgInputRef.current?.click()}
-              onDragEnter={handleImgDrag}
-              onDragOver={handleImgDrag}
-              onDragLeave={handleImgDrag}
-              onDrop={handleImgDrop}
-              className={`border-2 border-dashed rounded-lg p-12 h-80 transition-all cursor-pointer flex flex-col items-center justify-center text-center group relative overflow-hidden ${
-                imgDragActive 
-                  ? 'border-blue-500 bg-blue-50/30' 
-                  : previewImage
-                  ? 'border-slate-200 hover:border-blue-500'
-                  : 'border-slate-200 hover:border-blue-500 ps-checkerboard'
-              }`}
-            >
-              <input
-                ref={imgInputRef}
-                accept="image/*"
-                className="hidden"
-                type="file"
-                onChange={handleImgChange}
-              />
+            <div className="rounded-lg h-80 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50 border border-slate-100">
+              {extracting && (
+                <div className="flex flex-col items-center gap-3 text-slate-400">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <span className="text-xs font-bold uppercase tracking-widest">Reading embedded preview…</span>
+                </div>
+              )}
 
-              {previewImage ? (
+              {!extracting && thumbnailPreviewUrl && (
                 <>
                   <img
                     className="absolute inset-0 w-full h-full object-cover z-0"
-                    src={previewImage}
-                    alt="Preview Render"
-                    referrerPolicy="no-referrer"
+                    src={thumbnailPreviewUrl}
+                    alt="Auto-generated preview from PSD"
                   />
-                  <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10 p-4 rounded-lg">
-                    <ImageIcon className="w-8 h-8 text-blue-400 mb-2" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Change Preview Image</span>
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/80 to-transparent p-4 flex items-center gap-1.5 z-10">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                      Auto-generated from your PSD
+                    </span>
                   </div>
                 </>
-              ) : (
-                <div className="relative z-10 flex flex-col items-center">
-                  <ImageIcon className="w-10 h-10 text-slate-400 group-hover:text-blue-600 transition-colors mb-4" />
-                  <h3 className="font-bold text-sm text-slate-800 mb-1">Preview Image (PNG/JPG)</h3>
-                  <p className="text-xs text-slate-400 max-w-xs leading-relaxed font-semibold">
-                    This image will be displayed in the gallery. High resolution recommended.
+              )}
+
+              {!extracting && !thumbnailPreviewUrl && !extractionError && (
+                <div className="flex flex-col items-center gap-2 text-slate-400 px-6">
+                  <ImageIcon className="w-10 h-10 mb-2" />
+                  <h3 className="font-bold text-sm text-slate-600">Preview appears automatically</h3>
+                  <p className="text-xs leading-relaxed font-semibold max-w-xs">
+                    Upload a .psd above — we'll pull its embedded thumbnail for you. There's no separate image
+                    upload, so the preview always matches the real file.
+                  </p>
+                </div>
+              )}
+
+              {!extracting && extractionError && (
+                <div className="flex flex-col items-center gap-2 text-red-600 px-6">
+                  <AlertTriangle className="w-8 h-8 mb-1" />
+                  <h3 className="font-bold text-sm">No embedded preview found</h3>
+                  <p className="text-xs leading-relaxed font-semibold max-w-sm text-red-500">
+                    {extractionError}
                   </p>
                 </div>
               )}
@@ -351,7 +327,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
             {/* Action button */}
             <button 
               type="submit"
-              disabled={submitting}
+              disabled={submitting || extracting || !extractedThumbnail}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-lg text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4 fill-white/10" />

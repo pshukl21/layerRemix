@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X } from 'lucide-react';
+import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit } from '../lib/artworks';
-import { parsePsdHeader, formatPsdResolution, getImageDimensions, formatImageResolution } from '../lib/psd';
+import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib/psd';
 import { EditArtworkModal } from './EditArtworkModal';
 
 interface DetailScreenProps {
@@ -83,8 +83,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [forkDescription, setForkDescription] = useState(`Created a remix of @${artwork.author}'s original piece. Upgraded lighting effects, enhanced textures, and polished layer organization.`);
   const [forkTags, setForkTags] = useState(artwork.tags.join(', '));
   const [forkPsdFile, setForkPsdFile] = useState<File | null>(null);
-  const [forkImgFile, setForkImgFile] = useState<File | null>(null);
-  const [forkImgPreview, setForkImgPreview] = useState<string | null>(null);
+  // The preview is extracted straight from the remix's own PSD, never
+  // uploaded manually — same reasoning as the main Upload form.
+  const [forkThumbnail, setForkThumbnail] = useState<File | null>(null);
+  const [forkThumbnailPreviewUrl, setForkThumbnailPreviewUrl] = useState<string | null>(null);
+  const [forkExtracting, setForkExtracting] = useState(false);
+  const [forkExtractionError, setForkExtractionError] = useState<string | null>(null);
   const [forkCertified, setForkCertified] = useState(true);
 
   // Sync fork state values whenever active artwork changes
@@ -93,16 +97,16 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkDescription(`Created a remix of @${artwork.author}'s original piece. Upgraded lighting effects, enhanced textures, and polished layer organization.`);
     setForkTags(artwork.tags.join(', '));
     setForkPsdFile(null);
-    setForkImgFile(null);
-    setForkImgPreview(null);
+    setForkThumbnail(null);
+    setForkThumbnailPreviewUrl(null);
+    setForkExtracting(false);
+    setForkExtractionError(null);
     setForkCertified(true);
   }, [artwork.id]);
 
   // References and drag states
   const forkPsdInputRef = useRef<HTMLInputElement>(null);
-  const forkImgInputRef = useRef<HTMLInputElement>(null);
   const [psdDragActive, setPsdDragActive] = useState(false);
-  const [imgDragActive, setImgDragActive] = useState(false);
 
   // Parallax tilt effect on the high-res preview
   const [tiltStyle, setTiltStyle] = useState<React.CSSProperties>({});
@@ -169,6 +173,29 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const totalVersions = countTreeNodes(rootTreeNode);
 
   // PSD drag-drop
+  const processForkPsdFile = async (file: File) => {
+    setForkPsdFile(file);
+    setForkThumbnail(null);
+    setForkThumbnailPreviewUrl(null);
+    setForkExtractionError(null);
+    setForkExtracting(true);
+
+    const thumbnail = await extractPsdThumbnail(file);
+    setForkExtracting(false);
+
+    if (!thumbnail) {
+      setForkExtractionError(
+        "We couldn't find an embedded preview inside this PSD. In Photoshop, go to Preferences → File Handling and set \"Maximize PSD and PSB File Compatibility\" to Always (or Ask), then re-save and try again."
+      );
+      return;
+    }
+
+    setForkThumbnail(thumbnail);
+    const reader = new FileReader();
+    reader.onload = (event) => setForkThumbnailPreviewUrl(event.target?.result as string);
+    reader.readAsDataURL(thumbnail);
+  };
+
   const handleForkPsdDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -184,51 +211,13 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     e.stopPropagation();
     setPsdDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setForkPsdFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  // Image drag-drop
-  const handleForkImgDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setImgDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setImgDragActive(false);
-    }
-  };
-
-  const handleForkImgDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setImgDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setForkImgFile(file);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setForkImgPreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      processForkPsdFile(e.dataTransfer.files[0]);
     }
   };
 
   const handlePsdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setForkPsdFile(e.target.files[0]);
-    }
-  };
-
-  const handleImgChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setForkImgFile(file);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setForkImgPreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      processForkPsdFile(e.target.files[0]);
     }
   };
 
@@ -240,11 +229,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       return;
     }
     if (!forkPsdFile) {
-      alert('Please upload an updated PSD file.');
+      alert('Please upload your updated PSD file.');
       return;
     }
-    if (!forkImgFile) {
-      alert('Please upload/drop a rendering preview image (PNG/JPG).');
+    if (!forkThumbnail) {
+      alert("We need a valid preview extracted from your PSD before publishing — see the message under the upload box.");
       return;
     }
     if (!forkCertified) {
@@ -258,15 +247,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       const psdInfo = await parsePsdHeader(forkPsdFile);
       if (psdInfo) {
         resolution = formatPsdResolution(psdInfo);
-      } else {
-        const imgDims = await getImageDimensions(forkImgFile);
-        if (imgDims) resolution = formatImageResolution(imgDims);
       }
       const { error } = await onPublishFork(artwork.id, {
         title: forkTitle,
         description: forkDescription,
         tags: forkTags.split(',').map(t => t.trim()).filter(Boolean),
-        previewFile: forkImgFile,
+        previewFile: forkThumbnail,
         sourceFile: forkPsdFile,
         resolution,
       });
@@ -888,47 +874,48 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 </div>
               </div>
 
-              {/* Preview image upload box */}
+              {/* Auto-generated preview — read-only, pulled straight from the PSD */}
               <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
-                <div
-                  onClick={() => forkImgInputRef.current?.click()}
-                  onDragEnter={handleForkImgDrag}
-                  onDragOver={handleForkImgDrag}
-                  onDragLeave={handleForkImgDrag}
-                  onDrop={handleForkImgDrop}
-                  className={`border-2 border-dashed rounded-lg p-12 h-80 transition-all cursor-pointer flex flex-col items-center justify-center text-center group relative overflow-hidden ${
-                    imgDragActive 
-                      ? 'border-blue-500 bg-blue-50/30' 
-                      : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50/20'
-                  }`}
-                >
-                  <input
-                    ref={forkImgInputRef}
-                    className="hidden"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImgChange}
-                  />
-                  
-                  {forkImgPreview ? (
+                <div className="rounded-lg h-80 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50 border border-slate-100">
+                  {forkExtracting && (
+                    <div className="flex flex-col items-center gap-3 text-slate-400">
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Reading embedded preview…</span>
+                    </div>
+                  )}
+
+                  {!forkExtracting && forkThumbnailPreviewUrl && (
                     <>
-                      <img 
-                        className="absolute inset-0 w-full h-full object-cover rounded-lg z-0" 
-                        src={forkImgPreview} 
-                        alt="Fork Preview Render"
-                        referrerPolicy="no-referrer"
+                      <img
+                        className="absolute inset-0 w-full h-full object-cover z-0"
+                        src={forkThumbnailPreviewUrl}
+                        alt="Auto-generated preview from PSD"
                       />
-                      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10 p-4 rounded-lg">
-                        <ImageIcon className="w-8 h-8 text-blue-400 mb-2" />
-                        <span className="text-xs font-bold text-white uppercase tracking-wider">Change Preview Image</span>
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/80 to-transparent p-4 flex items-center gap-1.5 z-10">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                          Auto-generated from your PSD
+                        </span>
                       </div>
                     </>
-                  ) : (
-                    <div className="relative z-10 flex flex-col items-center">
-                      <ImageIcon className="w-10 h-10 text-slate-400 group-hover:text-blue-600 transition-colors mb-4" />
-                      <h3 className="font-bold text-sm text-slate-800 mb-1">Fork Preview Image (PNG/JPG)</h3>
-                      <p className="text-xs text-slate-400 max-w-xs leading-relaxed font-semibold">
-                        This image displays your remix changes in the timeline. Upload high-res rendering.
+                  )}
+
+                  {!forkExtracting && !forkThumbnailPreviewUrl && !forkExtractionError && (
+                    <div className="flex flex-col items-center gap-2 text-slate-400 px-6">
+                      <ImageIcon className="w-10 h-10 mb-2" />
+                      <h3 className="font-bold text-sm text-slate-600">Preview appears automatically</h3>
+                      <p className="text-xs leading-relaxed font-semibold max-w-xs">
+                        Upload your updated .psd above — we'll pull its embedded thumbnail for you.
+                      </p>
+                    </div>
+                  )}
+
+                  {!forkExtracting && forkExtractionError && (
+                    <div className="flex flex-col items-center gap-2 text-red-600 px-6">
+                      <AlertTriangle className="w-8 h-8 mb-1" />
+                      <h3 className="font-bold text-sm">No embedded preview found</h3>
+                      <p className="text-xs leading-relaxed font-semibold max-w-sm text-red-500">
+                        {forkExtractionError}
                       </p>
                     </div>
                   )}
@@ -1009,7 +996,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 {/* Publish button */}
                 <button 
                   type="submit"
-                  disabled={forkSubmitting}
+                  disabled={forkSubmitting || forkExtracting || !forkThumbnail}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-lg text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-4 h-4 fill-white/10" />
