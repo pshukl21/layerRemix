@@ -22,3 +22,8 @@ export const supabase = createClient(
 export const PREVIEWS_BUCKET = 'previews';
 export const SOURCE_FILES_BUCKET = 'source-files';
 export const AVATARS_BUCKET = 'avatars';
+
+// Exposed so lib/upload.ts can issue a raw XHR request (needed for real
+// upload-progress events, which the supabase-js client doesn't expose).
+export const supabaseUrlForUpload = supabaseUrl || '';
+export const supabaseAnonKeyForUpload = supabaseAnonKey || '';

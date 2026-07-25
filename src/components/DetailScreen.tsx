@@ -5,6 +5,8 @@ import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit } from '../lib/artworks';
 import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib/psd';
+import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile } from '../lib/upload';
+import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
 
 interface DetailScreenProps {
@@ -18,7 +20,8 @@ interface DetailScreenProps {
     description: string;
     tags: string[];
     previewFile: File;
-    sourceFile: File | null;
+    sourceFilePath: string | null;
+    sourceFileName: string | null;
     resolution: string;
   }) => Promise<{ error: string | null }>;
   onUpdateArtwork?: (
@@ -91,6 +94,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [forkExtractionError, setForkExtractionError] = useState<string | null>(null);
   const [forkCertified, setForkCertified] = useState(true);
 
+  // Zip + upload the fork's PSD immediately on selection, same as the main
+  // Upload form — with real progress, gating the Publish Remix button.
+  const [forkUploadPhase, setForkUploadPhase] = useState<'idle' | 'zipping' | 'uploading' | 'done' | 'error'>('idle');
+  const [forkUploadProgress, setForkUploadProgress] = useState(0);
+  const [forkUploadError, setForkUploadError] = useState<string | null>(null);
+  const [forkUploadedSourcePath, setForkUploadedSourcePath] = useState<string | null>(null);
+  const forkUploadedSourcePathRef = useRef<string | null>(null);
+
   // Sync fork state values whenever active artwork changes
   React.useEffect(() => {
     setForkTitle(`${artwork.title} (Remixed)`);
@@ -102,6 +113,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkExtracting(false);
     setForkExtractionError(null);
     setForkCertified(true);
+    setForkUploadPhase('idle');
+    setForkUploadProgress(0);
+    setForkUploadError(null);
+    setForkUploadedSourcePath(null);
+    forkUploadedSourcePathRef.current = null;
   }, [artwork.id]);
 
   // References and drag states
@@ -173,12 +189,53 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const totalVersions = countTreeNodes(rootTreeNode);
 
   // PSD drag-drop
+  const startForkZipAndUpload = async (file: File) => {
+    if (!user) return;
+
+    if (forkUploadedSourcePathRef.current) {
+      deleteStagedSourceFile(forkUploadedSourcePathRef.current);
+      forkUploadedSourcePathRef.current = null;
+      setForkUploadedSourcePath(null);
+    }
+
+    setForkUploadError(null);
+    setForkUploadProgress(0);
+    setForkUploadPhase('zipping');
+
+    let zipped: File;
+    try {
+      zipped = await zipFile(file);
+    } catch {
+      setForkUploadPhase('error');
+      setForkUploadError('Could not prepare your file for upload. Please try again.');
+      return;
+    }
+
+    setForkUploadPhase('uploading');
+    const path = buildSourceStagingPath(user.id);
+    const { error } = await uploadFileWithProgress(SOURCE_FILES_BUCKET, path, zipped, (pct) => {
+      setForkUploadProgress(pct);
+    });
+
+    if (error) {
+      setForkUploadPhase('error');
+      setForkUploadError(error);
+      return;
+    }
+
+    forkUploadedSourcePathRef.current = path;
+    setForkUploadedSourcePath(path);
+    setForkUploadPhase('done');
+  };
+
   const processForkPsdFile = async (file: File) => {
     setForkPsdFile(file);
     setForkThumbnail(null);
     setForkThumbnailPreviewUrl(null);
     setForkExtractionError(null);
     setForkExtracting(true);
+
+    startForkZipAndUpload(file);
 
     const thumbnail = await extractPsdThumbnail(file);
     setForkExtracting(false);
@@ -236,6 +293,10 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       alert("We need a valid preview extracted from your PSD before publishing — see the message under the upload box.");
       return;
     }
+    if (forkUploadPhase !== 'done' || !forkUploadedSourcePath) {
+      alert('Please wait for your file to finish uploading before publishing.');
+      return;
+    }
     if (!forkCertified) {
       alert('Please accept the certification policy.');
       return;
@@ -253,7 +314,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         description: forkDescription,
         tags: forkTags.split(',').map(t => t.trim()).filter(Boolean),
         previewFile: forkThumbnail,
-        sourceFile: forkPsdFile,
+        sourceFilePath: forkUploadedSourcePath,
+        sourceFileName: forkPsdFile.name,
         resolution,
       });
       setForkSubmitting(false);
@@ -666,7 +728,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   {downloading
                     ? 'Downloading…'
                     : artwork.sourceFilePath
-                    ? 'Download PSD'
+                    ? 'Download PSD (.zip)'
                     : 'Download Image'}
                 </button>
                 <p className="text-[11px] font-semibold text-slate-400 text-center -mt-1.5">
@@ -872,6 +934,33 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                     }
                   </p>
                 </div>
+
+                {/* Upload progress bar */}
+                {forkUploadPhase !== 'idle' && (
+                  <div className="px-2 pt-4 pb-1">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        {forkUploadPhase === 'error' ? 'Upload failed' : forkUploadPhase === 'done' ? 'Upload complete' : 'Uploading…'}
+                      </span>
+                      {(forkUploadPhase === 'uploading' || forkUploadPhase === 'done') && (
+                        <span className="text-[10px] font-bold text-slate-400 ps-stat">{forkUploadProgress}%</span>
+                      )}
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-200 ${
+                          forkUploadPhase === 'error' ? 'bg-red-500' : forkUploadPhase === 'done' ? 'bg-emerald-500' : 'bg-blue-600'
+                        }`}
+                        style={{
+                          width: forkUploadPhase === 'zipping' ? '8%' : `${forkUploadPhase === 'done' ? 100 : forkUploadProgress}%`,
+                        }}
+                      />
+                    </div>
+                    {forkUploadPhase === 'error' && forkUploadError && (
+                      <p className="text-[11px] font-semibold text-red-600 mt-2">{forkUploadError}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Auto-generated preview — read-only, pulled straight from the PSD */}
@@ -996,11 +1085,15 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 {/* Publish button */}
                 <button 
                   type="submit"
-                  disabled={forkSubmitting || forkExtracting || !forkThumbnail}
+                  disabled={forkSubmitting || forkExtracting || !forkThumbnail || forkUploadPhase !== 'done' || !forkUploadedSourcePath}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-lg text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-4 h-4 fill-white/10" />
-                  {forkSubmitting ? 'Publishing…' : 'Publish Remix'}
+                  {forkSubmitting
+                    ? 'Publishing…'
+                    : forkUploadPhase === 'uploading' || forkUploadPhase === 'zipping'
+                    ? 'Waiting for upload…'
+                    : 'Publish Remix'}
                 </button>
               </div>
             </div>

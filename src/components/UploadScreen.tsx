@@ -1,6 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileUp, Image as ImageIcon, Sparkles, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib/psd';
+import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile } from '../lib/upload';
+import { SOURCE_FILES_BUCKET } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface UploadScreenProps {
   onPublish: (newArtwork: {
@@ -8,12 +11,16 @@ interface UploadScreenProps {
     description: string;
     tags: string[];
     previewFile: File;
-    sourceFile: File | null;
+    sourceFilePath: string | null;
+    sourceFileName: string | null;
     resolution: string;
   }) => Promise<{ error: string | null }>;
 }
 
+type UploadPhase = 'idle' | 'zipping' | 'uploading' | 'done' | 'error';
+
 export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tagsInput, setTagsInput] = useState('');
@@ -26,13 +33,23 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const [psdDragActive, setPsdDragActive] = useState(false);
   const psdInputRef = useRef<HTMLInputElement>(null);
 
-  // The preview is never uploaded manually — it's extracted straight from the
-  // PSD's own embedded thumbnail (the same one Finder/Explorer show), so the
-  // gallery image can never be misleading or mismatched from the real file.
+  // The preview is extracted straight from the PSD's own embedded composite
+  // image — never uploaded manually — so the gallery image can never be
+  // misleading or mismatched from the real file.
   const [extractedThumbnail, setExtractedThumbnail] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+
+  // The source file is zipped and uploaded immediately on selection — with
+  // real progress shown — rather than waiting for the Publish click. This
+  // means "Publish Art" can be pressed the instant the upload finishes,
+  // instead of the person waiting again at submit time.
+  const [uploadPhase, setUploadPhase] = useState<UploadPhase>('idle');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadedSourcePath, setUploadedSourcePath] = useState<string | null>(null);
+  const uploadedSourcePathRef = useRef<string | null>(null);
 
   // Selected tags preset
   const tagPresets = ['Illustration', 'Abstract', 'DigitalArt', 'Layered', 'Cyberpunk', '3D'];
@@ -48,12 +65,57 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     }
   };
 
+  const startZipAndUpload = async (file: File) => {
+    if (!user) return;
+
+    // If a previous file was already uploaded (or is uploading), replacing
+    // it means the old staged copy is now orphaned — clean it up.
+    if (uploadedSourcePathRef.current) {
+      deleteStagedSourceFile(uploadedSourcePathRef.current);
+      uploadedSourcePathRef.current = null;
+      setUploadedSourcePath(null);
+    }
+
+    setUploadError(null);
+    setUploadProgress(0);
+    setUploadPhase('zipping');
+
+    let zipped: File;
+    try {
+      zipped = await zipFile(file);
+    } catch {
+      setUploadPhase('error');
+      setUploadError('Could not prepare your file for upload. Please try again.');
+      return;
+    }
+
+    setUploadPhase('uploading');
+    const path = buildSourceStagingPath(user.id);
+    const { error } = await uploadFileWithProgress(SOURCE_FILES_BUCKET, path, zipped, (pct) => {
+      setUploadProgress(pct);
+    });
+
+    if (error) {
+      setUploadPhase('error');
+      setUploadError(error);
+      return;
+    }
+
+    uploadedSourcePathRef.current = path;
+    setUploadedSourcePath(path);
+    setUploadPhase('done');
+  };
+
   const processPsdFile = async (file: File) => {
     setPsdFile(file);
     setExtractedThumbnail(null);
     setThumbnailPreviewUrl(null);
     setExtractionError(null);
     setExtracting(true);
+
+    // Thumbnail extraction and the zip+upload both read the same File
+    // independently — safe to run at the same time.
+    startZipAndUpload(file);
 
     const thumbnail = await extractPsdThumbnail(file);
     setExtracting(false);
@@ -117,6 +179,10 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       alert("We need a valid preview extracted from your PSD before publishing — see the message under the upload box.");
       return;
     }
+    if (uploadPhase !== 'done' || !uploadedSourcePath) {
+      alert('Please wait for your file to finish uploading before publishing.');
+      return;
+    }
     if (!certified) {
       alert('You must certify that you own the rights to upload this artwork.');
       return;
@@ -140,7 +206,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       description: description || 'No notes on what needs work yet.',
       tags: tagsArray.length > 0 ? tagsArray : ['DigitalArt'],
       previewFile: extractedThumbnail,
-      sourceFile: psdFile,
+      sourceFilePath: uploadedSourcePath,
+      sourceFileName: psdFile.name,
       resolution,
     });
     setSubmitting(false);
@@ -148,6 +215,13 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       setSubmitError(error);
     }
   };
+
+  const canPublish =
+    !submitting &&
+    !extracting &&
+    !!extractedThumbnail &&
+    uploadPhase === 'done' &&
+    !!uploadedSourcePath;
 
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
@@ -193,6 +267,33 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
                 }
               </p>
             </div>
+
+            {/* Upload progress bar */}
+            {uploadPhase !== 'idle' && (
+              <div className="px-2 pt-4 pb-1">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    {uploadPhase === 'error' ? 'Upload failed' : uploadPhase === 'done' ? 'Upload complete' : 'Uploading…'}
+                  </span>
+                  {(uploadPhase === 'uploading' || uploadPhase === 'done') && (
+                    <span className="text-[10px] font-bold text-slate-400 ps-stat">{uploadProgress}%</span>
+                  )}
+                </div>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-200 ${
+                      uploadPhase === 'error' ? 'bg-red-500' : uploadPhase === 'done' ? 'bg-emerald-500' : 'bg-blue-600'
+                    }`}
+                    style={{
+                      width: uploadPhase === 'zipping' ? '8%' : `${uploadPhase === 'done' ? 100 : uploadProgress}%`,
+                    }}
+                  />
+                </div>
+                {uploadPhase === 'error' && uploadError && (
+                  <p className="text-[11px] font-semibold text-red-600 mt-2">{uploadError}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Auto-generated preview — read-only, pulled straight from the PSD */}
@@ -327,11 +428,15 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
             {/* Action button */}
             <button 
               type="submit"
-              disabled={submitting || extracting || !extractedThumbnail}
+              disabled={!canPublish}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-lg text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4 fill-white/10" />
-              {submitting ? 'Publishing…' : 'Publish Art'}
+              {submitting
+                ? 'Publishing…'
+                : uploadPhase === 'uploading' || uploadPhase === 'zipping'
+                ? 'Waiting for upload…'
+                : 'Publish Art'}
             </button>
           </div>
         </div>

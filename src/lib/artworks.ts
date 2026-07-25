@@ -88,15 +88,20 @@ interface PublishInput {
   description: string;
   tags: string[];
   previewFile: File;
-  sourceFile: File | null;
+  // The source file (zipped PSD) is uploaded up-front, with progress shown
+  // to the user, well before "Publish" is clicked — so by this point we
+  // only need the path/name it already lives at, not the file itself.
+  sourceFilePath: string | null;
+  sourceFileName: string | null;
   ownerId: string;
   type: 'Original' | 'Remix';
   parentArtworkId?: string;
   resolution: string;
 }
 
-// Uploads the preview image (+ optional source file) to Storage, then inserts
-// the artwork row. Returns the newly created artwork on success.
+// Uploads the preview image to Storage, then inserts the artwork row
+// (the source file has already been uploaded separately — see lib/upload.ts).
+// Returns the newly created artwork on success.
 export async function publishArtwork(input: PublishInput): Promise<{ artwork: Artwork | null; error: string | null }> {
   const folder = input.ownerId;
   const timestamp = Date.now();
@@ -111,18 +116,6 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
     return { artwork: null, error: `Preview upload failed: ${previewUploadError.message}` };
   }
 
-  let sourceFilePath: string | null = null;
-  if (input.sourceFile) {
-    const sourceExt = input.sourceFile.name.split('.').pop() || 'psd';
-    sourceFilePath = `${folder}/${timestamp}-source.${sourceExt}`;
-    const { error: sourceUploadError } = await supabase.storage
-      .from(SOURCE_FILES_BUCKET)
-      .upload(sourceFilePath, input.sourceFile, { upsert: false });
-    if (sourceUploadError) {
-      return { artwork: null, error: `Source file upload failed: ${sourceUploadError.message}` };
-    }
-  }
-
   const { data, error } = await supabase
     .from('artworks')
     .insert({
@@ -130,8 +123,8 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
       description: input.description,
       tags: input.tags,
       image_path: previewPath,
-      source_file_path: sourceFilePath,
-      source_file_name: input.sourceFile?.name || null,
+      source_file_path: input.sourceFilePath,
+      source_file_name: input.sourceFileName,
       type: input.type,
       parent_artwork_id: input.parentArtworkId || null,
       owner_id: input.ownerId,
@@ -223,7 +216,11 @@ export async function updateArtwork(
 export function getDownloadTarget(artwork: Artwork): { url: string; filename: string } {
   if (artwork.sourceFilePath) {
     const { publicUrl } = supabase.storage.from(SOURCE_FILES_BUCKET).getPublicUrl(artwork.sourceFilePath).data;
-    return { url: publicUrl, filename: artwork.sourceFileName || `${artwork.title}.psd` };
+    // The stored file is always a .zip (containing the original .psd) — the
+    // suggested download filename needs to match that, or the browser saves
+    // a file with a .psd extension that's actually zip-archive bytes inside.
+    const baseName = (artwork.sourceFileName || artwork.title).replace(/\.[^./\\]+$/, '');
+    return { url: publicUrl, filename: `${baseName}.zip` };
   }
   return { url: artwork.image, filename: `${artwork.title}.jpg` };
 }

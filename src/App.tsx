@@ -19,7 +19,8 @@ interface PublishInput {
   description: string;
   tags: string[];
   previewFile: File;
-  sourceFile: File | null;
+  sourceFilePath: string | null;
+  sourceFileName: string | null;
   resolution: string;
 }
 
