@@ -53,6 +53,7 @@ function rowToArtwork(row: ArtworkRow, parentUsername?: string): Artwork {
     parentAuthor: parentUsername,
     resolution: row.resolution || undefined,
     timeAgo: timeAgo(row.created_at),
+    createdAt: row.created_at,
     ownerId: row.owner_id,
     imagePath: row.image_path,
     sourceFilePath: row.source_file_path || undefined,

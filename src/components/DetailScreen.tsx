@@ -64,6 +64,41 @@ const RulerV: React.FC = () => (
   </div>
 );
 
+// Computes the version label a NEW fork of `parent` should get — e.g. "V1"
+// for the first fork of an Original, "V2" for the second, and "V2.1" for a
+// fork of that "V2" fork. Derived purely from the tree structure (creation
+// order among siblings) rather than parsing any artwork's title text, so it
+// stays correct even if someone edits a title afterward.
+function computeNewForkVersionLabel(parent: Artwork, allArtworks: Artwork[]): string {
+  const byId = new Map(allArtworks.map((a) => [a.id, a]));
+  const sortedChildrenOf = (parentId: string) =>
+    allArtworks
+      .filter((a) => a.parentArtworkId === parentId)
+      .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+
+  // Walk from the root Original down to `parent`, recording each ancestor's
+  // 1-based position among its own siblings.
+  const ancestryChain: Artwork[] = [];
+  let current: Artwork | undefined = parent;
+  while (current) {
+    ancestryChain.unshift(current);
+    current = current.parentArtworkId ? byId.get(current.parentArtworkId) : undefined;
+  }
+
+  const parts: number[] = [];
+  for (let i = 1; i < ancestryChain.length; i++) {
+    const node = ancestryChain[i];
+    const nodeParent = ancestryChain[i - 1];
+    const idx = sortedChildrenOf(nodeParent.id).findIndex((s) => s.id === node.id) + 1;
+    parts.push(idx || 1);
+  }
+
+  // Finally, append the new fork's own position among parent's children.
+  parts.push(sortedChildrenOf(parent.id).length + 1);
+
+  return `V${parts.join('.')}`;
+}
+
 export const DetailScreen: React.FC<DetailScreenProps> = ({
   artwork,
   artworks,
@@ -82,8 +117,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   // Fork/Remix state form
-  const [forkTitle, setForkTitle] = useState(`${artwork.title} (Remixed)`);
-  const [forkDescription, setForkDescription] = useState(`Created a remix of @${artwork.author}'s original piece. Upgraded lighting effects, enhanced textures, and polished layer organization.`);
+  const [forkTitle, setForkTitle] = useState(`${artwork.title} ${computeNewForkVersionLabel(artwork, artworks)}`);
+  const [forkDescription, setForkDescription] = useState('');
   const [forkTags, setForkTags] = useState(artwork.tags.join(', '));
   const [forkPsdFile, setForkPsdFile] = useState<File | null>(null);
   // The preview is extracted straight from the remix's own PSD, never
@@ -104,8 +139,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
   // Sync fork state values whenever active artwork changes
   React.useEffect(() => {
-    setForkTitle(`${artwork.title} (Remixed)`);
-    setForkDescription(`Created a remix of @${artwork.author}'s original piece. Upgraded lighting effects, enhanced textures, and polished layer organization.`);
+    setForkTitle(`${artwork.title} ${computeNewForkVersionLabel(artwork, artworks)}`);
+    setForkDescription('');
     setForkTags(artwork.tags.join(', '));
     setForkPsdFile(null);
     setForkThumbnail(null);
@@ -283,6 +318,10 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkError(null);
     if (!forkTitle.trim()) {
       alert('Please enter a title for your fork/remix!');
+      return;
+    }
+    if (!forkDescription.trim()) {
+      alert('Please describe what changes you made — this field is required.');
       return;
     }
     if (!forkPsdFile) {
@@ -1030,11 +1069,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 {/* Changes Description */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                    What Changes Have You Made?
+                    What Changes Have You Made? <span className="text-red-500 normal-case tracking-normal">*</span>
                   </label>
                   <textarea
                     value={forkDescription}
                     onChange={(e) => setForkDescription(e.target.value)}
+                    required
                     className="w-full bg-transparent border-b border-slate-200 focus:border-blue-600 focus:outline-none transition-colors text-sm text-slate-800 py-3 px-0 resize-none font-semibold placeholder-slate-400 min-h-[100px]"
                     placeholder="Describe your design modifications, color alterations, layer overrides, or rendering upgrades..."
                     rows={4}

@@ -14,6 +14,7 @@ export interface Artwork {
   parentAuthor?: string;
   resolution?: string;
   timeAgo: string;
+  createdAt?: string;
   // Real-backend fields (absent on the static demo seed artworks)
   ownerId?: string;
   imagePath?: string;
