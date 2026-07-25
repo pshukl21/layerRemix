@@ -82,12 +82,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!cleanUsername) {
       return { error: 'Please choose a username using letters, numbers, or underscores.' };
     }
-    const { error } = await supabase.auth.signUp({
+
+    // Check username availability up-front. Without this, a duplicate
+    // username would only surface as a unique-constraint failure deep
+    // inside the database trigger that creates the profile row — which
+    // happens inside the same transaction as account creation, so it comes
+    // back as an opaque "Database error saving new user" instead of a
+    // clear message. Profiles are publicly readable, so this works even
+    // before the person is signed in.
+    const { data: existingUsername } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', cleanUsername)
+      .maybeSingle();
+    if (existingUsername) {
+      return { error: 'That username is already taken. Please choose another.' };
+    }
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username: cleanUsername } },
     });
-    if (error) return { error: error.message };
+
+    if (error) {
+      const message = error.message.toLowerCase();
+      if (message.includes('already registered') || message.includes('already exists')) {
+        return { error: 'An account with that email already exists. Try signing in instead.' };
+      }
+      if (message.includes('duplicate') || message.includes('unique')) {
+        // Rare race condition: someone else claimed this username between
+        // our check above and the signup completing.
+        return { error: 'That username was just taken by someone else. Please choose another.' };
+      }
+      return { error: error.message };
+    }
+
+    // Supabase deliberately returns a "success" response with no error for
+    // signups against an email that's already registered and confirmed
+    // (to avoid leaking which emails exist) — the only signal is an empty
+    // identities array.
+    if (data?.user && data.user.identities && data.user.identities.length === 0) {
+      return { error: 'An account with that email already exists. Try signing in instead.' };
+    }
+
     return { error: null };
   };
 
