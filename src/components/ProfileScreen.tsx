@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Check, Heart, Download, LogIn, Coins, Camera } from 'lucide-react';
+import { Check, Heart, Download, LogIn, Coins, Camera, Pencil } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads } from '../lib/artworks';
@@ -16,7 +16,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onSelectArtwork,
   onRequireAuth,
 }) => {
-  const { user, profile, updateAvatar } = useAuth();
+  const { user, profile, updateAvatar, updateBio } = useAuth();
+  const [editingBio, setEditingBio] = useState(false);
+  const [bioInput, setBioInput] = useState('');
+  const [bioSaving, setBioSaving] = useState(false);
+  const [bioError, setBioError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'original' | 'remixed'>('original');
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -34,6 +38,30 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       setAvatarError(error);
     }
   };
+
+  const handleStartEditBio = () => {
+    setBioInput(profile?.bio || '');
+    setBioError(null);
+    setEditingBio(true);
+  };
+
+  const handleCancelEditBio = () => {
+    setEditingBio(false);
+    setBioError(null);
+  };
+
+  const handleSaveBio = async () => {
+    setBioSaving(true);
+    setBioError(null);
+    const { error } = await updateBio(bioInput);
+    setBioSaving(false);
+    if (error) {
+      setBioError(error);
+      return;
+    }
+    setEditingBio(false);
+  };
+
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
@@ -211,9 +239,51 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 @{profile.username}
               </span>
             </div>
-            <p className="text-sm md:text-base text-slate-600 max-w-2xl mb-6 leading-relaxed font-semibold">
-              {profile.bio || 'This creator hasn\u2019t written a bio yet.'}
-            </p>
+            {editingBio ? (
+              <div className="max-w-2xl mb-6">
+                <textarea
+                  value={bioInput}
+                  onChange={(e) => setBioInput(e.target.value)}
+                  rows={3}
+                  autoFocus
+                  placeholder="Tell people a bit about yourself and what you make..."
+                  className="w-full bg-slate-100/80 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-colors resize-none"
+                />
+                {bioError && (
+                  <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mt-2">
+                    {bioError}
+                  </p>
+                )}
+                <div className="flex gap-2 mt-2 justify-center md:justify-start">
+                  <button
+                    onClick={handleCancelEditBio}
+                    className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-widest hover:border-slate-300 transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveBio}
+                    disabled={bioSaving}
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-[11px] uppercase tracking-widest transition-all cursor-pointer"
+                  >
+                    {bioSaving ? 'Saving…' : 'Save Bio'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 max-w-2xl mb-6 justify-center md:justify-start">
+                <p className="text-sm md:text-base text-slate-600 leading-relaxed font-semibold">
+                  {profile.bio || 'This creator hasn\u2019t written a bio yet.'}
+                </p>
+                <button
+                  onClick={handleStartEditBio}
+                  title="Edit bio"
+                  className="text-slate-400 hover:text-blue-600 transition-colors cursor-pointer shrink-0 mt-1"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap justify-center md:justify-start gap-4 ps-stat">

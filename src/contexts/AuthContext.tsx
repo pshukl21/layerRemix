@@ -13,6 +13,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateAvatar: (file: File) => Promise<{ error: string | null }>;
+  updateBio: (bio: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -191,9 +192,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error: null };
   };
 
+  // Updates the current user's bio text on their profile row.
+  const updateBio = async (bio: string): Promise<{ error: string | null }> => {
+    if (!user) {
+      return { error: 'Please sign in first.' };
+    }
+    const { error } = await supabase.from('profiles').update({ bio: bio.trim() }).eq('id', user.id);
+    if (error) {
+      return { error: error.message };
+    }
+    await refreshProfile();
+    return { error: null };
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, profile, session, loading, signUp, signIn, signOut, refreshProfile, updateAvatar }}
+      value={{ user, profile, session, loading, signUp, signIn, signOut, refreshProfile, updateAvatar, updateBio }}
     >
       {children}
     </AuthContext.Provider>
