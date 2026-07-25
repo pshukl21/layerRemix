@@ -880,7 +880,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   {forkExtracting && (
                     <div className="flex flex-col items-center gap-3 text-slate-400">
                       <Loader2 className="w-8 h-8 animate-spin" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Reading embedded preview…</span>
+                      <span className="text-xs font-bold uppercase tracking-widest">Rendering HD preview from your PSD…</span>
                     </div>
                   )}
 

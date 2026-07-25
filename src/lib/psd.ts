@@ -91,96 +91,75 @@ export function formatImageResolution(dims: { width: number; height: number }): 
 }
 
 // -----------------------------------------------------------------------
-// Embedded thumbnail extraction.
+// HD preview extraction via the PSD's full composite image.
 //
-// A PSD's "Image Resources" section (right after the header + color mode
-// data) holds a list of small metadata blocks. Resource ID 1036 is the
-// "Thumbnail Resource" — a JPEG preview Photoshop generates automatically
-// whenever "Maximize Compatibility" is on when saving (the default, and
-// virtually always on unless a user deliberately disabled it). This is the
-// exact same preview macOS Finder / Windows Explorer show for a .psd file.
-// We read only as much of the file as needed to reach this section — never
-// the (potentially huge) layer data that follows it.
-// Reference: Adobe's official PSD/PSB file format specification, section
-// on Image Resource Blocks / resource ID 1036.
+// A PSD file's small embedded "Thumbnail Resource" (what Finder/Explorer
+// show) is deliberately low-resolution and heavily JPEG-compressed — fine
+// for an OS file icon, too blurry for a gallery preview. Photoshop also
+// stores a full-resolution flattened "composite image" (the merged result
+// of every visible layer), used so older/non-layer-aware software can still
+// display the document correctly. That's what we extract here instead,
+// using @webtoon/psd, a zero-dependency PSD parser — decoding pixel data
+// correctly requires understanding Photoshop's internal compression, which
+// isn't something to hand-roll from raw byte offsets like the header is.
+//
+// Both the thumbnail and the composite image only exist if "Maximize PSD
+// and PSB File Compatibility" was on when the file was saved (Photoshop's
+// default). If a file was saved with that off, there's genuinely nothing
+// to extract — we don't fall back to a manual image upload, since that
+// would reopen the exact "misleading preview" problem this exists to close.
+//
+// Note: unlike the lightweight header read above, this loads the entire
+// file into memory to decode it, since pixel data can live anywhere in
+// the file. For typical PSD sizes this is fine; very large files will
+// take longer and use more memory in the browser.
 // -----------------------------------------------------------------------
 
-const THUMBNAIL_RESOURCE_ID = 1036;
+const PREVIEW_MAX_DIMENSION = 2000; // longest side, in px — HD but not the full multi-thousand-px original
 
 export async function extractPsdThumbnail(file: File): Promise<File | null> {
   try {
-    // Header is 26 bytes; next 4 bytes are the Color Mode Data section length.
-    const headerAndCmLen = await file.slice(0, 30).arrayBuffer();
-    if (headerAndCmLen.byteLength < 30) return null;
-    const headerView = new DataView(headerAndCmLen);
+    const Psd = (await import('@webtoon/psd')).default;
+    const buffer = await file.arrayBuffer();
+    const psdFile = Psd.parse(buffer);
 
-    const signature = String.fromCharCode(
-      headerView.getUint8(0),
-      headerView.getUint8(1),
-      headerView.getUint8(2),
-      headerView.getUint8(3)
+    const pixels = await psdFile.composite();
+    if (!pixels || !psdFile.width || !psdFile.height) return null;
+
+    const sourceCanvas = document.createElement('canvas');
+    sourceCanvas.width = psdFile.width;
+    sourceCanvas.height = psdFile.height;
+    const sourceCtx = sourceCanvas.getContext('2d');
+    if (!sourceCtx) return null;
+
+    const imageData = new ImageData(
+      new Uint8ClampedArray(pixels.buffer, pixels.byteOffset, pixels.byteLength),
+      psdFile.width,
+      psdFile.height
     );
-    if (signature !== '8BPS') return null;
+    sourceCtx.putImageData(imageData, 0, 0);
 
-    const colorModeDataLen = headerView.getUint32(26, false);
-    const imageResourcesLenOffset = 26 + 4 + colorModeDataLen;
+    // Downscale to a reasonable max size for a gallery preview — still
+    // sharp/HD, just not needlessly huge (the real full-quality asset is
+    // the PSD file itself, not this preview).
+    const longestSide = Math.max(psdFile.width, psdFile.height);
+    const scale = Math.min(1, PREVIEW_MAX_DIMENSION / longestSide);
+    const outWidth = Math.round(psdFile.width * scale);
+    const outHeight = Math.round(psdFile.height * scale);
 
-    // Image Resources section: 4-byte length, then the resource blocks.
-    const irLenBytes = await file.slice(imageResourcesLenOffset, imageResourcesLenOffset + 4).arrayBuffer();
-    if (irLenBytes.byteLength < 4) return null;
-    const imageResourcesLen = new DataView(irLenBytes).getUint32(0, false);
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = outWidth;
+    outCanvas.height = outHeight;
+    const outCtx = outCanvas.getContext('2d');
+    if (!outCtx) return null;
+    outCtx.drawImage(sourceCanvas, 0, 0, outWidth, outHeight);
 
-    // Sanity guard — this section is normally at most a few hundred KB.
-    // Anything wildly larger suggests a corrupt/unexpected file; bail out
-    // rather than reading an unbounded amount of data.
-    if (imageResourcesLen <= 0 || imageResourcesLen > 20 * 1024 * 1024) return null;
+    const blob = await new Promise<Blob | null>((resolve) => {
+      outCanvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
+    });
+    if (!blob) return null;
 
-    const irStart = imageResourcesLenOffset + 4;
-    const irBuffer = await file.slice(irStart, irStart + imageResourcesLen).arrayBuffer();
-    const irView = new DataView(irBuffer);
-
-    let pos = 0;
-    while (pos + 4 <= imageResourcesLen) {
-      const blockSig = String.fromCharCode(
-        irView.getUint8(pos),
-        irView.getUint8(pos + 1),
-        irView.getUint8(pos + 2),
-        irView.getUint8(pos + 3)
-      );
-      if (blockSig !== '8BIM') break; // malformed or end of well-formed blocks
-      pos += 4;
-
-      const resourceId = irView.getUint16(pos, false);
-      pos += 2;
-
-      // Resource name: Pascal string (1-byte length + bytes), padded to even total length.
-      const nameLen = irView.getUint8(pos);
-      let nameFieldLen = 1 + nameLen;
-      if (nameFieldLen % 2 !== 0) nameFieldLen += 1;
-      pos += nameFieldLen;
-
-      const dataLen = irView.getUint32(pos, false);
-      pos += 4;
-      const dataStart = pos;
-
-      if (resourceId === THUMBNAIL_RESOURCE_ID && dataLen > 28) {
-        // Thumbnail resource sub-header is 28 bytes (format, width, height,
-        // widthBytes, totalSize, sizeAfterCompression, bitsPerPixel, planes),
-        // and the raw JPEG bytes follow immediately after.
-        const jpegStart = dataStart + 28;
-        const jpegLen = dataLen - 28;
-        if (jpegLen > 0 && jpegStart + jpegLen <= irBuffer.byteLength) {
-          const jpegBytes = irBuffer.slice(jpegStart, jpegStart + jpegLen);
-          return new File([jpegBytes], 'psd-thumbnail.jpg', { type: 'image/jpeg' });
-        }
-      }
-
-      let paddedDataLen = dataLen;
-      if (paddedDataLen % 2 !== 0) paddedDataLen += 1;
-      pos = dataStart + paddedDataLen;
-    }
-
-    return null;
+    return new File([blob], 'psd-preview.jpg', { type: 'image/jpeg' });
   } catch {
     return null;
   }
