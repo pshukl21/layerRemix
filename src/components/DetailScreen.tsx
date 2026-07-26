@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { getDownloadTarget, incrementDownloads, spendDownloadCredit } from '../lib/artworks';
+import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews } from '../lib/artworks';
 import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib/psd';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
@@ -174,6 +174,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     forkUploadedSourcePathRef.current = null;
   }, [artwork.id]);
 
+  // Count a view once per visit to this artwork's page. Demo content is
+  // excluded since it isn't a real database row.
+  React.useEffect(() => {
+    if (!artwork.isDemo) {
+      incrementArtworkViews(artwork.id);
+    }
+  }, [artwork.id]);
+
   // References and drag states
   const forkPsdInputRef = useRef<HTMLInputElement>(null);
   const [psdDragActive, setPsdDragActive] = useState(false);
@@ -226,7 +234,9 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   }
 
   const buildTree = (rootArt: Artwork): TreeNode => {
-    const childrenArts = artworks.filter(a => a.parentArtworkId === rootArt.id);
+    const childrenArts = artworks
+      .filter(a => a.parentArtworkId === rootArt.id)
+      .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
     const childrenNodes = childrenArts.map(child => buildTree(child));
     return {
       artwork: rootArt,

@@ -161,18 +161,16 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
     return { artwork: null, error: error?.message || 'Could not save the artwork.' };
   }
 
-  // Bump the parent's fork count when this is a remix.
+  // Bump the parent's fork count when this is a remix. Uses an RPC (not a
+  // plain update) because the person forking almost never owns the parent
+  // artwork — a direct update would be silently blocked by the "Users can
+  // update their own artworks" RLS policy.
   if (input.parentArtworkId) {
-    const { data: parent } = await supabase
-      .from('artworks')
-      .select('forks')
-      .eq('id', input.parentArtworkId)
-      .single();
-    if (parent) {
-      await supabase
-        .from('artworks')
-        .update({ forks: (parent.forks || 0) + 1 })
-        .eq('id', input.parentArtworkId);
+    const { error: forkCountError } = await supabase.rpc('increment_artwork_forks', {
+      p_artwork_id: input.parentArtworkId,
+    });
+    if (forkCountError) {
+      console.error('Failed to bump fork count:', forkCountError.message);
     }
   }
 
@@ -249,9 +247,23 @@ export function getDownloadTarget(artwork: Artwork): { url: string; filename: st
   return { url: artwork.image, filename: `${artwork.title}.jpg` };
 }
 
-// Best-effort download counter increment (non-atomic, fine for a demo gallery).
-export async function incrementDownloads(artworkId: string, currentCount: number): Promise<void> {
-  await supabase.from('artworks').update({ downloads: currentCount + 1 }).eq('id', artworkId);
+// Best-effort download counter increment. Uses an RPC rather than a plain
+// update — a direct update would be silently blocked by RLS whenever the
+// downloader doesn't own the artwork, which is the common case.
+export async function incrementDownloads(artworkId: string, _currentCount?: number): Promise<void> {
+  const { error } = await supabase.rpc('increment_artwork_downloads', { p_artwork_id: artworkId });
+  if (error) {
+    console.error('Failed to bump download count:', error.message);
+  }
+}
+
+// Best-effort view counter increment, called once per page visit to an
+// artwork. Works for signed-out visitors too (granted to the anon role).
+export async function incrementArtworkViews(artworkId: string): Promise<void> {
+  const { error } = await supabase.rpc('increment_artwork_views', { p_artwork_id: artworkId });
+  if (error) {
+    console.error('Failed to bump view count:', error.message);
+  }
 }
 
 // Atomically spends one download credit for the given user via the

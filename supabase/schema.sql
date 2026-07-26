@@ -94,6 +94,68 @@ create policy "Users can delete their own artworks"
   on public.artworks for delete
   using (auth.uid() = owner_id);
 
+-- Engagement counters (forks, views) need to be bumped by people who don't
+-- own the artwork — e.g. anyone forking someone else's piece, or just
+-- viewing it. The plain "Users can update their own artworks" policy above
+-- blocks that (correctly — it stops people editing content they don't own),
+-- so these run as SECURITY DEFINER to bump only the counter column, nothing
+-- else, regardless of who's calling.
+create or replace function public.increment_artwork_forks(p_artwork_id uuid)
+returns integer
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  new_count integer;
+begin
+  update public.artworks
+  set forks = forks + 1
+  where id = p_artwork_id
+  returning forks into new_count;
+  return new_count;
+end;
+$$;
+
+grant execute on function public.increment_artwork_forks(uuid) to authenticated;
+
+create or replace function public.increment_artwork_downloads(p_artwork_id uuid)
+returns integer
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  new_count integer;
+begin
+  update public.artworks
+  set downloads = downloads + 1
+  where id = p_artwork_id
+  returning downloads into new_count;
+  return new_count;
+end;
+$$;
+
+grant execute on function public.increment_artwork_downloads(uuid) to authenticated;
+
+create or replace function public.increment_artwork_views(p_artwork_id uuid)
+returns integer
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  new_count integer;
+begin
+  update public.artworks
+  set views = views + 1
+  where id = p_artwork_id
+  returning views into new_count;
+  return new_count;
+end;
+$$;
+
+-- Granted to anon too, since browsing (and thus racking up views) doesn't
+-- require an account.
+grant execute on function public.increment_artwork_views(uuid) to authenticated, anon;
+
 -- ---------------------------------------------------------------------------
 -- 4. DOWNLOAD CREDITS ("Give to Get" karma system)
 -- New users start with 0 credits — they earn their first one by publishing
