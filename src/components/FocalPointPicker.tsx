@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Target } from 'lucide-react';
+import { Move } from 'lucide-react';
 
 interface FocalPointPickerProps {
   imageUrl: string;
@@ -8,79 +8,111 @@ interface FocalPointPickerProps {
   onChange: (x: number, y: number) => void;
 }
 
-// Lets someone choose which part of an image stays in frame when it's shown
-// cropped elsewhere (gallery cards, profile cards, etc. all crop to a fixed
-// aspect ratio via object-fit: cover). This never changes which image is
-// used — only where the crop is centered — so it can't be used to swap in
-// a different or misleading image.
+interface DragStart {
+  pointerX: number;
+  pointerY: number;
+  focalX: number;
+  focalY: number;
+}
+
+// A single box, shown at the same aspect ratio a gallery card actually
+// crops to — what you see here is exactly what you'll get. Drag the image
+// around inside the box to reposition it; this only changes where the crop
+// is centered, never which image is shown.
 export const FocalPointPicker: React.FC<FocalPointPickerProps> = ({ imageUrl, focalX, focalY, onChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const naturalSizeRef = useRef<{ w: number; h: number } | null>(null);
+  const dragStartRef = useRef<DragStart | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  const updateFromPointer = (clientX: number, clientY: number) => {
-    const el = containerRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
-    const y = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
-    onChange(Math.round(x), Math.round(y));
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    naturalSizeRef.current = { w: img.naturalWidth, h: img.naturalHeight };
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setDragging(true);
     (e.target as Element).setPointerCapture(e.pointerId);
-    updateFromPointer(e.clientX, e.clientY);
+    dragStartRef.current = { pointerX: e.clientX, pointerY: e.clientY, focalX, focalY };
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragging) return;
-    updateFromPointer(e.clientX, e.clientY);
+    const container = containerRef.current;
+    const natural = naturalSizeRef.current;
+    const start = dragStartRef.current;
+    if (!container || !natural || !start) return;
+
+    const rect = container.getBoundingClientRect();
+    const containerAspect = rect.width / rect.height;
+    const imageAspect = natural.w / natural.h;
+
+    // How much the "cover"-scaled image spills outside the box in each
+    // direction — dragging only has room to matter along the axis that
+    // actually overflows.
+    let renderedW: number;
+    let renderedH: number;
+    if (imageAspect > containerAspect) {
+      renderedH = rect.height;
+      renderedW = rect.height * imageAspect;
+    } else {
+      renderedW = rect.width;
+      renderedH = rect.width / imageAspect;
+    }
+    const overflowX = Math.max(0, renderedW - rect.width);
+    const overflowY = Math.max(0, renderedH - rect.height);
+
+    const dx = e.clientX - start.pointerX;
+    const dy = e.clientY - start.pointerY;
+
+    // Dragging the image right should reveal more of its left side, which
+    // means moving the focal point toward 0% — hence the negation.
+    const deltaX = overflowX > 0 ? (-dx / overflowX) * 100 : 0;
+    const deltaY = overflowY > 0 ? (-dy / overflowY) * 100 : 0;
+
+    const newX = Math.min(100, Math.max(0, start.focalX + deltaX));
+    const newY = Math.min(100, Math.max(0, start.focalY + deltaY));
+    onChange(Math.round(newX), Math.round(newY));
   };
 
   const handlePointerUp = () => setDragging(false);
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
-      {/* Full uncropped image with a draggable focal marker */}
-      <div className="flex-1 space-y-1.5">
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-          Click or drag to choose what stays in frame
-        </label>
-        <div
-          ref={containerRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          className="relative w-full aspect-[4/3] bg-slate-900 rounded-lg overflow-hidden cursor-crosshair select-none"
-        >
-          <img
-            src={imageUrl}
-            alt="Full preview"
-            draggable={false}
-            className="w-full h-full object-contain pointer-events-none"
-          />
-          <div
-            className="absolute w-7 h-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-600/70 shadow-lg pointer-events-none flex items-center justify-center"
-            style={{ left: `${focalX}%`, top: `${focalY}%` }}
-          >
-            <Target className="w-3.5 h-3.5 text-white" />
-          </div>
+    <div className="space-y-2">
+      <div
+        ref={containerRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        className={`relative w-full max-w-[220px] mx-auto aspect-[4/5] rounded-lg overflow-hidden border-2 border-dashed bg-slate-100 select-none touch-none ${
+          dragging ? 'border-blue-500' : 'border-blue-300'
+        }`}
+        style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+      >
+        <img
+          src={imageUrl}
+          alt="Preview"
+          onLoad={handleImageLoad}
+          draggable={false}
+          className="w-full h-full object-cover pointer-events-none"
+          style={{ objectPosition: `${focalX}% ${focalY}%` }}
+        />
+        <div className="absolute bottom-2 right-2 bg-slate-950/60 backdrop-blur-xs rounded-md p-1.5 pointer-events-none">
+          <Move className="w-3.5 h-3.5 text-white" />
         </div>
       </div>
-
-      {/* Live preview of the resulting crop, matching a gallery card */}
-      <div className="w-full sm:w-32 space-y-1.5 shrink-0">
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-          Card preview
-        </label>
-        <div className="w-full sm:w-32 aspect-[4/5] rounded-lg overflow-hidden border border-slate-200">
-          <img
-            src={imageUrl}
-            alt="Cropped preview"
-            className="w-full h-full object-cover"
-            style={{ objectPosition: `${focalX}% ${focalY}%` }}
-          />
-        </div>
+      <div className="flex items-center justify-center gap-2">
+        <p className="text-[11px] text-slate-400 font-semibold text-center">Drag the image to reposition it</p>
+        {(focalX !== 50 || focalY !== 50) && (
+          <button
+            type="button"
+            onClick={() => onChange(50, 50)}
+            className="text-[11px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+          >
+            Reset
+          </button>
+        )}
       </div>
     </div>
   );
