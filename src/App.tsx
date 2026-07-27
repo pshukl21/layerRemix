@@ -9,6 +9,7 @@ import { ProfileScreen } from './components/ProfileScreen';
 import { UploadScreen } from './components/UploadScreen';
 import { DetailScreen } from './components/DetailScreen';
 import { AuthModal } from './components/AuthModal';
+import { ResetPasswordScreen } from './components/ResetPasswordScreen';
 import { NeedCreditsModal } from './components/NeedCreditsModal';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -334,6 +335,8 @@ export default function App() {
                   />
                 }
               />
+
+              <Route path="/reset-password" element={<ResetPasswordScreen />} />
 
               <Route
                 path="/upload"

@@ -14,6 +14,8 @@ interface AuthContextValue {
   refreshProfile: () => Promise<void>;
   updateAvatar: (file: File) => Promise<{ error: string | null }>;
   updateBio: (bio: string) => Promise<{ error: string | null }>;
+  sendPasswordResetEmail: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -205,9 +207,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error: null };
   };
 
+  // Sends a password-reset email with a link back to /reset-password.
+  // Supabase's client automatically establishes a temporary "recovery"
+  // session when the person opens that link, which is what lets
+  // updatePassword below work once they land on that page.
+  const sendPasswordResetEmail = async (email: string): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
+  // Sets a new password for whoever's session is currently active — only
+  // meaningful right after following a reset-password email link, which
+  // establishes exactly that kind of temporary session.
+  const updatePassword = async (newPassword: string): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, profile, session, loading, signUp, signIn, signOut, refreshProfile, updateAvatar, updateBio }}
+      value={{
+        user,
+        profile,
+        session,
+        loading,
+        signUp,
+        signIn,
+        signOut,
+        refreshProfile,
+        updateAvatar,
+        updateBio,
+        sendPasswordResetEmail,
+        updatePassword,
+      }}
     >
       {children}
     </AuthContext.Provider>
