@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Search, Download, GitFork, ArrowDown, ExternalLink } from 'lucide-react';
@@ -22,6 +22,12 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('trending');
   const [localSearch, setLocalSearch] = useState('');
 
+  // How many gallery cards to actually render at once. Rendering hundreds
+  // of animated cards into the DOM at once is the real performance cost
+  // here — this caps it, and "Discover More Art" reveals more on demand.
+  const PAGE_SIZE = 24;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
   // Combine parent search with local hero search
   const handleHeroSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +35,10 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   };
 
   const activeSearch = searchQuery || localSearch;
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [activeTab, activeSearch]);
 
   // Real "hot tags": count how often each tag appears across every original artwork
   const hotTags = useMemo(() => {
@@ -85,7 +95,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
       {/* Hero Section styled as a premium Large Bento Card */}
-      <section className="relative h-auto min-h-[420px] md:min-h-[480px] py-12 flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-xl mx-4 md:mx-12 my-6 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
+      <section className="relative h-auto min-h-[315px] md:min-h-[360px] py-9 flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-xl mx-4 md:mx-12 my-6 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
         {/* Decorative Bento Grid Line Overlays */}
         <div className="absolute inset-0 opacity-[0.14] pointer-events-none ps-grid-bg" />
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-500/5 blur-[120px]" />
@@ -206,7 +216,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">
-            {filteredArtworks.map((art) => (
+            {filteredArtworks.slice(0, visibleCount).map((art) => (
               <motion.div
                 key={art.id}
                 layout
@@ -278,9 +288,12 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
         )}
 
         {/* Load More Pagination Button */}
-        {filteredArtworks.length > 0 && (
+        {visibleCount < filteredArtworks.length && (
           <div className="flex justify-center pb-8">
-            <button className="px-8 py-3.5 border border-slate-200 bg-white shadow-sm hover:border-blue-600 text-slate-800 hover:text-blue-600 transition-all rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95">
+            <button
+              onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
+              className="px-8 py-3.5 border border-slate-200 bg-white shadow-sm hover:border-blue-600 text-slate-800 hover:text-blue-600 transition-all rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95"
+            >
               <span>Discover More Art</span>
               <ArrowDown className="w-4 h-4 animate-bounce text-blue-600" />
             </button>
