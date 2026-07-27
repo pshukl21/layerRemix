@@ -4,6 +4,7 @@ import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { FocalPointPicker } from './FocalPointPicker';
 
 interface UploadScreenProps {
   onPublish: (newArtwork: {
@@ -14,6 +15,8 @@ interface UploadScreenProps {
     sourceFilePath: string | null;
     sourceFileName: string | null;
     resolution: string;
+    focalX: number;
+    focalY: number;
   }) => Promise<{ error: string | null }>;
 }
 
@@ -40,6 +43,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+  const [focalX, setFocalX] = useState(50);
+  const [focalY, setFocalY] = useState(50);
 
   // The source file is zipped and uploaded immediately on selection — with
   // real progress shown — rather than waiting for the Publish click. This
@@ -114,6 +119,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     setExtracting(false);
     setUploadPhase('idle');
     setUploadError(null);
+    setFocalX(50);
+    setFocalY(50);
 
     // Check size immediately, before touching the file at all — no point
     // starting a multi-second zip/upload just to find out it's rejected.
@@ -221,6 +228,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       sourceFilePath: uploadedSourcePath,
       sourceFileName: psdFile.name,
       resolution,
+      focalX,
+      focalY,
     });
     setSubmitting(false);
     if (error) {
@@ -308,53 +317,55 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
             )}
           </div>
 
-          {/* Auto-generated preview — read-only, pulled straight from the PSD */}
+          {/* Auto-generated preview — pulled straight from the PSD, position adjustable */}
           <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
-            <div className="rounded-lg h-80 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50 border border-slate-100">
-              {extracting && (
-                <div className="flex flex-col items-center gap-3 text-slate-400">
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                  <span className="text-xs font-bold uppercase tracking-widest">Rendering HD preview from your PSD…</span>
+            {!extracting && thumbnailPreviewUrl ? (
+              <div className="p-2">
+                <div className="flex items-center gap-1.5 mb-3 text-emerald-600">
+                  <Check className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Auto-generated from your PSD</span>
                 </div>
-              )}
-
-              {!extracting && thumbnailPreviewUrl && (
-                <>
-                  <img
-                    className="absolute inset-0 w-full h-full object-cover z-0"
-                    src={thumbnailPreviewUrl}
-                    alt="Auto-generated preview from PSD"
-                  />
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/80 to-transparent p-4 flex items-center gap-1.5 z-10">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">
-                      Auto-generated from your PSD
-                    </span>
+                <FocalPointPicker
+                  imageUrl={thumbnailPreviewUrl}
+                  focalX={focalX}
+                  focalY={focalY}
+                  onChange={(x, y) => {
+                    setFocalX(x);
+                    setFocalY(y);
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg h-80 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50 border border-slate-100">
+                {extracting && (
+                  <div className="flex flex-col items-center gap-3 text-slate-400">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                    <span className="text-xs font-bold uppercase tracking-widest">Rendering HD preview from your PSD…</span>
                   </div>
-                </>
-              )}
+                )}
 
-              {!extracting && !thumbnailPreviewUrl && !extractionError && (
-                <div className="flex flex-col items-center gap-2 text-slate-400 px-6">
-                  <ImageIcon className="w-10 h-10 mb-2" />
-                  <h3 className="font-bold text-sm text-slate-600">Preview appears automatically</h3>
-                  <p className="text-xs leading-relaxed font-semibold max-w-xs">
-                    Upload a .psd above — we'll pull its embedded thumbnail for you. There's no separate image
-                    upload, so the preview always matches the real file.
-                  </p>
-                </div>
-              )}
+                {!extracting && !extractionError && (
+                  <div className="flex flex-col items-center gap-2 text-slate-400 px-6">
+                    <ImageIcon className="w-10 h-10 mb-2" />
+                    <h3 className="font-bold text-sm text-slate-600">Preview appears automatically</h3>
+                    <p className="text-xs leading-relaxed font-semibold max-w-xs">
+                      Upload a .psd above — we'll pull its embedded thumbnail for you. There's no separate image
+                      upload, so the preview always matches the real file.
+                    </p>
+                  </div>
+                )}
 
-              {!extracting && extractionError && (
-                <div className="flex flex-col items-center gap-2 text-red-600 px-6">
-                  <AlertTriangle className="w-8 h-8 mb-1" />
-                  <h3 className="font-bold text-sm">Can't use this file</h3>
-                  <p className="text-xs leading-relaxed font-semibold max-w-sm text-red-500">
-                    {extractionError}
-                  </p>
-                </div>
-              )}
-            </div>
+                {!extracting && extractionError && (
+                  <div className="flex flex-col items-center gap-2 text-red-600 px-6">
+                    <AlertTriangle className="w-8 h-8 mb-1" />
+                    <h3 className="font-bold text-sm">Can't use this file</h3>
+                    <p className="text-xs leading-relaxed font-semibold max-w-sm text-red-500">
+                      {extractionError}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

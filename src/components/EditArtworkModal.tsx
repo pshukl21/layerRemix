@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Sparkles, Trash2 } from 'lucide-react';
 import { Artwork } from '../types';
+import { FocalPointPicker } from './FocalPointPicker';
 
 interface EditArtworkModalProps {
   open: boolean;
@@ -14,6 +15,8 @@ interface EditArtworkModalProps {
       description: string;
       tags: string[];
       newPreviewFile: File | null;
+      focalX: number;
+      focalY: number;
     }
   ) => Promise<{ error: string | null }>;
   onDelete?: (artworkId: string) => Promise<{ error: string | null }>;
@@ -23,6 +26,8 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
   const [title, setTitle] = useState(artwork?.title || '');
   const [description, setDescription] = useState(artwork?.description || '');
   const [tagsInput, setTagsInput] = useState(artwork?.tags.join(', ') || '');
+  const [focalX, setFocalX] = useState(artwork?.focalX ?? 50);
+  const [focalY, setFocalY] = useState(artwork?.focalY ?? 50);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
@@ -35,6 +40,8 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
       setTitle(artwork.title);
       setDescription(artwork.description);
       setTagsInput(artwork.tags.join(', '));
+      setFocalX(artwork.focalX ?? 50);
+      setFocalY(artwork.focalY ?? 50);
       setError(null);
       setDeleteConfirming(false);
       setDeleteError(null);
@@ -64,6 +71,8 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
       description: description.trim() || 'No notes on what needs work yet.',
       tags: tags.length > 0 ? tags : ['DigitalArt'],
       newPreviewFile: null,
+      focalX,
+      focalY,
     });
     setSubmitting(false);
     if (saveError) {
@@ -114,8 +123,9 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
             <div className="mb-6">
               <h2 className="text-lg font-black text-slate-900">Edit Artwork</h2>
               <p className="text-xs text-slate-500 font-semibold mt-1">
-                Update the title, notes, or tags. The cover image and source PSD can't be changed here — the
-                preview always stays the one extracted from your original file, so it can never be misleading.
+                Update the title, notes, tags, or cover image position. The image itself and source PSD can't be
+                changed here — the preview always stays the one extracted from your original file, so it can
+                never be misleading.
               </p>
             </div>
 
@@ -159,18 +169,20 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                  Cover Image
+                  Cover Image Position
                 </label>
-                <div className="relative aspect-[16/9] rounded-2xl border border-slate-200 overflow-hidden ps-checkerboard p-1">
-                  <img
-                    src={artwork.image}
-                    alt="Cover preview"
-                    className="w-full h-full object-cover rounded-xl"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
+                <FocalPointPicker
+                  imageUrl={artwork.image}
+                  focalX={focalX}
+                  focalY={focalY}
+                  onChange={(x, y) => {
+                    setFocalX(x);
+                    setFocalY(y);
+                  }}
+                />
                 <p className="text-[11px] text-slate-400 font-semibold">
-                  Locked to your PSD's own embedded thumbnail.
+                  The image itself is locked to your PSD's own embedded thumbnail — you can only adjust what
+                  stays in frame when it's cropped.
                 </p>
               </div>
 

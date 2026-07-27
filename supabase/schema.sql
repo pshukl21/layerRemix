@@ -73,6 +73,11 @@ create table if not exists public.artworks (
   forks integer not null default 0,
   views integer not null default 0,
   resolution text default '',
+  -- Where the crop should focus when this preview is shown cropped (e.g.
+  -- gallery cards). Percentages, 0-100; 50/50 is dead center. Only affects
+  -- cropping/positioning — never changes which image is actually shown.
+  focal_x real not null default 50,
+  focal_y real not null default 50,
   created_at timestamptz not null default now()
 );
 
@@ -93,6 +98,11 @@ create policy "Users can update their own artworks"
 create policy "Users can delete their own artworks"
   on public.artworks for delete
   using (auth.uid() = owner_id);
+
+-- Safe to run standalone against an existing database (adds the columns
+-- only if they aren't already there).
+alter table public.artworks add column if not exists focal_x real not null default 50;
+alter table public.artworks add column if not exists focal_y real not null default 50;
 
 -- Engagement counters (forks, views) need to be bumped by people who don't
 -- own the artwork — e.g. anyone forking someone else's piece, or just

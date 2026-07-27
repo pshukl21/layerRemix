@@ -9,6 +9,7 @@ import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
+import { FocalPointPicker } from './FocalPointPicker';
 
 interface DetailScreenProps {
   artwork: Artwork;
@@ -25,6 +26,8 @@ interface DetailScreenProps {
     sourceFilePath: string | null;
     sourceFileName: string | null;
     resolution: string;
+    focalX: number;
+    focalY: number;
   }) => Promise<{ error: string | null }>;
   onUpdateArtwork?: (
     artworkId: string,
@@ -146,6 +149,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [forkThumbnailPreviewUrl, setForkThumbnailPreviewUrl] = useState<string | null>(null);
   const [forkExtracting, setForkExtracting] = useState(false);
   const [forkExtractionError, setForkExtractionError] = useState<string | null>(null);
+  const [forkFocalX, setForkFocalX] = useState(50);
+  const [forkFocalY, setForkFocalY] = useState(50);
   const [forkCertified, setForkCertified] = useState(true);
 
   // Zip + upload the fork's PSD immediately on selection, same as the main
@@ -172,6 +177,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkUploadError(null);
     setForkUploadedSourcePath(null);
     forkUploadedSourcePathRef.current = null;
+    setForkFocalX(50);
+    setForkFocalY(50);
   }, [artwork.id]);
 
   // Count a view once per visit to this artwork's page. Demo content is
@@ -300,6 +307,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkExtracting(false);
     setForkUploadPhase('idle');
     setForkUploadError(null);
+    setForkFocalX(50);
+    setForkFocalY(50);
 
     const sizeError = validateSourceFileSize(file);
     if (sizeError) {
@@ -395,6 +404,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         sourceFilePath: forkUploadedSourcePath,
         sourceFileName: forkPsdFile.name,
         resolution,
+        focalX: forkFocalX,
+        focalY: forkFocalY,
       });
       setForkSubmitting(false);
       if (error) {
@@ -1039,52 +1050,54 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 )}
               </div>
 
-              {/* Auto-generated preview — read-only, pulled straight from the PSD */}
+              {/* Auto-generated preview — pulled straight from the PSD, position adjustable */}
               <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
-                <div className="rounded-lg h-80 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50 border border-slate-100">
-                  {forkExtracting && (
-                    <div className="flex flex-col items-center gap-3 text-slate-400">
-                      <Loader2 className="w-8 h-8 animate-spin" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Rendering HD preview from your PSD…</span>
+                {!forkExtracting && forkThumbnailPreviewUrl ? (
+                  <div className="p-2">
+                    <div className="flex items-center gap-1.5 mb-3 text-emerald-600">
+                      <Check className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Auto-generated from your PSD</span>
                     </div>
-                  )}
-
-                  {!forkExtracting && forkThumbnailPreviewUrl && (
-                    <>
-                      <img
-                        className="absolute inset-0 w-full h-full object-cover z-0"
-                        src={forkThumbnailPreviewUrl}
-                        alt="Auto-generated preview from PSD"
-                      />
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/80 to-transparent p-4 flex items-center gap-1.5 z-10">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">
-                          Auto-generated from your PSD
-                        </span>
+                    <FocalPointPicker
+                      imageUrl={forkThumbnailPreviewUrl}
+                      focalX={forkFocalX}
+                      focalY={forkFocalY}
+                      onChange={(x, y) => {
+                        setForkFocalX(x);
+                        setForkFocalY(y);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-lg h-80 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50 border border-slate-100">
+                    {forkExtracting && (
+                      <div className="flex flex-col items-center gap-3 text-slate-400">
+                        <Loader2 className="w-8 h-8 animate-spin" />
+                        <span className="text-xs font-bold uppercase tracking-widest">Rendering HD preview from your PSD…</span>
                       </div>
-                    </>
-                  )}
+                    )}
 
-                  {!forkExtracting && !forkThumbnailPreviewUrl && !forkExtractionError && (
-                    <div className="flex flex-col items-center gap-2 text-slate-400 px-6">
-                      <ImageIcon className="w-10 h-10 mb-2" />
-                      <h3 className="font-bold text-sm text-slate-600">Preview appears automatically</h3>
-                      <p className="text-xs leading-relaxed font-semibold max-w-xs">
-                        Upload your updated .psd above — we'll pull its embedded thumbnail for you.
-                      </p>
-                    </div>
-                  )}
+                    {!forkExtracting && !forkExtractionError && (
+                      <div className="flex flex-col items-center gap-2 text-slate-400 px-6">
+                        <ImageIcon className="w-10 h-10 mb-2" />
+                        <h3 className="font-bold text-sm text-slate-600">Preview appears automatically</h3>
+                        <p className="text-xs leading-relaxed font-semibold max-w-xs">
+                          Upload your updated .psd above — we'll pull its embedded thumbnail for you.
+                        </p>
+                      </div>
+                    )}
 
-                  {!forkExtracting && forkExtractionError && (
-                    <div className="flex flex-col items-center gap-2 text-red-600 px-6">
-                      <AlertTriangle className="w-8 h-8 mb-1" />
-                      <h3 className="font-bold text-sm">Can't use this file</h3>
-                      <p className="text-xs leading-relaxed font-semibold max-w-sm text-red-500">
-                        {forkExtractionError}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    {!forkExtracting && forkExtractionError && (
+                      <div className="flex flex-col items-center gap-2 text-red-600 px-6">
+                        <AlertTriangle className="w-8 h-8 mb-1" />
+                        <h3 className="font-bold text-sm">Can't use this file</h3>
+                        <p className="text-xs leading-relaxed font-semibold max-w-sm text-red-500">
+                          {forkExtractionError}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
             </div>

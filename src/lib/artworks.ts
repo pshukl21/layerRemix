@@ -16,6 +16,8 @@ interface ArtworkRow {
   forks: number;
   views: number;
   resolution: string | null;
+  focal_x: number | null;
+  focal_y: number | null;
   created_at: string;
   owner_id: string;
   owner: {
@@ -52,6 +54,8 @@ function rowToArtwork(row: ArtworkRow, parentUsername?: string): Artwork {
     parentArtworkId: row.parent_artwork_id || undefined,
     parentAuthor: parentUsername,
     resolution: row.resolution || undefined,
+    focalX: typeof row.focal_x === 'number' ? row.focal_x : 50,
+    focalY: typeof row.focal_y === 'number' ? row.focal_y : 50,
     timeAgo: timeAgo(row.created_at),
     createdAt: row.created_at,
     ownerId: row.owner_id,
@@ -121,6 +125,8 @@ interface PublishInput {
   type: 'Original' | 'Remix';
   parentArtworkId?: string;
   resolution: string;
+  focalX?: number;
+  focalY?: number;
 }
 
 // Uploads the preview image to Storage, then inserts the artwork row
@@ -153,6 +159,8 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
       parent_artwork_id: input.parentArtworkId || null,
       owner_id: input.ownerId,
       resolution: input.resolution,
+      focal_x: input.focalX ?? 50,
+      focal_y: input.focalY ?? 50,
     })
     .select('*, owner:profiles(username, display_name, avatar_url)')
     .single();
@@ -185,11 +193,14 @@ interface UpdateArtworkInput {
   tags: string[];
   newPreviewFile?: File | null;
   previousImagePath?: string;
+  focalX?: number;
+  focalY?: number;
 }
 
-// Updates an artwork's editable fields (title, description, tags) and,
-// optionally, replaces its cover/preview image. The source PSD file itself
-// is intentionally never touched here — only the preview image can change.
+// Updates an artwork's editable fields (title, description, tags, crop
+// focus point) and, optionally, replaces its cover/preview image. The
+// source PSD file itself is intentionally never touched here — only the
+// preview image (and how it's cropped) can change.
 export async function updateArtwork(
   input: UpdateArtworkInput
 ): Promise<{ artwork: Artwork | null; error: string | null }> {
@@ -198,6 +209,8 @@ export async function updateArtwork(
     description: input.description,
     tags: input.tags,
   };
+  if (typeof input.focalX === 'number') updates.focal_x = input.focalX;
+  if (typeof input.focalY === 'number') updates.focal_y = input.focalY;
 
   let newImagePath: string | null = null;
   if (input.newPreviewFile) {

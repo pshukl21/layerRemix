@@ -237,6 +237,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     <div className="w-full h-full overflow-hidden relative">
                       <img
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        style={{ objectPosition: `${art.focalX ?? 50}% ${art.focalY ?? 50}%` }}
                         src={art.image}
                         alt={art.title}
                         referrerPolicy="no-referrer"

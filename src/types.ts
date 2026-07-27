@@ -13,6 +13,10 @@ export interface Artwork {
   parentArtworkId?: string;
   parentAuthor?: string;
   resolution?: string;
+  // Crop focus point (0-100 percentages) for when this image is shown
+  // cropped, e.g. in gallery cards. Defaults to 50/50 (centered).
+  focalX?: number;
+  focalY?: number;
   timeAgo: string;
   createdAt?: string;
   // Real-backend fields (absent on the static demo seed artworks)

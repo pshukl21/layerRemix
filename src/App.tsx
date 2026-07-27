@@ -24,6 +24,8 @@ interface PublishInput {
   sourceFilePath: string | null;
   sourceFileName: string | null;
   resolution: string;
+  focalX: number;
+  focalY: number;
 }
 
 interface UpdateInput {
@@ -31,6 +33,8 @@ interface UpdateInput {
   description: string;
   tags: string[];
   newPreviewFile: File | null;
+  focalX: number;
+  focalY: number;
 }
 
 // Resolves the :id route param to an artwork and renders DetailScreen,
@@ -250,6 +254,8 @@ export default function App() {
       tags: updates.tags,
       newPreviewFile: updates.newPreviewFile,
       previousImagePath: updates.newPreviewFile ? current.imagePath : undefined,
+      focalX: updates.focalX,
+      focalY: updates.focalY,
     });
     if (error || !artwork) {
       return { error: error || 'Something went wrong updating this artwork.' };

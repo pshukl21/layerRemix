@@ -211,7 +211,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               </div>
               <div className="aspect-[4/5] relative overflow-hidden ps-checkerboard p-1">
               <img
-                style={isHovered ? tiltStyle : {}}
+                style={{ objectPosition: `${art.focalX ?? 50}% ${art.focalY ?? 50}%`, ...(isHovered ? tiltStyle : {}) }}
                 className="w-full h-full object-cover transition-transform duration-500 ease-out rounded-md"
                 src={art.image}
                 alt={art.title}
