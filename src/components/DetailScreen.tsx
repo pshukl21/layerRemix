@@ -6,7 +6,7 @@ import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews } from '../lib/artworks';
 import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib/psd';
-import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile } from '../lib/upload';
+import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
 
@@ -297,6 +297,16 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkThumbnail(null);
     setForkThumbnailPreviewUrl(null);
     setForkExtractionError(null);
+    setForkExtracting(false);
+    setForkUploadPhase('idle');
+    setForkUploadError(null);
+
+    const sizeError = validateSourceFileSize(file);
+    if (sizeError) {
+      setForkExtractionError(sizeError);
+      return;
+    }
+
     setForkExtracting(true);
 
     startForkZipAndUpload(file);
@@ -996,7 +1006,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <p className="text-xs text-slate-400 max-w-xs leading-relaxed font-semibold">
                     {forkPsdFile 
                       ? `Selected: ${forkPsdFile.name} (${(forkPsdFile.size / (1024 * 1024)).toFixed(1)} MB)`
-                      : 'Drag & drop your updated design layers file or click to browse. Max size 2GB.'
+                      : 'Drag & drop your updated design layers file or click to browse. Files must be between 5 MB and 2 GB.'
                     }
                   </p>
                 </div>
@@ -1068,7 +1078,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   {!forkExtracting && forkExtractionError && (
                     <div className="flex flex-col items-center gap-2 text-red-600 px-6">
                       <AlertTriangle className="w-8 h-8 mb-1" />
-                      <h3 className="font-bold text-sm">No embedded preview found</h3>
+                      <h3 className="font-bold text-sm">Can't use this file</h3>
                       <p className="text-xs leading-relaxed font-semibold max-w-sm text-red-500">
                         {forkExtractionError}
                       </p>

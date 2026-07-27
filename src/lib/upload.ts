@@ -1,6 +1,32 @@
 import { zip } from 'fflate';
 import { supabase, supabaseUrlForUpload, supabaseAnonKeyForUpload, SOURCE_FILES_BUCKET } from './supabase';
 
+// Source PSD size limits — kept in sync with the "Global file size limit"
+// and the source-files bucket's own restriction in the Supabase dashboard.
+// Checked immediately on file selection so people get instant feedback
+// instead of waiting through a whole upload just to be told it's too big.
+export const MIN_SOURCE_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+export const MAX_SOURCE_FILE_SIZE_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Returns an error message if the file is outside the allowed size range,
+// or null if it's fine.
+export function validateSourceFileSize(file: File): string | null {
+  if (file.size > MAX_SOURCE_FILE_SIZE_BYTES) {
+    return `This file is ${formatFileSize(file.size)}, which is over the 2 GB limit. Please upload a smaller file.`;
+  }
+  if (file.size < MIN_SOURCE_FILE_SIZE_BYTES) {
+    return `This file is ${formatFileSize(file.size)}, which is under the 5 MB minimum. Please upload a different file.`;
+  }
+  return null;
+}
+
 // A unique path for a source file, generated client-side before the artwork
 // row exists yet — the file is uploaded up-front (with progress shown), well
 // before the user clicks "Publish", so we can't wait for a DB-issued id.

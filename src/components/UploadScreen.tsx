@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileUp, Image as ImageIcon, Sparkles, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib/psd';
-import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile } from '../lib/upload';
+import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -111,6 +111,18 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     setExtractedThumbnail(null);
     setThumbnailPreviewUrl(null);
     setExtractionError(null);
+    setExtracting(false);
+    setUploadPhase('idle');
+    setUploadError(null);
+
+    // Check size immediately, before touching the file at all — no point
+    // starting a multi-second zip/upload just to find out it's rejected.
+    const sizeError = validateSourceFileSize(file);
+    if (sizeError) {
+      setExtractionError(sizeError);
+      return;
+    }
+
     setExtracting(true);
 
     // Thumbnail extraction and the zip+upload both read the same File
@@ -263,7 +275,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               <p className="text-xs text-slate-400 max-w-xs leading-relaxed font-semibold">
                 {psdFile 
                   ? `Selected: ${psdFile.name} (${(psdFile.size / (1024 * 1024)).toFixed(1)} MB)`
-                  : 'Drag and drop your project file here or click to browse. Max size depends on your plan.'
+                  : 'Drag and drop your project file here or click to browse. Files must be between 5 MB and 2 GB.'
                 }
               </p>
             </div>
@@ -336,7 +348,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               {!extracting && extractionError && (
                 <div className="flex flex-col items-center gap-2 text-red-600 px-6">
                   <AlertTriangle className="w-8 h-8 mb-1" />
-                  <h3 className="font-bold text-sm">No embedded preview found</h3>
+                  <h3 className="font-bold text-sm">Can't use this file</h3>
                   <p className="text-xs leading-relaxed font-semibold max-w-sm text-red-500">
                     {extractionError}
                   </p>
