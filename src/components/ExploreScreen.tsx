@@ -118,7 +118,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="w-full max-w-full text-center whitespace-nowrap text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 mb-1.5 font-sans leading-tight"
+            className="w-full max-w-full text-center whitespace-normal sm:whitespace-nowrap text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 mb-1.5 font-sans leading-tight"
           >
             Where scrapped PSDs become finished art.
           </motion.h1>
