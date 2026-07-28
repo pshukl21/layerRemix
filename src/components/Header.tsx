@@ -52,13 +52,13 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
   };
 
   return (
-    <header className="fixed top-0 w-full z-50 flex justify-between items-center px-6 md:px-12 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
+    <header className="fixed top-0 w-full z-50 flex justify-between items-center px-4 md:px-12 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
       <div className="flex items-center gap-8">
         <Link
           to="/"
-          className="flex items-center gap-2 font-bold text-2xl tracking-tighter text-slate-900 cursor-pointer hover:opacity-95 select-none"
+          className="flex items-center gap-1.5 md:gap-2 font-bold text-lg md:text-2xl tracking-tighter text-slate-900 cursor-pointer hover:opacity-95 select-none shrink-0"
         >
-          <img src="/logo-512.png" alt="" className="w-7 h-7 object-contain" />
+          <img src="/logo-512.png" alt="" className="w-6 h-6 md:w-7 md:h-7 object-contain shrink-0" />
           LayerRemix
         </Link>
         <nav className="hidden md:flex gap-6 items-center">
@@ -73,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
         </nav>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3 md:gap-6">
         {/* Header Search Bar (Only shown or styled nicely on md screens) */}
         <div className="hidden md:flex relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-[18px] h-[18px] group-focus-within:text-blue-600" />
@@ -86,16 +86,16 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
           />
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <button
             onClick={handleUploadClick}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+            className={`flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase tracking-wide md:tracking-wider transition-all active:scale-95 cursor-pointer shrink-0 ${
               isUpload
                 ? 'bg-slate-200 text-slate-800'
                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs'
             }`}
           >
-            <Upload className="w-4 h-4" />
+            <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
             Upload
           </button>
 
@@ -157,7 +157,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
           ) : (
             <button
               onClick={onRequireAuth}
-              className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-slate-200 text-slate-700 hover:border-blue-600 hover:text-blue-600 transition-all active:scale-95 cursor-pointer"
+              className="px-2.5 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase tracking-wide md:tracking-wider border border-slate-200 text-slate-700 hover:border-blue-600 hover:text-blue-600 transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
             >
               Sign In
             </button>
