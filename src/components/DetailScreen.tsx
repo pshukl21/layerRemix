@@ -703,7 +703,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   >
                     <div className="w-full h-full rounded-md overflow-hidden relative ps-marching-ants">
                       <img
-                        style={tiltStyle}
+                        style={{ objectPosition: `${artwork.focalX ?? 50}% ${artwork.focalY ?? 50}%`, ...tiltStyle }}
                         onClick={() => setLightboxOpen(true)}
                         className="w-full h-full object-cover transition-transform duration-500 ease-out cursor-zoom-in"
                         src={artwork.image}

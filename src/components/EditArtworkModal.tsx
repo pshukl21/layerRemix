@@ -179,10 +179,13 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
                     setFocalX(x);
                     setFocalY(y);
                   }}
+                  aspectRatio="16/10"
+                  maxWidth="360px"
                 />
                 <p className="text-[11px] text-slate-400 font-semibold">
-                  The image itself is locked to your PSD's own embedded thumbnail — you can only adjust what
-                  stays in frame when it's cropped.
+                  This is how it'll look on the artwork page itself. The same position is also used for gallery
+                  and profile cards. The image itself is locked to your PSD's own embedded thumbnail — you can
+                  only adjust what stays in frame when it's cropped.
                 </p>
               </div>
 

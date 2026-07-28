@@ -6,6 +6,10 @@ interface FocalPointPickerProps {
   focalX: number;
   focalY: number;
   onChange: (x: number, y: number) => void;
+  // CSS aspect-ratio value, e.g. "4/5" (default, matches gallery cards) or
+  // "16/10" (matches the landscape cover on the artwork page itself).
+  aspectRatio?: string;
+  maxWidth?: string;
 }
 
 interface DragStart {
@@ -19,7 +23,14 @@ interface DragStart {
 // crops to — what you see here is exactly what you'll get. Drag the image
 // around inside the box to reposition it; this only changes where the crop
 // is centered, never which image is shown.
-export const FocalPointPicker: React.FC<FocalPointPickerProps> = ({ imageUrl, focalX, focalY, onChange }) => {
+export const FocalPointPicker: React.FC<FocalPointPickerProps> = ({
+  imageUrl,
+  focalX,
+  focalY,
+  onChange,
+  aspectRatio = '4/5',
+  maxWidth = '220px',
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const naturalSizeRef = useRef<{ w: number; h: number } | null>(null);
   const dragStartRef = useRef<DragStart | null>(null);
@@ -85,10 +96,10 @@ export const FocalPointPicker: React.FC<FocalPointPickerProps> = ({ imageUrl, fo
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className={`relative w-full max-w-[220px] mx-auto aspect-[4/5] rounded-lg overflow-hidden border-2 border-dashed bg-slate-100 select-none touch-none ${
+        className={`relative w-full mx-auto rounded-lg overflow-hidden border-2 border-dashed bg-slate-100 select-none touch-none ${
           dragging ? 'border-blue-500' : 'border-blue-300'
         }`}
-        style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+        style={{ cursor: dragging ? 'grabbing' : 'grab', aspectRatio, maxWidth }}
       >
         <img
           src={imageUrl}
