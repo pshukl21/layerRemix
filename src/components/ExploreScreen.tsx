@@ -95,7 +95,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
       {/* Hero Section styled as a premium Large Bento Card */}
-      <section className="relative h-auto min-h-[315px] md:min-h-[360px] py-9 flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-xl mx-4 md:mx-12 my-6 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
+      <section className="relative h-auto min-h-[220px] md:min-h-[260px] py-6 flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-xl mx-4 md:mx-12 my-4 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
         {/* Decorative Bento Grid Line Overlays */}
         <div className="absolute inset-0 opacity-[0.14] pointer-events-none ps-grid-bg" />
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-500/5 blur-[120px]" />
@@ -107,9 +107,9 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="mb-4 inline-flex items-center justify-center"
+            className="mb-2 inline-flex items-center justify-center"
           >
-            <span className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
+            <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
               🎨 OPEN-SOURCE ARTWORK
             </span>
           </motion.div>
@@ -118,7 +118,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="w-full max-w-full text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 mb-4 font-sans leading-tight"
+            className="w-full max-w-full text-center whitespace-nowrap text-base sm:text-xl md:text-2xl lg:text-3xl font-black tracking-tight text-slate-900 mb-2 font-sans leading-tight"
           >
             Where scrapped PSDs become finished art.
           </motion.h1>
@@ -127,7 +127,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-sm md:text-base lg:text-lg text-slate-500 max-w-2xl mx-auto mb-8 font-semibold leading-relaxed"
+            className="text-xs md:text-sm text-slate-500 max-w-2xl mx-auto mb-4 font-semibold leading-relaxed"
           >
             Upload unfinished PSDs, download source layers, and turn dormant projects into final artwork.
           </motion.p>
@@ -138,7 +138,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            className="w-full max-w-xl mx-auto bg-slate-100/90 backdrop-blur-md rounded-full p-1.5 flex items-center border border-slate-200 shadow-md focus-within:border-blue-600 focus-within:bg-white transition-all"
+            className="w-full max-w-xl mx-auto bg-slate-100/90 backdrop-blur-md rounded-full p-1 flex items-center border border-slate-200 shadow-md focus-within:border-blue-600 focus-within:bg-white transition-all"
           >
             <input
               value={localSearch}
@@ -149,15 +149,15 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             />
             <button 
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white h-11 w-11 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-md"
+              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-md"
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-4 h-4" />
             </button>
           </motion.form>
 
           {/* Hot Tags suggestion */}
           {hotTags.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
               <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
               {hotTags.map((tag) => (
                 <button

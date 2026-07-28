@@ -787,9 +787,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
                 <div className="h-px bg-slate-100" />
 
-                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-semibold">
-                  {artwork.description}
-                </p>
+                <div className="space-y-1.5">
+                  <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {artwork.type === 'Original' ? 'What Needs Work' : "What's Changed"}
+                  </h2>
+                  <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-semibold">
+                    {artwork.description}
+                  </p>
+                </div>
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {artwork.tags.map((tag) => (
