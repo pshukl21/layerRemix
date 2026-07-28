@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { LogIn, SearchX } from 'lucide-react';
+import { LogIn, SearchX, X, Upload as UploadIcon } from 'lucide-react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ExploreScreen } from './components/ExploreScreen';
@@ -132,6 +132,7 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signIn' | 'signUp'>('signIn');
   const [needCreditsModalOpen, setNeedCreditsModalOpen] = useState(false);
+  const [creditsBannerDismissed, setCreditsBannerDismissed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -298,6 +299,25 @@ export default function App() {
       />
 
       <div className={`flex-grow ${!isSupabaseConfigured ? 'pt-8' : ''}`}>
+        {user && profile && profile.credits === 0 && !creditsBannerDismissed && (
+          <div className="sticky top-16 z-40 w-full bg-blue-600 text-white text-xs font-bold text-center py-2.5 px-4 flex items-center justify-center gap-3 shadow-sm">
+            <span>🎨 Upload your first PSD to earn a credit and start downloading.</span>
+            <button
+              onClick={() => navigate('/upload')}
+              className="shrink-0 flex items-center gap-1 bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+            >
+              <UploadIcon className="w-3 h-3" />
+              Upload Now
+            </button>
+            <button
+              onClick={() => setCreditsBannerDismissed(true)}
+              className="shrink-0 text-white/70 hover:text-white cursor-pointer"
+              title="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
