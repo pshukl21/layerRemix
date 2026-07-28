@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+/* Inter, loaded in index.html. Overriding Tailwind's --font-sans theme
+   variable (rather than just setting body's font-family) means this
+   applies consistently everywhere — both text that inherits the default
+   font AND any element using the font-sans utility class directly, which
+   several components in this app do. Without this, those elements would
+   keep falling back to Tailwind's own default sans stack instead of Inter.
+   This is what actually gives the site a consistent look across devices;
+   before this, text fell back to whatever system font each visitor's OS
+   happens to use (San Francisco on Mac, Segoe UI on Windows, Roboto on
+   Android, etc.). */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Defensive backstop — ties directly to the same variable above, in case
+   Tailwind's Preflight base styles don't pick it up automatically. */
+body {
+  font-family: var(--font-sans);
+}
+
 /* ---------------------------------------------------------------------
    Photoshop-inspired accents — kept light-themed, not a literal skin.
    ------------------------------------------------------------------- */
