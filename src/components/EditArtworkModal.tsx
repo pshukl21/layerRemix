@@ -219,20 +219,28 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
               <div className="mt-6 pt-5 border-t-2 border-red-200">
                 <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">⚠ Danger Zone</p>
                 {!deleteConfirming ? (
-                  <button
-                    type="button"
-                    onClick={() => hasDeleteCredits && setDeleteConfirming(true)}
-                    disabled={!hasDeleteCredits}
-                    title={
-                      hasDeleteCredits
-                        ? undefined
-                        : 'Insufficient credits: you need at least 1 credit in your account balance to delete a post. Upload another PSD to restore your deletion ability.'
-                    }
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Delete This Artwork
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => hasDeleteCredits && setDeleteConfirming(true)}
+                      disabled={!hasDeleteCredits}
+                      title={
+                        hasDeleteCredits
+                          ? undefined
+                          : 'Insufficient credits: you need at least 1 credit in your account balance to delete a post. Upload another PSD to restore your deletion ability.'
+                      }
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete This Artwork
+                    </button>
+                    {!hasDeleteCredits && (
+                      <p className="text-[11px] font-semibold text-red-500 mt-2 leading-relaxed">
+                        Insufficient credits: you need at least 1 credit in your account balance to delete a post.
+                        Upload another PSD to restore your deletion ability.
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col gap-3">
                     <p className="text-xs font-semibold text-red-700">
