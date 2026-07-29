@@ -230,6 +230,58 @@ $$;
 
 grant execute on function public.spend_credit(uuid) to authenticated;
 
+-- Atomically enforces the "deleting costs 1 credit" rule: checks ownership
+-- and that the owner has at least 1 credit, deducts it, then deletes the
+-- artwork row — all in one transaction so there's no window where credits
+-- could be spent without the delete happening (or vice versa). Returns the
+-- storage paths so the client can clean up the actual files afterward.
+-- Never allows credits below 0, since the same "credits > 0" guard used by
+-- spend_credit applies here too.
+create or replace function public.delete_artwork_with_credit_check(p_artwork_id uuid)
+returns table(image_path text, source_file_path text)
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_owner_id uuid;
+  v_image_path text;
+  v_source_file_path text;
+  v_new_balance integer;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authorized';
+  end if;
+
+  select owner_id, artworks.image_path, artworks.source_file_path
+    into v_owner_id, v_image_path, v_source_file_path
+    from public.artworks
+    where id = p_artwork_id;
+
+  if v_owner_id is null then
+    raise exception 'Artwork not found';
+  end if;
+
+  if v_owner_id <> auth.uid() then
+    raise exception 'Not authorized';
+  end if;
+
+  update public.profiles
+  set credits = credits - 1
+  where id = v_owner_id and credits > 0
+  returning credits into v_new_balance;
+
+  if v_new_balance is null then
+    raise exception 'Not enough credits';
+  end if;
+
+  delete from public.artworks where id = p_artwork_id;
+
+  return query select v_image_path, v_source_file_path;
+end;
+$$;
+
+grant execute on function public.delete_artwork_with_credit_check(uuid) to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- 5. STORAGE BUCKETS
 -- "previews" holds public gallery thumbnails/preview images.

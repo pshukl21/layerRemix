@@ -265,7 +265,8 @@ export default function App() {
     return { error: null };
   };
 
-  // Permanently deletes one of the current user's own artworks.
+  // Permanently deletes one of the current user's own artworks. Costs 1
+  // credit — enforced atomically server-side via the RPC, not just in the UI.
   const handleDeleteArtwork = async (artworkId: string): Promise<{ error: string | null }> => {
     if (!user) {
       openAuthModal('signIn');
@@ -275,11 +276,12 @@ export default function App() {
     if (!current || current.ownerId !== user.id) {
       return { error: 'Could not find that artwork.' };
     }
-    const { error } = await deleteArtwork(artworkId, current.imagePath, current.sourceFilePath);
+    const { error } = await deleteArtwork(artworkId);
     if (error) {
       return { error };
     }
     setRealArtworks((prev) => prev.filter((art) => art.id !== artworkId));
+    await refreshProfile();
     navigate('/');
     return { error: null };
   };

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Sparkles, Trash2 } from 'lucide-react';
 import { Artwork } from '../types';
 import { FocalPointPicker } from './FocalPointPicker';
+import { useAuth } from '../contexts/AuthContext';
 
 interface EditArtworkModalProps {
   open: boolean;
@@ -23,6 +24,8 @@ interface EditArtworkModalProps {
 }
 
 export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwork, onClose, onSave, onDelete }) => {
+  const { profile } = useAuth();
+  const hasDeleteCredits = (profile?.credits ?? 0) >= 1;
   const [title, setTitle] = useState(artwork?.title || '');
   const [description, setDescription] = useState(artwork?.description || '');
   const [tagsInput, setTagsInput] = useState(artwork?.tags.join(', ') || '');
@@ -179,13 +182,11 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
                     setFocalX(x);
                     setFocalY(y);
                   }}
-                  aspectRatio="16/10"
-                  maxWidth="360px"
                 />
                 <p className="text-[11px] text-slate-400 font-semibold">
-                  This is how it'll look on the artwork page itself. The same position is also used for gallery
-                  and profile cards. The image itself is locked to your PSD's own embedded thumbnail — you can
-                  only adjust what stays in frame when it's cropped.
+                  This position is used everywhere the cover image is cropped — gallery cards, profile cards,
+                  and the artwork page itself. The image is locked to your PSD's own embedded thumbnail — you
+                  can only adjust what stays in frame when it's cropped.
                 </p>
               </div>
 
@@ -220,8 +221,14 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
                 {!deleteConfirming ? (
                   <button
                     type="button"
-                    onClick={() => setDeleteConfirming(true)}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
+                    onClick={() => hasDeleteCredits && setDeleteConfirming(true)}
+                    disabled={!hasDeleteCredits}
+                    title={
+                      hasDeleteCredits
+                        ? undefined
+                        : 'Insufficient credits: you need at least 1 credit in your account balance to delete a post. Upload another PSD to restore your deletion ability.'
+                    }
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Delete This Artwork
@@ -229,7 +236,7 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
                 ) : (
                   <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col gap-3">
                     <p className="text-xs font-semibold text-red-700">
-                      This permanently deletes "{artwork.title}" and its files. This can't be undone. Are you sure?
+                      Deleting this upload will cost 1 credit. Are you sure you want to proceed?
                     </p>
                     {deleteError && (
                       <p className="text-xs font-semibold text-red-700 bg-red-100 border border-red-200 rounded-lg px-3 py-2">

@@ -115,13 +115,16 @@ New users start with **0 credits** — they earn their first one by publishing
 something. Publishing an **original** artwork or a
 **remix** both earn **+1 credit** (1 upload/remix = 1 download). Downloading
 someone else's file costs **1 credit** — downloading your own uploads is
-always free. Credits show up next to your avatar in the header and on your
+always free. **Deleting your own upload also costs 1 credit** — you need at
+least 1 credit to delete a post at all; this is enforced server-side (not
+just in the UI) via the `delete_artwork_with_credit_check` RPC, so it can't
+be bypassed. Credits show up next to your avatar in the header and on your
 profile page.
 
 To change the reward/cost amounts, edit the numbers in
 `supabase/schema.sql` under section 4 (`handle_new_artwork_credits` for
-rewards, `spend_credit` for the download cost) and re-run that function
-definition in the SQL Editor.
+rewards, `spend_credit` for the download cost, `delete_artwork_with_credit_check`
+for the delete cost) and re-run that function definition in the SQL Editor.
 
 **Important limitation to know about:** because the `source-files` storage
 bucket is public-read (so plain download links work without a backend

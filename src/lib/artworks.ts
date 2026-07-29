@@ -296,21 +296,27 @@ export async function spendDownloadCredit(userId: string): Promise<{ credits: nu
 // Deletes an artwork row (RLS restricts this to the owner) and best-effort
 // cleans up its files from storage. The DB delete is the source of truth —
 // if storage cleanup fails partway, the artwork is still gone from the site.
-export async function deleteArtwork(
-  artworkId: string,
-  imagePath?: string,
-  sourceFilePath?: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('artworks').delete().eq('id', artworkId);
+export async function deleteArtwork(artworkId: string): Promise<{ error: string | null }> {
+  const { data, error } = await supabase
+    .rpc('delete_artwork_with_credit_check', { p_artwork_id: artworkId })
+    .single();
+
   if (error) {
+    if (error.message.includes('Not enough credits')) {
+      return {
+        error:
+          'Insufficient credits: you need at least 1 credit in your account balance to delete a post. Upload another PSD to restore your deletion ability.',
+      };
+    }
     return { error: error.message };
   }
 
-  if (imagePath) {
-    await supabase.storage.from(PREVIEWS_BUCKET).remove([imagePath]);
+  const row = data as { image_path: string | null; source_file_path: string | null } | null;
+  if (row?.image_path) {
+    await supabase.storage.from(PREVIEWS_BUCKET).remove([row.image_path]);
   }
-  if (sourceFilePath) {
-    await supabase.storage.from(SOURCE_FILES_BUCKET).remove([sourceFilePath]);
+  if (row?.source_file_path) {
+    await supabase.storage.from(SOURCE_FILES_BUCKET).remove([row.source_file_path]);
   }
 
   return { error: null };
