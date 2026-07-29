@@ -11,7 +11,7 @@ interface ExploreScreenProps {
   onSelectArtwork: (artworkId: string) => void;
 }
 
-type TabType = 'trending' | 'remixed' | 'recent';
+type TabType = 'all' | 'originals' | 'remixes';
 
 export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   artworks,
@@ -19,7 +19,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   setSearchQuery,
   onSelectArtwork,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('trending');
+  const [activeTab, setActiveTab] = useState<TabType>('all');
   const [localSearch, setLocalSearch] = useState('');
 
   // How many gallery cards to actually render at once. Rendering hundreds
@@ -63,7 +63,11 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
   // Filter and sort logic
   const filteredArtworks = artworks
-    .filter((art) => art.type === 'Original')
+    .filter((art) => {
+      if (activeTab === 'originals') return art.type === 'Original';
+      if (activeTab === 'remixes') return art.type === 'Remix';
+      return true;
+    })
     .filter((art) => {
       if (!activeSearch) return true;
       const lowerSearch = activeSearch.toLowerCase();
@@ -72,19 +76,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       const matchTags = art.tags.some((t) => t.toLowerCase().includes(lowerSearch));
       return matchTitle || matchAuthor || matchTags;
     })
-    .sort((a, b) => {
-      if (activeTab === 'remixed') {
-        const aVal = parseFloat(a.forks) || 0;
-        const bVal = parseFloat(b.forks) || 0;
-        return bVal - aVal;
-      }
-      if (activeTab === 'recent') {
-        return a.id.localeCompare(b.id);
-      }
-      const aVal = parseFloat(a.downloads) || 0;
-      const bVal = parseFloat(b.downloads) || 0;
-      return bVal - aVal;
-    });
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
   // Hot tag clicks
   const handleTagClick = (tag: string) => {
@@ -178,7 +170,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
         {/* Navigation Filters */}
         <div className="flex items-center mb-8 overflow-x-auto">
           <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm whitespace-nowrap">
-            {(['trending', 'remixed', 'recent'] as TabType[]).map((tab) => (
+            {(['all', 'originals', 'remixes'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -194,9 +186,9 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                   />
                 )}
                 <span className="relative z-10">
-                  {tab === 'trending' && 'Trending'}
-                  {tab === 'remixed' && 'Most Remixed'}
-                  {tab === 'recent' && 'Recent'}
+                  {tab === 'all' && 'All Art'}
+                  {tab === 'originals' && 'Originals'}
+                  {tab === 'remixes' && 'Remixes'}
                 </span>
               </button>
             ))}
@@ -229,6 +221,14 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                   <div className="flex items-center gap-1.5 bg-[#3f3f46] px-2.5 py-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 shrink-0" />
                     <span className="text-[9px] font-bold text-zinc-200 truncate ps-stat">{art.title}.psd</span>
+                    <span className="flex-1" />
+                    <span
+                      className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0 ${
+                        art.type === 'Remix' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-blue-500/20 text-blue-300'
+                      }`}
+                    >
+                      {art.type === 'Remix' ? 'Remix' : 'Original'}
+                    </span>
                   </div>
                   <div
                     onClick={() => onSelectArtwork(art.id)}
