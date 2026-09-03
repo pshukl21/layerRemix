@@ -340,7 +340,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
     if (layerCount !== null && layerCount < MIN_LAYER_COUNT) {
       setForkExtractionError(
-        `This file only has ${layerCount} layer${layerCount === 1 ? '' : 's'}. LayerRemix is for genuinely layered, editable work — please upload a file with at least ${MIN_LAYER_COUNT} layers.`
+        `This file only has ${layerCount} layer${layerCount === 1 ? '' : 's'}. LayerRemix is for genuinely layered, editable work — please add more real layers before uploading.`
       );
       return;
     }
