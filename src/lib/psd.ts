@@ -116,6 +116,7 @@ export function formatImageResolution(dims: { width: number; height: number }): 
 // -----------------------------------------------------------------------
 
 const PREVIEW_MAX_DIMENSION = 2000; // longest side, in px — HD but not the full multi-thousand-px original
+const THUMBNAIL_RESOURCE_ID = 1036;
 
 export interface PsdAnalysis {
   thumbnail: File | null;
@@ -125,56 +126,185 @@ export interface PsdAnalysis {
   layerCount: number | null;
 }
 
+// Detects an HD composite that's collapsed to flat grayscale — a known
+// failure mode of @webtoon/psd's layer-compositing on some complex files
+// (many adjustment layers, blend modes, large embedded smart objects),
+// where it silently produces a degenerate single-channel result instead of
+// throwing. Samples pixels across the image rather than checking every
+// one, since this only needs to be a quick sanity check, not exhaustive.
+// The 98% threshold is deliberately high: genuinely colorful art fails
+// this near-instantly (a handful of saturated pixels is enough), while a
+// real, intentionally black-and-white piece would also trip it — that's
+// an acceptable tradeoff, since falling back to the embedded thumbnail in
+// that case just means a slightly lower-res (but still correct) preview.
+function isLikelyDegenerateGrayscale(imageData: ImageData): boolean {
+  const { data, width, height } = imageData;
+  const totalPixels = width * height;
+  if (totalPixels === 0) return false;
+
+  const targetSamples = 500;
+  const step = Math.max(1, Math.floor(totalPixels / targetSamples));
+
+  let sampled = 0;
+  let grayLike = 0;
+  for (let i = 0; i < totalPixels; i += step) {
+    const idx = i * 4;
+    const r = data[idx];
+    const g = data[idx + 1];
+    const b = data[idx + 2];
+    const maxDiff = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
+    if (maxDiff <= 4) grayLike++;
+    sampled++;
+  }
+
+  return sampled > 0 && grayLike / sampled > 0.98;
+}
+
+function canvasToJpegFile(canvas: HTMLCanvasElement): Promise<File | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob ? new File([blob], 'psd-preview.jpg', { type: 'image/jpeg' }) : null);
+    }, 'image/jpeg', 0.92);
+  });
+}
+
+// Fallback extraction: the small embedded "Thumbnail Resource" — the same
+// preview macOS Finder / Windows Explorer show for a .psd file. Reads it
+// directly from the Image Resources section via raw byte offsets, which is
+// a completely independent code path from @webtoon/psd's layer compositing
+// — it doesn't re-render anything, just reads a JPEG Photoshop already
+// baked in. Lower resolution than the HD composite, but immune to whatever
+// causes that path to fail on complex files.
+async function extractEmbeddedThumbnailResource(file: File): Promise<File | null> {
+  try {
+    const headerAndCmLen = await file.slice(0, 30).arrayBuffer();
+    if (headerAndCmLen.byteLength < 30) return null;
+    const headerView = new DataView(headerAndCmLen);
+
+    const signature = String.fromCharCode(
+      headerView.getUint8(0),
+      headerView.getUint8(1),
+      headerView.getUint8(2),
+      headerView.getUint8(3)
+    );
+    if (signature !== '8BPS') return null;
+
+    const colorModeDataLen = headerView.getUint32(26, false);
+    const imageResourcesLenOffset = 26 + 4 + colorModeDataLen;
+
+    const irLenBytes = await file.slice(imageResourcesLenOffset, imageResourcesLenOffset + 4).arrayBuffer();
+    if (irLenBytes.byteLength < 4) return null;
+    const imageResourcesLen = new DataView(irLenBytes).getUint32(0, false);
+
+    if (imageResourcesLen <= 0 || imageResourcesLen > 20 * 1024 * 1024) return null;
+
+    const irStart = imageResourcesLenOffset + 4;
+    const irBuffer = await file.slice(irStart, irStart + imageResourcesLen).arrayBuffer();
+    const irView = new DataView(irBuffer);
+
+    let pos = 0;
+    while (pos + 4 <= imageResourcesLen) {
+      const blockSig = String.fromCharCode(
+        irView.getUint8(pos),
+        irView.getUint8(pos + 1),
+        irView.getUint8(pos + 2),
+        irView.getUint8(pos + 3)
+      );
+      if (blockSig !== '8BIM') break;
+      pos += 4;
+
+      const resourceId = irView.getUint16(pos, false);
+      pos += 2;
+
+      const nameLen = irView.getUint8(pos);
+      let nameFieldLen = 1 + nameLen;
+      if (nameFieldLen % 2 !== 0) nameFieldLen += 1;
+      pos += nameFieldLen;
+
+      const dataLen = irView.getUint32(pos, false);
+      pos += 4;
+      const dataStart = pos;
+
+      if (resourceId === THUMBNAIL_RESOURCE_ID && dataLen > 28) {
+        const jpegStart = dataStart + 28;
+        const jpegLen = dataLen - 28;
+        if (jpegLen > 0 && jpegStart + jpegLen <= irBuffer.byteLength) {
+          const jpegBytes = irBuffer.slice(jpegStart, jpegStart + jpegLen);
+          return new File([jpegBytes], 'psd-thumbnail.jpg', { type: 'image/jpeg' });
+        }
+      }
+
+      let paddedDataLen = dataLen;
+      if (paddedDataLen % 2 !== 0) paddedDataLen += 1;
+      pos = dataStart + paddedDataLen;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function analyzePsd(file: File): Promise<PsdAnalysis> {
+  let layerCount: number | null = null;
+
   try {
     const Psd = (await import('@webtoon/psd')).default;
     const buffer = await file.arrayBuffer();
     const psdFile = Psd.parse(buffer);
-
-    const layerCount = Array.isArray(psdFile.layers) ? psdFile.layers.length : null;
+    layerCount = Array.isArray(psdFile.layers) ? psdFile.layers.length : null;
 
     const pixels = await psdFile.composite();
-    if (!pixels || !psdFile.width || !psdFile.height) {
-      return { thumbnail: null, layerCount };
+    if (pixels && psdFile.width && psdFile.height) {
+      const imageData = new ImageData(
+        new Uint8ClampedArray(pixels.buffer, pixels.byteOffset, pixels.byteLength),
+        psdFile.width,
+        psdFile.height
+      );
+
+      // Only trust the HD composite if it doesn't look like a degenerate,
+      // collapsed-to-grayscale result — a known failure mode on some
+      // complex files (see isLikelyDegenerateGrayscale above).
+      if (!isLikelyDegenerateGrayscale(imageData)) {
+        const sourceCanvas = document.createElement('canvas');
+        sourceCanvas.width = psdFile.width;
+        sourceCanvas.height = psdFile.height;
+        const sourceCtx = sourceCanvas.getContext('2d');
+
+        if (sourceCtx) {
+          sourceCtx.putImageData(imageData, 0, 0);
+
+          // Downscale to a reasonable max size for a gallery preview —
+          // still sharp/HD, just not needlessly huge.
+          const longestSide = Math.max(psdFile.width, psdFile.height);
+          const scale = Math.min(1, PREVIEW_MAX_DIMENSION / longestSide);
+          const outWidth = Math.round(psdFile.width * scale);
+          const outHeight = Math.round(psdFile.height * scale);
+
+          const outCanvas = document.createElement('canvas');
+          outCanvas.width = outWidth;
+          outCanvas.height = outHeight;
+          const outCtx = outCanvas.getContext('2d');
+          if (outCtx) {
+            outCtx.drawImage(sourceCanvas, 0, 0, outWidth, outHeight);
+            const hdThumbnail = await canvasToJpegFile(outCanvas);
+            if (hdThumbnail) {
+              return { thumbnail: hdThumbnail, layerCount };
+            }
+          }
+        }
+      }
     }
-
-    const sourceCanvas = document.createElement('canvas');
-    sourceCanvas.width = psdFile.width;
-    sourceCanvas.height = psdFile.height;
-    const sourceCtx = sourceCanvas.getContext('2d');
-    if (!sourceCtx) return { thumbnail: null, layerCount };
-
-    const imageData = new ImageData(
-      new Uint8ClampedArray(pixels.buffer, pixels.byteOffset, pixels.byteLength),
-      psdFile.width,
-      psdFile.height
-    );
-    sourceCtx.putImageData(imageData, 0, 0);
-
-    // Downscale to a reasonable max size for a gallery preview — still
-    // sharp/HD, just not needlessly huge (the real full-quality asset is
-    // the PSD file itself, not this preview).
-    const longestSide = Math.max(psdFile.width, psdFile.height);
-    const scale = Math.min(1, PREVIEW_MAX_DIMENSION / longestSide);
-    const outWidth = Math.round(psdFile.width * scale);
-    const outHeight = Math.round(psdFile.height * scale);
-
-    const outCanvas = document.createElement('canvas');
-    outCanvas.width = outWidth;
-    outCanvas.height = outHeight;
-    const outCtx = outCanvas.getContext('2d');
-    if (!outCtx) return { thumbnail: null, layerCount };
-    outCtx.drawImage(sourceCanvas, 0, 0, outWidth, outHeight);
-
-    const blob = await new Promise<Blob | null>((resolve) => {
-      outCanvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
-    });
-    if (!blob) return { thumbnail: null, layerCount };
-
-    return { thumbnail: new File([blob], 'psd-preview.jpg', { type: 'image/jpeg' }), layerCount };
   } catch {
-    return { thumbnail: null, layerCount: null };
+    // Fall through to the independent fallback below.
   }
+
+  // The HD path either failed outright or produced a suspiciously flat
+  // result — fall back to the PSD's own embedded thumbnail resource. This
+  // uses a completely different extraction method, so it isn't affected by
+  // whatever caused the HD path to fail.
+  const fallbackThumbnail = await extractEmbeddedThumbnailResource(file);
+  return { thumbnail: fallbackThumbnail, layerCount };
 }
 
 // Minimum real layer count to be accepted as genuine layered work — a
