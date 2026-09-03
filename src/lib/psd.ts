@@ -180,5 +180,5 @@ export async function analyzePsd(file: File): Promise<PsdAnalysis> {
 // Minimum real layer count to be accepted as genuine layered work — a
 // single-layer (or unlayered/flattened) PSD isn't the kind of file this
 // platform exists for, regardless of how large the file itself is.
-export const MIN_LAYER_COUNT = 2;
+export const MIN_LAYER_COUNT = 5;
 
