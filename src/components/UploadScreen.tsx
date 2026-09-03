@@ -210,6 +210,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     }
   };
 
+  const MIN_DESCRIPTION_LENGTH = 15;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
@@ -229,8 +231,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       alert('Please wait for your file to finish uploading before publishing.');
       return;
     }
-    if (!certified) {
-      alert('You must certify that you own the rights to upload this artwork.');
+    if (description.trim().length < MIN_DESCRIPTION_LENGTH) {
+      alert(`Please describe what needs work or could be remixed (at least ${MIN_DESCRIPTION_LENGTH} characters).`);
       return;
     }
 
@@ -238,6 +240,16 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       .split(',')
       .map((t) => t.trim())
       .filter((t) => t !== '');
+
+    if (tagsArray.length === 0) {
+      alert('Please add at least one tag.');
+      return;
+    }
+
+    if (!certified) {
+      alert('You must certify that you own the rights to upload this artwork.');
+      return;
+    }
 
     // Real dimensions come straight from the PSD's own header.
     let resolution = 'Unknown dimensions';
@@ -249,8 +261,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     setSubmitting(true);
     const { error } = await onPublish({
       title,
-      description: description || 'No notes on what needs work yet.',
-      tags: tagsArray.length > 0 ? tagsArray : ['DigitalArt'],
+      description: description.trim(),
+      tags: tagsArray,
       previewFile: extractedThumbnail,
       sourceFilePath: uploadedSourcePath,
       sourceFileName: psdFile.name,
@@ -265,12 +277,16 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     }
   };
 
+  const hasValidTags = tagsInput.split(',').map((t) => t.trim()).filter((t) => t !== '').length > 0;
+
   const canPublish =
     !submitting &&
     !extracting &&
     !!extractedThumbnail &&
     uploadPhase === 'done' &&
-    !!uploadedSourcePath;
+    !!uploadedSourcePath &&
+    description.trim().length >= MIN_DESCRIPTION_LENGTH &&
+    hasValidTags;
 
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
@@ -417,27 +433,32 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
             {/* "What needs work" Input — replaces the old generic Description */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                What needs work or could be remixed?
+                What needs work or could be remixed? <span className="text-red-500 normal-case tracking-normal">*</span>
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                required
                 className="w-full bg-transparent border-b border-slate-200 focus:border-blue-600 focus:outline-none transition-colors text-sm text-slate-800 py-3 px-0 resize-none font-semibold placeholder-slate-400 min-h-[100px]"
                 placeholder="e.g., Background FX need work, missing text layers, lighting feels off, needs a 3D element..."
                 rows={4}
               />
+              <p className={`text-[10px] font-bold ${description.trim().length < MIN_DESCRIPTION_LENGTH ? 'text-slate-400' : 'text-emerald-600'}`}>
+                {description.trim().length}/{MIN_DESCRIPTION_LENGTH} characters minimum
+              </p>
             </div>
 
             {/* Tags Input */}
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                Tags
+                Tags <span className="text-red-500 normal-case tracking-normal">*</span>
               </label>
               <input
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
+                required
                 className="w-full bg-transparent border-b border-slate-200 focus:border-blue-600 focus:outline-none transition-colors text-sm text-slate-800 py-3 px-0 font-semibold placeholder-slate-400"
-                placeholder="Add tags separated by comma (e.g. Cyberpunk, 3D)"
+                placeholder="Add at least one tag, separated by comma (e.g. Cyberpunk, 3D)"
                 type="text"
               />
               <div className="flex flex-wrap gap-1.5 pt-2 select-none">
