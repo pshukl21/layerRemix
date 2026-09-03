@@ -343,6 +343,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const canPublish =
     !submitting &&
     !extracting &&
+    !!title.trim() &&
     !!effectivePreviewFile &&
     uploadPhase === 'done' &&
     !!uploadedSourcePath &&
@@ -526,11 +527,12 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
             {/* Title Input */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-                Artwork Title
+                Artwork Title <span className="text-red-500 normal-case tracking-normal">*</span>
               </label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                required
                 className="w-full bg-transparent border-b border-slate-200 focus:border-blue-600 focus:outline-none transition-colors text-sm text-slate-800 py-3 px-0 font-semibold placeholder-slate-400"
                 placeholder="Enter a name for your piece"
                 type="text"
