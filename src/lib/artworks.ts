@@ -82,7 +82,7 @@ export const DEFAULT_AVATAR =
 export async function findDuplicateByHash(fileHash: string): Promise<{ id: string; title: string; author: string } | null> {
   const { data } = await supabase
     .from('artworks')
-    .select('id, title, owner:profiles(username)')
+    .select('id, title, owner:profiles!artworks_owner_id_fkey(username)')
     .eq('file_hash', fileHash)
     .maybeSingle();
 
@@ -133,7 +133,7 @@ export async function fetchProfileByUsername(username: string): Promise<Profile 
 export async function fetchArtworks(): Promise<Artwork[]> {
   const { data, error } = await supabase
     .from('artworks')
-    .select('*, owner:profiles(username, display_name, avatar_url)')
+    .select('*, owner:profiles!artworks_owner_id_fkey(username, display_name, avatar_url)')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -202,7 +202,7 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
       focal_y: input.focalY ?? 50,
       file_hash: input.fileHash,
     })
-    .select('*, owner:profiles(username, display_name, avatar_url)')
+    .select('*, owner:profiles!artworks_owner_id_fkey(username, display_name, avatar_url)')
     .single();
 
   if (error || !data) {
@@ -277,7 +277,7 @@ export async function updateArtwork(
     .from('artworks')
     .update(updates)
     .eq('id', input.artworkId)
-    .select('*, owner:profiles(username, display_name, avatar_url)')
+    .select('*, owner:profiles!artworks_owner_id_fkey(username, display_name, avatar_url)')
     .single();
 
   if (error || !data) {
