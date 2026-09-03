@@ -117,20 +117,32 @@ export function formatImageResolution(dims: { width: number; height: number }): 
 
 const PREVIEW_MAX_DIMENSION = 2000; // longest side, in px — HD but not the full multi-thousand-px original
 
-export async function extractPsdThumbnail(file: File): Promise<File | null> {
+export interface PsdAnalysis {
+  thumbnail: File | null;
+  // Total layer count (including nested layers inside groups), read
+  // directly from the PSD's own layer tree — not inferred from anything.
+  // null means we couldn't determine it (e.g. an unparseable file).
+  layerCount: number | null;
+}
+
+export async function analyzePsd(file: File): Promise<PsdAnalysis> {
   try {
     const Psd = (await import('@webtoon/psd')).default;
     const buffer = await file.arrayBuffer();
     const psdFile = Psd.parse(buffer);
 
+    const layerCount = Array.isArray(psdFile.layers) ? psdFile.layers.length : null;
+
     const pixels = await psdFile.composite();
-    if (!pixels || !psdFile.width || !psdFile.height) return null;
+    if (!pixels || !psdFile.width || !psdFile.height) {
+      return { thumbnail: null, layerCount };
+    }
 
     const sourceCanvas = document.createElement('canvas');
     sourceCanvas.width = psdFile.width;
     sourceCanvas.height = psdFile.height;
     const sourceCtx = sourceCanvas.getContext('2d');
-    if (!sourceCtx) return null;
+    if (!sourceCtx) return { thumbnail: null, layerCount };
 
     const imageData = new ImageData(
       new Uint8ClampedArray(pixels.buffer, pixels.byteOffset, pixels.byteLength),
@@ -151,16 +163,22 @@ export async function extractPsdThumbnail(file: File): Promise<File | null> {
     outCanvas.width = outWidth;
     outCanvas.height = outHeight;
     const outCtx = outCanvas.getContext('2d');
-    if (!outCtx) return null;
+    if (!outCtx) return { thumbnail: null, layerCount };
     outCtx.drawImage(sourceCanvas, 0, 0, outWidth, outHeight);
 
     const blob = await new Promise<Blob | null>((resolve) => {
       outCanvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92);
     });
-    if (!blob) return null;
+    if (!blob) return { thumbnail: null, layerCount };
 
-    return new File([blob], 'psd-preview.jpg', { type: 'image/jpeg' });
+    return { thumbnail: new File([blob], 'psd-preview.jpg', { type: 'image/jpeg' }), layerCount };
   } catch {
-    return null;
+    return { thumbnail: null, layerCount: null };
   }
 }
+
+// Minimum real layer count to be accepted as genuine layered work — a
+// single-layer (or unlayered/flattened) PSD isn't the kind of file this
+// platform exists for, regardless of how large the file itself is.
+export const MIN_LAYER_COUNT = 2;
+

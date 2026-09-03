@@ -1,6 +1,20 @@
 import { zip } from 'fflate';
 import { supabase, supabaseUrlForUpload, supabaseAnonKeyForUpload, SOURCE_FILES_BUCKET } from './supabase';
 
+// Computes a SHA-256 hex digest of a file's raw bytes — used to detect
+// someone re-uploading an exact copy of a file already on the platform
+// (e.g. downloading someone else's PSD, unchanged, to farm another
+// credit). Hashing the original PSD (not the zip we upload) avoids any
+// chance of the zip container's own metadata affecting the hash for
+// otherwise-identical content.
+export async function hashFile(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 // Source PSD size limits — kept in sync with the "Global file size limit"
 // and the source-files bucket's own restriction in the Supabase dashboard.
 // Checked immediately on file selection so people get instant feedback

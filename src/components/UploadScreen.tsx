@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileUp, Image as ImageIcon, Sparkles, Check, Loader2, AlertTriangle } from 'lucide-react';
-import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib/psd';
-import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize } from '../lib/upload';
+import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT } from '../lib/psd';
+import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
+import { findDuplicateByHash } from '../lib/artworks';
 import { useAuth } from '../contexts/AuthContext';
 import { FocalPointPicker } from './FocalPointPicker';
 
@@ -17,6 +18,7 @@ interface UploadScreenProps {
     resolution: string;
     focalX: number;
     focalY: number;
+    fileHash: string | null;
   }) => Promise<{ error: string | null }>;
 }
 
@@ -43,6 +45,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+  const [fileHash, setFileHash] = useState<string | null>(null);
   const [focalX, setFocalX] = useState(50);
   const [focalY, setFocalY] = useState(50);
 
@@ -121,6 +124,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     setUploadError(null);
     setFocalX(50);
     setFocalY(50);
+    setFileHash(null);
 
     // Check size immediately, before touching the file at all — no point
     // starting a multi-second zip/upload just to find out it's rejected.
@@ -132,12 +136,30 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
 
     setExtracting(true);
 
-    // Thumbnail extraction and the zip+upload both read the same File
-    // independently — safe to run at the same time.
-    startZipAndUpload(file);
+    // Duplicate and layer-count checks both need to read/parse the whole
+    // file, same as the zip+upload does — so we check these FIRST and only
+    // start the actual upload once we know the file will be accepted.
+    // Uploading first would waste time and bandwidth on a file we're about
+    // to reject anyway.
+    const hash = await hashFile(file);
+    const duplicate = await findDuplicateByHash(hash);
+    if (duplicate) {
+      setExtracting(false);
+      setExtractionError(
+        `This exact file has already been uploaded, as "${duplicate.title}" by @${duplicate.author}. Please upload your own original work.`
+      );
+      return;
+    }
 
-    const thumbnail = await extractPsdThumbnail(file);
+    const { thumbnail, layerCount } = await analyzePsd(file);
     setExtracting(false);
+
+    if (layerCount !== null && layerCount < MIN_LAYER_COUNT) {
+      setExtractionError(
+        `This file only has ${layerCount} layer${layerCount === 1 ? '' : 's'}. LayerRemix is for genuinely layered, editable work — please upload a file with at least ${MIN_LAYER_COUNT} layers.`
+      );
+      return;
+    }
 
     if (!thumbnail) {
       setExtractionError(
@@ -146,10 +168,15 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       return;
     }
 
+    setFileHash(hash);
     setExtractedThumbnail(thumbnail);
     const reader = new FileReader();
     reader.onload = () => setThumbnailPreviewUrl(reader.result as string);
     reader.readAsDataURL(thumbnail);
+
+    // Only now — once the file has actually passed every check — start
+    // the zip+upload.
+    startZipAndUpload(file);
   };
 
   // Drag-and-drop handlers for PSD file
@@ -230,6 +257,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       resolution,
       focalX,
       focalY,
+      fileHash,
     });
     setSubmitting(false);
     if (error) {
@@ -340,7 +368,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
                 {extracting && (
                   <div className="flex flex-col items-center gap-3 text-slate-400">
                     <Loader2 className="w-8 h-8 animate-spin" />
-                    <span className="text-xs font-bold uppercase tracking-widest">Rendering HD preview from your PSD…</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">Checking your file…</span>
                   </div>
                 )}
 

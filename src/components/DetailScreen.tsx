@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews } from '../lib/artworks';
-import { parsePsdHeader, formatPsdResolution, extractPsdThumbnail } from '../lib/psd';
-import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize } from '../lib/upload';
+import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews, findDuplicateByHash } from '../lib/artworks';
+import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT } from '../lib/psd';
+import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
 import { FocalPointPicker } from './FocalPointPicker';
@@ -28,6 +28,7 @@ interface DetailScreenProps {
     resolution: string;
     focalX: number;
     focalY: number;
+    fileHash: string | null;
   }) => Promise<{ error: string | null }>;
   onUpdateArtwork?: (
     artworkId: string,
@@ -151,6 +152,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [forkExtractionError, setForkExtractionError] = useState<string | null>(null);
   const [forkFocalX, setForkFocalX] = useState(50);
   const [forkFocalY, setForkFocalY] = useState(50);
+  const [forkFileHash, setForkFileHash] = useState<string | null>(null);
   const [forkCertified, setForkCertified] = useState(true);
 
   // Zip + upload the fork's PSD immediately on selection, same as the main
@@ -179,6 +181,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     forkUploadedSourcePathRef.current = null;
     setForkFocalX(50);
     setForkFocalY(50);
+    setForkFileHash(null);
   }, [artwork.id]);
 
   // Count a view once per visit to this artwork's page. Demo content is
@@ -309,6 +312,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkUploadError(null);
     setForkFocalX(50);
     setForkFocalY(50);
+    setForkFileHash(null);
 
     const sizeError = validateSourceFileSize(file);
     if (sizeError) {
@@ -318,10 +322,28 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
     setForkExtracting(true);
 
-    startForkZipAndUpload(file);
+    // Same reasoning as the main Upload form: check for duplicates and a
+    // minimum real layer count BEFORE starting the upload, not in parallel
+    // with it — no point uploading a file we're about to reject.
+    const hash = await hashFile(file);
+    const duplicate = await findDuplicateByHash(hash);
+    if (duplicate) {
+      setForkExtracting(false);
+      setForkExtractionError(
+        `This exact file has already been uploaded, as "${duplicate.title}" by @${duplicate.author}. A remix needs to actually be your own edited version.`
+      );
+      return;
+    }
 
-    const thumbnail = await extractPsdThumbnail(file);
+    const { thumbnail, layerCount } = await analyzePsd(file);
     setForkExtracting(false);
+
+    if (layerCount !== null && layerCount < MIN_LAYER_COUNT) {
+      setForkExtractionError(
+        `This file only has ${layerCount} layer${layerCount === 1 ? '' : 's'}. LayerRemix is for genuinely layered, editable work — please upload a file with at least ${MIN_LAYER_COUNT} layers.`
+      );
+      return;
+    }
 
     if (!thumbnail) {
       setForkExtractionError(
@@ -330,10 +352,13 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       return;
     }
 
+    setForkFileHash(hash);
     setForkThumbnail(thumbnail);
     const reader = new FileReader();
     reader.onload = (event) => setForkThumbnailPreviewUrl(event.target?.result as string);
     reader.readAsDataURL(thumbnail);
+
+    startForkZipAndUpload(file);
   };
 
   const handleForkPsdDrag = (e: React.DragEvent) => {
@@ -406,6 +431,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         resolution,
         focalX: forkFocalX,
         focalY: forkFocalY,
+        fileHash: forkFileHash,
       });
       setForkSubmitting(false);
       if (error) {
@@ -1078,7 +1104,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                     {forkExtracting && (
                       <div className="flex flex-col items-center gap-3 text-slate-400">
                         <Loader2 className="w-8 h-8 animate-spin" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Rendering HD preview from your PSD…</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">Checking your file…</span>
                       </div>
                     )}
 

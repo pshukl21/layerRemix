@@ -72,6 +72,23 @@ export const DEFAULT_AVATAR =
 // Fetches any user's public profile by username — used to view someone
 // else's profile page. Profiles are publicly readable, so this works
 // whether or not the visitor is signed in.
+// Checks whether a file with this exact content hash already exists on
+// the platform. Used to give an immediate, friendly message when someone
+// tries to upload a file that's already here — the real enforcement is
+// the database's own unique index on file_hash, which this can't bypass
+// even in a race condition; this is just for fast, clear UI feedback.
+export async function findDuplicateByHash(fileHash: string): Promise<{ id: string; title: string; author: string } | null> {
+  const { data } = await supabase
+    .from('artworks')
+    .select('id, title, owner:profiles(username)')
+    .eq('file_hash', fileHash)
+    .maybeSingle();
+
+  if (!data) return null;
+  const owner = data.owner as unknown as { username: string } | null;
+  return { id: data.id as string, title: data.title as string, author: owner?.username || 'someone' };
+}
+
 export async function fetchProfileByUsername(username: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
@@ -126,6 +143,7 @@ interface PublishInput {
   parentArtworkId?: string;
   resolution: string;
   focalX?: number;
+  fileHash: string | null;
   focalY?: number;
 }
 
@@ -161,11 +179,20 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
       resolution: input.resolution,
       focal_x: input.focalX ?? 50,
       focal_y: input.focalY ?? 50,
+      file_hash: input.fileHash,
     })
     .select('*, owner:profiles(username, display_name, avatar_url)')
     .single();
 
   if (error || !data) {
+    // Backstop for the rare race condition where two identical uploads
+    // land at nearly the same time — the client-side pre-check (see
+    // findDuplicateByHash) catches this in the normal case, but the
+    // database's unique index is what actually guarantees it can't slip
+    // through either way.
+    if (error?.message.includes('artworks_file_hash_unique')) {
+      return { artwork: null, error: 'This exact file has already been uploaded to LayerRemix.' };
+    }
     return { artwork: null, error: error?.message || 'Could not save the artwork.' };
   }
 

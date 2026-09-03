@@ -26,6 +26,7 @@ interface PublishInput {
   resolution: string;
   focalX: number;
   focalY: number;
+  fileHash: string | null;
 }
 
 interface UpdateInput {

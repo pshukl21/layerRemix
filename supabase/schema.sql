@@ -78,6 +78,11 @@ create table if not exists public.artworks (
   -- cropping/positioning — never changes which image is actually shown.
   focal_x real not null default 50,
   focal_y real not null default 50,
+  -- SHA-256 hex digest of the original (unzipped) PSD's bytes. Used to
+  -- block someone re-uploading an exact copy of a file that's already on
+  -- the platform (e.g. downloading someone else's PSD, unchanged, to farm
+  -- another credit). Null for legacy rows uploaded before this existed.
+  file_hash text,
   created_at timestamptz not null default now()
 );
 
@@ -103,6 +108,17 @@ create policy "Users can delete their own artworks"
 -- only if they aren't already there).
 alter table public.artworks add column if not exists focal_x real not null default 50;
 alter table public.artworks add column if not exists focal_y real not null default 50;
+alter table public.artworks add column if not exists file_hash text;
+
+-- Partial unique index: enforces "no two artworks share the same file
+-- hash" as a hard database-level backstop, while still allowing any
+-- number of legacy rows with a null hash (a partial unique index ignores
+-- nulls). This is the real enforcement — the client-side check exists
+-- only to give people an immediate, friendly message instead of a raw
+-- constraint-violation error.
+create unique index if not exists artworks_file_hash_unique
+  on public.artworks (file_hash)
+  where file_hash is not null;
 
 -- Engagement counters (forks, views) need to be bumped by people who don't
 -- own the artwork — e.g. anyone forking someone else's piece, or just
