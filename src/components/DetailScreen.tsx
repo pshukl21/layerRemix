@@ -5,7 +5,7 @@ import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp,
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews, findDuplicateByHash } from '../lib/artworks';
-import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT } from '../lib/psd';
+import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT, getImageDimensions } from '../lib/psd';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
@@ -156,6 +156,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [forkFocalX, setForkFocalX] = useState(50);
   const [forkFocalY, setForkFocalY] = useState(50);
   const [forkFileHash, setForkFileHash] = useState<string | null>(null);
+  const [forkHadColorIssue, setForkHadColorIssue] = useState(false);
+  const [forkPsdRealDimensions, setForkPsdRealDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [forkManualPreviewFile, setForkManualPreviewFile] = useState<File | null>(null);
+  const [forkManualPreviewUrl, setForkManualPreviewUrl] = useState<string | null>(null);
+  const [forkManualPreviewError, setForkManualPreviewError] = useState<string | null>(null);
   const [forkCertified, setForkCertified] = useState(true);
 
   // Zip + upload the fork's PSD immediately on selection, same as the main
@@ -316,6 +321,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkFocalX(50);
     setForkFocalY(50);
     setForkFileHash(null);
+    setForkHadColorIssue(false);
+    setForkPsdRealDimensions(null);
+    setForkManualPreviewFile(null);
+    setForkManualPreviewUrl(null);
+    setForkManualPreviewError(null);
 
     const sizeError = validateSourceFileSize(file);
     if (sizeError) {
@@ -338,8 +348,16 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       return;
     }
 
-    const { thumbnail, layerCount } = await analyzePsd(file);
+    const { thumbnail, layerCount, hadColorIssue: colorIssue } = await analyzePsd(file);
     setForkExtracting(false);
+    setForkHadColorIssue(colorIssue);
+
+    if (colorIssue) {
+      const psdInfo = await parsePsdHeader(file);
+      if (psdInfo) {
+        setForkPsdRealDimensions({ width: psdInfo.widthPx, height: psdInfo.heightPx });
+      }
+    }
 
     if (layerCount !== null && layerCount < MIN_LAYER_COUNT) {
       setForkExtractionError(
@@ -348,7 +366,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       return;
     }
 
-    if (!thumbnail) {
+    if (!thumbnail && !colorIssue) {
       setForkExtractionError(
         "We couldn't find an embedded preview inside this PSD. In Photoshop, go to Preferences → File Handling and set \"Maximize PSD and PSB File Compatibility\" to Always (or Ask), then re-save and try again."
       );
@@ -356,12 +374,44 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     }
 
     setForkFileHash(hash);
-    setForkThumbnail(thumbnail);
-    const reader = new FileReader();
-    reader.onload = (event) => setForkThumbnailPreviewUrl(event.target?.result as string);
-    reader.readAsDataURL(thumbnail);
+    if (thumbnail) {
+      setForkThumbnail(thumbnail);
+      const reader = new FileReader();
+      reader.onload = (event) => setForkThumbnailPreviewUrl(event.target?.result as string);
+      reader.readAsDataURL(thumbnail);
+    }
 
     startForkZipAndUpload(file);
+  };
+
+  const handleForkManualPreviewChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setForkManualPreviewError(null);
+
+    const dims = await getImageDimensions(file);
+    if (!dims) {
+      setForkManualPreviewError('Could not read this image file. Please try a different one.');
+      return;
+    }
+
+    if (forkPsdRealDimensions) {
+      const psdAspect = forkPsdRealDimensions.width / forkPsdRealDimensions.height;
+      const imgAspect = dims.width / dims.height;
+      const ratioDiff = Math.abs(psdAspect - imgAspect) / psdAspect;
+      if (ratioDiff > 0.15) {
+        setForkManualPreviewError(
+          `This image's proportions (${dims.width}×${dims.height}) don't match your PSD's actual dimensions (${forkPsdRealDimensions.width}×${forkPsdRealDimensions.height}). Please upload an accurate preview of this specific file.`
+        );
+        return;
+      }
+    }
+
+    setForkManualPreviewFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setForkManualPreviewUrl(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const handleForkPsdDrag = (e: React.DragEvent) => {
@@ -404,8 +454,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       alert('Please upload your updated PSD file.');
       return;
     }
-    if (!forkThumbnail) {
-      alert("We need a valid preview extracted from your PSD before publishing — see the message under the upload box.");
+    if (!forkManualPreviewFile && !forkThumbnail) {
+      alert("We need a valid preview for your PSD before publishing — see the message under the upload box.");
       return;
     }
     if (forkUploadPhase !== 'done' || !forkUploadedSourcePath) {
@@ -428,7 +478,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         title: forkTitle,
         description: forkDescription,
         tags: forkTags.split(',').map(t => t.trim()).filter(Boolean),
-        previewFile: forkThumbnail,
+        previewFile: (forkManualPreviewFile || forkThumbnail) as File,
         sourceFilePath: forkUploadedSourcePath,
         sourceFileName: forkPsdFile.name,
         resolution,
@@ -1100,14 +1150,16 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
               {/* Auto-generated preview — pulled straight from the PSD, position adjustable */}
               <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
-                {!forkExtracting && forkThumbnailPreviewUrl ? (
+                {!forkExtracting && (forkManualPreviewUrl || forkThumbnailPreviewUrl) ? (
                   <div className="p-2">
                     <div className="flex items-center gap-1.5 mb-3 text-emerald-600">
                       <Check className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Auto-generated from your PSD</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">
+                        {forkManualPreviewUrl ? 'Your uploaded preview' : 'Auto-generated from your PSD'}
+                      </span>
                     </div>
                     <FocalPointPicker
-                      imageUrl={forkThumbnailPreviewUrl}
+                      imageUrl={(forkManualPreviewUrl || forkThumbnailPreviewUrl) as string}
                       focalX={forkFocalX}
                       focalY={forkFocalY}
                       onChange={(x, y) => {
@@ -1115,6 +1167,30 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                         setForkFocalY(y);
                       }}
                     />
+
+                    {forkHadColorIssue && (
+                      <div className="mt-4 pt-4 border-t border-slate-100">
+                        <div className="flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <p className="text-[11px] font-semibold leading-relaxed">
+                            We had trouble rendering an accurate color preview for this file.{' '}
+                            {forkManualPreviewUrl
+                              ? 'Using your uploaded image instead.'
+                              : 'You can upload your own accurate preview below, or publish with what we generated.'}
+                          </p>
+                        </div>
+                        <label className="mt-2 flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-lg py-2.5 cursor-pointer transition-colors">
+                          <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="text-[11px] font-bold text-slate-500">
+                            {forkManualPreviewUrl ? 'Choose a different image' : 'Upload your own preview image'}
+                          </span>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleForkManualPreviewChange} />
+                        </label>
+                        {forkManualPreviewError && (
+                          <p className="text-[11px] font-semibold text-red-600 mt-1.5">{forkManualPreviewError}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="rounded-lg h-80 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50 border border-slate-100">
@@ -1125,13 +1201,32 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                       </div>
                     )}
 
-                    {!forkExtracting && !forkExtractionError && (
+                    {!forkExtracting && !forkExtractionError && !forkHadColorIssue && (
                       <div className="flex flex-col items-center gap-2 text-slate-400 px-6">
                         <ImageIcon className="w-10 h-10 mb-2" />
                         <h3 className="font-bold text-sm text-slate-600">Preview appears automatically</h3>
                         <p className="text-xs leading-relaxed font-semibold max-w-xs">
                           Upload your updated .psd above — we'll pull its embedded thumbnail for you.
                         </p>
+                      </div>
+                    )}
+
+                    {!forkExtracting && forkHadColorIssue && !forkThumbnailPreviewUrl && (
+                      <div className="flex flex-col items-center gap-2 text-amber-700 px-6 w-full">
+                        <AlertTriangle className="w-8 h-8 mb-1" />
+                        <h3 className="font-bold text-sm">Couldn't render an accurate preview</h3>
+                        <p className="text-xs leading-relaxed font-semibold max-w-sm text-amber-600 mb-2">
+                          This file's layers are complex enough that we couldn't generate a reliable color
+                          preview. Please upload your own accurate preview of this file.
+                        </p>
+                        <label className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-amber-200 hover:border-amber-400 rounded-lg py-2.5 cursor-pointer transition-colors bg-white">
+                          <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
+                          <span className="text-[11px] font-bold text-amber-700">Upload your own preview image</span>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleForkManualPreviewChange} />
+                        </label>
+                        {forkManualPreviewError && (
+                          <p className="text-[11px] font-semibold text-red-600 mt-1.5">{forkManualPreviewError}</p>
+                        )}
                       </div>
                     )}
 
@@ -1223,7 +1318,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 {/* Publish button */}
                 <button 
                   type="submit"
-                  disabled={forkSubmitting || forkExtracting || !forkThumbnail || forkUploadPhase !== 'done' || !forkUploadedSourcePath}
+                  disabled={forkSubmitting || forkExtracting || (!forkThumbnail && !forkManualPreviewFile) || forkUploadPhase !== 'done' || !forkUploadedSourcePath}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-lg text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-4 h-4 fill-white/10" />

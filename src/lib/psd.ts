@@ -124,6 +124,14 @@ export interface PsdAnalysis {
   // directly from the PSD's own layer tree — not inferred from anything.
   // null means we couldn't determine it (e.g. an unparseable file).
   layerCount: number | null;
+  // True when the HD composite came back looking like a degenerate,
+  // collapsed-to-grayscale result (see isLikelyDegenerateGrayscale) —
+  // regardless of whether the embedded-thumbnail fallback below found
+  // something usable. Used to narrowly allow a manual preview override
+  // only for this specific, hard-to-manufacture-on-purpose failure mode —
+  // never for the general "no embedded preview at all" case, which stays
+  // fully blocked.
+  hadColorIssue: boolean;
 }
 
 // Detects an HD composite that's collapsed to flat grayscale — a known
@@ -247,6 +255,7 @@ async function extractEmbeddedThumbnailResource(file: File): Promise<File | null
 
 export async function analyzePsd(file: File): Promise<PsdAnalysis> {
   let layerCount: number | null = null;
+  let hadColorIssue = false;
 
   try {
     const Psd = (await import('@webtoon/psd')).default;
@@ -289,10 +298,12 @@ export async function analyzePsd(file: File): Promise<PsdAnalysis> {
             outCtx.drawImage(sourceCanvas, 0, 0, outWidth, outHeight);
             const hdThumbnail = await canvasToJpegFile(outCanvas);
             if (hdThumbnail) {
-              return { thumbnail: hdThumbnail, layerCount };
+              return { thumbnail: hdThumbnail, layerCount, hadColorIssue: false };
             }
           }
         }
+      } else {
+        hadColorIssue = true;
       }
     }
   } catch {
@@ -304,7 +315,7 @@ export async function analyzePsd(file: File): Promise<PsdAnalysis> {
   // uses a completely different extraction method, so it isn't affected by
   // whatever caused the HD path to fail.
   const fallbackThumbnail = await extractEmbeddedThumbnailResource(file);
-  return { thumbnail: fallbackThumbnail, layerCount };
+  return { thumbnail: fallbackThumbnail, layerCount, hadColorIssue };
 }
 
 // Minimum real layer count to be accepted as genuine layered work — a
