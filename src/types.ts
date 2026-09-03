@@ -8,6 +8,7 @@ export interface Artwork {
   downloads: string;
   forks: string;
   views: string;
+  hearts: string;
   tags: string[];
   type: 'Original' | 'Remix';
   parentArtworkId?: string;

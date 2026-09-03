@@ -18,6 +18,8 @@ interface DetailScreenProps {
   onNavigateToProfile: () => void;
   onRequireAuth: () => void;
   onRequireCredits: () => void;
+  favoriteIds: Set<string>;
+  onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
   onPublishFork?: (parentArtworkId: string, forkDetails: {
     title: string;
     description: string;
@@ -128,12 +130,13 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   onNavigateToProfile,
   onRequireAuth,
   onRequireCredits,
+  favoriteIds,
+  onToggleFavorite,
   onPublishFork,
   onUpdateArtwork,
   onDeleteArtwork,
 }) => {
   const { user, profile, refreshProfile } = useAuth();
-  const [isLiked, setIsLiked] = useState(false);
   const [viewMode, setViewMode] = useState<'showcase' | 'tree' | 'fork'>('showcase');
   const [forkSubmitting, setForkSubmitting] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
@@ -782,9 +785,23 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                       </button>
                     )}
                   </div>
-                  <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 leading-tight">
-                    {artwork.title}
-                  </h1>
+                  <div className="flex items-center justify-between gap-3">
+                    <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 leading-tight">
+                      {artwork.title}
+                    </h1>
+                    <button
+                      onClick={() => onToggleFavorite(artwork.id)}
+                      title={favoriteIds.has(artwork.id) ? 'Remove from favorites' : 'Add to favorites'}
+                      className="flex items-center gap-1.5 shrink-0 py-1.5 px-2.5 rounded-lg border border-slate-200 hover:border-red-200 hover:bg-red-50 transition-all cursor-pointer active:scale-95"
+                    >
+                      <Heart
+                        className={`w-4 h-4 transition-colors ${
+                          favoriteIds.has(artwork.id) ? 'fill-red-500 text-red-500' : 'text-slate-400'
+                        }`}
+                      />
+                      <span className="text-xs font-bold text-slate-600 ps-stat">{artwork.hearts}</span>
+                    </button>
+                  </div>
      
                   {/* Author Profile section */}
                   <div className="flex items-center gap-3 py-1 select-none">

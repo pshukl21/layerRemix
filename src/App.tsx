@@ -14,7 +14,7 @@ import { NeedCreditsModal } from './components/NeedCreditsModal';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
-import { fetchArtworks, publishArtwork, updateArtwork, deleteArtwork } from './lib/artworks';
+import { fetchArtworks, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds } from './lib/artworks';
 
 interface PublishInput {
   title: string;
@@ -50,6 +50,8 @@ function DetailRoute({
   onDeleteArtwork,
   onRequireAuth,
   onRequireCredits,
+  favoriteIds,
+  onToggleFavorite,
 }: {
   artworks: Artwork[];
   loadingArtworks: boolean;
@@ -60,6 +62,8 @@ function DetailRoute({
   onDeleteArtwork: (artworkId: string) => Promise<{ error: string | null }>;
   onRequireAuth: () => void;
   onRequireCredits: () => void;
+  favoriteIds: Set<string>;
+  onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
 }) {
   const { id } = useParams<{ id: string }>();
   const artwork = artworks.find((art) => art.id === id);
@@ -100,6 +104,8 @@ function DetailRoute({
       onDeleteArtwork={onDeleteArtwork}
       onRequireAuth={onRequireAuth}
       onRequireCredits={onRequireCredits}
+      favoriteIds={favoriteIds}
+      onToggleFavorite={onToggleFavorite}
     />
   );
 }
@@ -109,10 +115,14 @@ function ProfileByUsernameRoute({
   artworks,
   onSelectArtwork,
   onRequireAuth,
+  favoriteIds,
+  onToggleFavorite,
 }: {
   artworks: Artwork[];
   onSelectArtwork: (id: string) => void;
   onRequireAuth: () => void;
+  favoriteIds: Set<string>;
+  onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
 }) {
   const { username } = useParams<{ username: string }>();
   return (
@@ -121,6 +131,8 @@ function ProfileByUsernameRoute({
       onSelectArtwork={onSelectArtwork}
       onRequireAuth={onRequireAuth}
       viewedUsername={username}
+      favoriteIds={favoriteIds}
+      onToggleFavorite={onToggleFavorite}
     />
   );
 }
@@ -133,6 +145,7 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signIn' | 'signUp'>('signIn');
   const [needCreditsModalOpen, setNeedCreditsModalOpen] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [creditsBannerDismissed, setCreditsBannerDismissed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -153,6 +166,16 @@ export default function App() {
   useEffect(() => {
     loadArtworks();
   }, [loadArtworks]);
+
+  // Load the current user's own hearted-artwork ids on login (and clear
+  // them on logout) — this list is private, never fetched for anyone else.
+  useEffect(() => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      return;
+    }
+    fetchMyFavoriteIds(user.id).then(setFavoriteIds);
+  }, [user]);
 
   // Proactively show the "you need a credit" explainer once per browser
   // session for a brand-new account — someone with 0 credits who hasn't
@@ -175,6 +198,39 @@ export default function App() {
   const openAuthModal = (mode: 'signIn' | 'signUp' = 'signIn') => {
     setAuthModalMode(mode);
     setAuthModalOpen(true);
+  };
+
+  const handleToggleFavorite = async (artworkId: string): Promise<{ error: string | null }> => {
+    if (!user) {
+      openAuthModal('signIn');
+      return { error: 'Please sign in first.' };
+    }
+    const { isFavorited, error } = await toggleFavorite(artworkId);
+    if (error || isFavorited === null) {
+      return { error: error || 'Something went wrong.' };
+    }
+
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (isFavorited) {
+        next.add(artworkId);
+      } else {
+        next.delete(artworkId);
+      }
+      return next;
+    });
+
+    // Optimistically reflect the new count locally rather than refetching
+    // everything — matches the same pattern used for the fork counter.
+    setRealArtworks((prev) =>
+      prev.map((art) =>
+        art.id === artworkId
+          ? { ...art, hearts: String(Math.max(0, (Number(art.hearts) || 0) + (isFavorited ? 1 : -1))) }
+          : art
+      )
+    );
+
+    return { error: null };
   };
 
   const handleSelectArtwork = (artworkId: string) => {
@@ -339,6 +395,8 @@ export default function App() {
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
                     onSelectArtwork={handleSelectArtwork}
+                    favoriteIds={favoriteIds}
+                    onToggleFavorite={handleToggleFavorite}
                   />
                 }
               />
@@ -350,6 +408,8 @@ export default function App() {
                     artworks={artworks}
                     onSelectArtwork={handleSelectArtwork}
                     onRequireAuth={() => openAuthModal('signIn')}
+                    favoriteIds={favoriteIds}
+                    onToggleFavorite={handleToggleFavorite}
                   />
                 }
               />
@@ -361,6 +421,8 @@ export default function App() {
                     artworks={artworks}
                     onSelectArtwork={handleSelectArtwork}
                     onRequireAuth={() => openAuthModal('signIn')}
+                    favoriteIds={favoriteIds}
+                    onToggleFavorite={handleToggleFavorite}
                   />
                 }
               />
@@ -403,6 +465,8 @@ export default function App() {
                     onDeleteArtwork={handleDeleteArtwork}
                     onRequireAuth={() => openAuthModal('signIn')}
                     onRequireCredits={() => setNeedCreditsModalOpen(true)}
+                    favoriteIds={favoriteIds}
+                    onToggleFavorite={handleToggleFavorite}
                   />
                 }
               />

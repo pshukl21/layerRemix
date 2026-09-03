@@ -15,6 +15,7 @@ interface ArtworkRow {
   downloads: number;
   forks: number;
   views: number;
+  hearts_count: number;
   resolution: string | null;
   focal_x: number | null;
   focal_y: number | null;
@@ -49,6 +50,7 @@ function rowToArtwork(row: ArtworkRow, parentUsername?: string): Artwork {
     downloads: String(row.downloads),
     forks: String(row.forks),
     views: String(row.views),
+    hearts: String(row.hearts_count ?? 0),
     tags: row.tags,
     type: row.type,
     parentArtworkId: row.parent_artwork_id || undefined,
@@ -87,6 +89,25 @@ export async function findDuplicateByHash(fileHash: string): Promise<{ id: strin
   if (!data) return null;
   const owner = data.owner as unknown as { username: string } | null;
   return { id: data.id as string, title: data.title as string, author: owner?.username || 'someone' };
+}
+
+// Hearts or un-hearts an artwork for the current user. Returns the new
+// state so the UI knows whether to show it as filled or outlined.
+export async function toggleFavorite(artworkId: string): Promise<{ isFavorited: boolean | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('toggle_favorite', { p_artwork_id: artworkId });
+  if (error) {
+    return { isFavorited: null, error: error.message };
+  }
+  return { isFavorited: data as boolean, error: null };
+}
+
+// The current user's own hearted-artwork ids — private by design (RLS only
+// allows a user to read their own favorites rows), used to show which
+// hearts are filled in and to power the "Favorites" tab on their profile.
+export async function fetchMyFavoriteIds(userId: string): Promise<Set<string>> {
+  const { data, error } = await supabase.from('favorites').select('artwork_id').eq('user_id', userId);
+  if (error || !data) return new Set();
+  return new Set(data.map((row) => row.artwork_id as string));
 }
 
 export async function fetchProfileByUsername(username: string): Promise<Profile | null> {

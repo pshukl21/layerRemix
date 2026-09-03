@@ -120,6 +120,77 @@ create unique index if not exists artworks_file_hash_unique
   on public.artworks (file_hash)
   where file_hash is not null;
 
+-- ---------------------------------------------------------------------------
+-- Favorites ("hearting" an artwork)
+--
+-- The list of what a person has hearted is private — visible only to them,
+-- on their own profile. But the aggregate count of hearts per artwork needs
+-- to be public, since it's used for sorting (Trending) and shown on cards.
+-- That split is why this is two things: a private join table, plus a public
+-- counter column on `artworks` kept in sync by a single atomic function.
+--
+-- There are deliberately no insert/delete policies on `favorites` — all
+-- writes go through toggle_favorite() below, so the counter can never drift
+-- out of sync with the actual rows.
+create table if not exists public.favorites (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  artwork_id uuid not null references public.artworks(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, artwork_id)
+);
+
+alter table public.favorites enable row level security;
+
+create policy "Users can view their own favorites"
+  on public.favorites for select
+  using (auth.uid() = user_id);
+
+alter table public.artworks add column if not exists hearts_count integer not null default 0;
+
+-- Hearts or un-hearts an artwork for the current user, atomically updating
+-- the public counter at the same time. Returns the new state (true = now
+-- hearted, false = now un-hearted) so the client knows how to update its UI.
+create or replace function public.toggle_favorite(p_artwork_id uuid)
+returns boolean
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_already_favorited boolean;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authorized';
+  end if;
+
+  select exists(
+    select 1 from public.favorites
+    where user_id = auth.uid() and artwork_id = p_artwork_id
+  ) into v_already_favorited;
+
+  if v_already_favorited then
+    delete from public.favorites
+    where user_id = auth.uid() and artwork_id = p_artwork_id;
+
+    update public.artworks
+    set hearts_count = greatest(0, hearts_count - 1)
+    where id = p_artwork_id;
+
+    return false;
+  else
+    insert into public.favorites (user_id, artwork_id)
+    values (auth.uid(), p_artwork_id);
+
+    update public.artworks
+    set hearts_count = hearts_count + 1
+    where id = p_artwork_id;
+
+    return true;
+  end if;
+end;
+$$;
+
+grant execute on function public.toggle_favorite(uuid) to authenticated;
+
 -- Engagement counters (forks, views) need to be bumped by people who don't
 -- own the artwork — e.g. anyone forking someone else's piece, or just
 -- viewing it. The plain "Users can update their own artworks" policy above

@@ -10,6 +10,8 @@ interface ProfileScreenProps {
   artworks: Artwork[];
   onSelectArtwork: (artworkId: string) => void;
   onRequireAuth: () => void;
+  favoriteIds: Set<string>;
+  onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
   // When provided, shows that user's public profile (read-only) instead of
   // the logged-in user's own profile. Omit (or pass the logged-in user's
   // own username) to get the normal editable "my profile" experience.
@@ -20,6 +22,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   artworks,
   onSelectArtwork,
   onRequireAuth,
+  favoriteIds,
+  onToggleFavorite,
   viewedUsername,
 }) => {
   const { user, profile: ownProfile, updateAvatar, updateBio } = useAuth();
@@ -59,7 +63,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [bioInput, setBioInput] = useState('');
   const [bioSaving, setBioSaving] = useState(false);
   const [bioError, setBioError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'original' | 'remixed'>('original');
+  const [activeTab, setActiveTab] = useState<'original' | 'remixed' | 'favorites'>('original');
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -100,8 +104,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     setEditingBio(false);
   };
 
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const [tiltStyle, setTiltStyle] = useState<React.CSSProperties>({});
 
@@ -121,7 +123,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const handleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+    onToggleFavorite(id);
   };
 
   const handleDownloadClick = (art: Artwork, e: React.MouseEvent) => {
@@ -176,22 +178,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const targetUserId = isOwnProfile ? user?.id : profile.id;
   const originalArt = artworks.filter((art) => art.ownerId === targetUserId && art.type === 'Original');
   const remixedArt = artworks.filter((art) => art.ownerId === targetUserId && art.type === 'Remix');
+  // Private — only ever computed/shown when viewing your own profile.
+  const favoritedArt = isOwnProfile ? artworks.filter((art) => favoriteIds.has(art.id)) : [];
   const totalDownloads = artworks
     .filter((art) => art.ownerId === targetUserId)
     .reduce((sum, art) => sum + (Number(art.downloads) || 0), 0);
 
-  const renderGrid = (list: Artwork[], showRemixLabel: boolean) => (
+  const renderGrid = (list: Artwork[], showRemixLabel: boolean, emptyMessage?: string) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {list.length === 0 && (
         <p className="text-sm text-slate-400 font-semibold col-span-full text-center py-16">
-          {isOwnProfile
-            ? 'Nothing here yet — head to Upload to publish your first piece.'
-            : 'This creator hasn\u2019t published anything here yet.'}
+          {emptyMessage ||
+            (isOwnProfile
+              ? 'Nothing here yet — head to Upload to publish your first piece.'
+              : 'This creator hasn\u2019t published anything here yet.')}
         </p>
       )}
       {list.map((art) => {
         const isHovered = hoveredCardId === art.id;
-        const isFav = !!favorites[art.id];
+        const isFav = favoriteIds.has(art.id);
         const downloadTarget = getDownloadTarget(art);
         return (
           <div
@@ -417,9 +422,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <motion.div layoutId="profileActiveTab" className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-full" />
           )}
         </button>
+        {isOwnProfile && (
+          <button
+            onClick={() => setActiveTab('favorites')}
+            className={`pb-4 text-xs font-bold uppercase tracking-widest transition-all relative cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'favorites' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5" />
+            Favorites
+            {activeTab === 'favorites' && (
+              <motion.div layoutId="profileActiveTab" className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-full" />
+            )}
+          </button>
+        )}
       </nav>
 
-      {activeTab === 'original' ? renderGrid(originalArt, false) : renderGrid(remixedArt, true)}
+      {activeTab === 'original' && renderGrid(originalArt, false)}
+      {activeTab === 'remixed' && renderGrid(remixedArt, true)}
+      {activeTab === 'favorites' && renderGrid(favoritedArt, false, "You haven't favorited anything yet — hearts you give show up here, visible only to you.")}
     </div>
   );
 };

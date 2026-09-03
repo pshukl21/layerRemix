@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, Download, GitFork, ArrowDown, ExternalLink } from 'lucide-react';
+import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart } from 'lucide-react';
 import { Artwork } from '../types';
 
 interface ExploreScreenProps {
@@ -9,15 +9,19 @@ interface ExploreScreenProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onSelectArtwork: (artworkId: string) => void;
+  favoriteIds: Set<string>;
+  onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
 }
 
-type TabType = 'all' | 'originals' | 'remixes';
+type TabType = 'all' | 'originals' | 'remixes' | 'trending';
 
 export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   artworks,
   searchQuery,
   setSearchQuery,
   onSelectArtwork,
+  favoriteIds,
+  onToggleFavorite,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [localSearch, setLocalSearch] = useState('');
@@ -76,7 +80,14 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       const matchTags = art.tags.some((t) => t.toLowerCase().includes(lowerSearch));
       return matchTitle || matchAuthor || matchTags;
     })
-    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    .sort((a, b) => {
+      if (activeTab === 'trending') {
+        const heartsDiff = (Number(b.hearts) || 0) - (Number(a.hearts) || 0);
+        if (heartsDiff !== 0) return heartsDiff;
+        return (Number(b.downloads) || 0) - (Number(a.downloads) || 0);
+      }
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    });
 
   // Hot tag clicks
   const handleTagClick = (tag: string) => {
@@ -170,7 +181,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
         {/* Navigation Filters */}
         <div className="flex items-center mb-8 overflow-x-auto">
           <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm whitespace-nowrap">
-            {(['all', 'originals', 'remixes'] as TabType[]).map((tab) => (
+            {(['all', 'trending', 'originals', 'remixes'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -187,6 +198,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 )}
                 <span className="relative z-10">
                   {tab === 'all' && 'All Art'}
+                  {tab === 'trending' && 'Trending'}
                   {tab === 'originals' && 'Originals'}
                   {tab === 'remixes' && 'Remixes'}
                 </span>
@@ -242,6 +254,20 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                         alt={art.title}
                         referrerPolicy="no-referrer"
                       />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleFavorite(art.id);
+                        }}
+                        title={favoriteIds.has(art.id) ? 'Remove from favorites' : 'Add to favorites'}
+                        className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-slate-950/50 backdrop-blur-xs flex items-center justify-center hover:bg-slate-950/70 transition-all active:scale-90 cursor-pointer"
+                      >
+                        <Heart
+                          className={`w-4 h-4 transition-colors ${
+                            favoriteIds.has(art.id) ? 'fill-red-500 text-red-500' : 'text-white'
+                          }`}
+                        />
+                      </button>
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
                         <button
                           onClick={() => onSelectArtwork(art.id)}
