@@ -536,21 +536,42 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         return;
       } catch {
         // User cancelled the share sheet, or the browser rejected it —
-        // fall back to a plain download below rather than doing nothing.
+        // fall through to the preview-and-confirm flow below rather than
+        // doing nothing.
       }
     }
 
+    // No native share sheet available (typical on desktop) — show a
+    // preview and let the person confirm before anything downloads,
+    // rather than silently saving a file to their computer.
+    setSharePreviewBlob(blob);
+    setSharePreviewFileName(fileName);
+    setSharePreviewUrl(URL.createObjectURL(blob));
+  };
+
+  const handleConfirmShareDownload = () => {
+    if (!sharePreviewBlob || !sharePreviewUrl) return;
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = fileName;
+    link.href = sharePreviewUrl;
+    link.download = sharePreviewFileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
+    handleCloseSharePreview();
+  };
+
+  const handleCloseSharePreview = () => {
+    if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl);
+    setSharePreviewBlob(null);
+    setSharePreviewUrl(null);
+    setSharePreviewFileName('');
   };
 
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [generatingShareImage, setGeneratingShareImage] = useState(false);
+  const [sharePreviewBlob, setSharePreviewBlob] = useState<Blob | null>(null);
+  const [sharePreviewUrl, setSharePreviewUrl] = useState<string | null>(null);
+  const [sharePreviewFileName, setSharePreviewFileName] = useState('');
   const [shareError, setShareError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -1426,6 +1447,59 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
               referrerPolicy="no-referrer"
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-default"
             />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {sharePreviewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseSharePreview}
+            className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-sm bg-white rounded-xl shadow-2xl border border-slate-200 p-6"
+            >
+              <button
+                onClick={handleCloseSharePreview}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h2 className="text-lg font-black text-slate-900 mb-1">Ready to share</h2>
+              <p className="text-xs text-slate-500 font-semibold mb-4">
+                Here's the image we generated — download it to share wherever you like.
+              </p>
+
+              <div className="rounded-lg overflow-hidden border border-slate-200 mb-5">
+                <img src={sharePreviewUrl} alt="Share preview" className="w-full h-auto block" />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCloseSharePreview}
+                  className="flex-1 py-3 rounded-lg border border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-widest hover:border-slate-300 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmShareDownload}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] py-3 rounded-lg text-white font-bold text-xs tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Image
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
