@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check } from 'lucide-react';
+import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check, Share2 } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews, findDuplicateByHash } from '../lib/artworks';
 import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT, getImageDimensions } from '../lib/psd';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
+import { generateShareImage } from '../lib/shareImage';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
 import { FocalPointPicker } from './FocalPointPicker';
@@ -506,7 +507,51 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Generates a branded share image entirely client-side, then either
+  // opens the native share sheet (mobile / supporting browsers) or falls
+  // back to downloading the image directly so it can be shared manually.
+  const handleShare = async () => {
+    setShareError(null);
+    setGeneratingShareImage(true);
+    const blob = await generateShareImage(artwork);
+    setGeneratingShareImage(false);
+
+    if (!blob) {
+      setShareError("Couldn't generate a share image. Please try again.");
+      return;
+    }
+
+    const fileName = `${artwork.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-layerremix.png`;
+    const file = new File([blob], fileName, { type: 'image/png' });
+    const shareUrl = `${window.location.origin}/art/${artwork.id}`;
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: artwork.title,
+          text: `Check out "${artwork.title}" by @${artwork.author} on LayerRemix`,
+          url: shareUrl,
+        });
+        return;
+      } catch {
+        // User cancelled the share sheet, or the browser rejected it —
+        // fall back to a plain download below rather than doing nothing.
+      }
+    }
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  };
+
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [generatingShareImage, setGeneratingShareImage] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -948,6 +993,18 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <History className="w-3.5 h-3.5 text-blue-600" />
                   View Timeline Tree
                 </button>
+
+                <button
+                  onClick={handleShare}
+                  disabled={generatingShareImage}
+                  className="w-full border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 py-2.5 rounded-lg font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-blue-600" />
+                  {generatingShareImage ? 'Preparing image…' : 'Share'}
+                </button>
+                {shareError && (
+                  <p className="text-[11px] font-semibold text-red-600 text-center">{shareError}</p>
+                )}
                 </div>
               </div>
 

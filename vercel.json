@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/art/:id", "destination": "/api/art-og?id=:id" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
