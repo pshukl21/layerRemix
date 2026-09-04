@@ -813,8 +813,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           {/* Main Art Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-8">
             {/* Left column: Image showcase as a Photoshop-style "canvas window" */}
-            <div className="lg:col-span-8 flex flex-col gap-6">
-              <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all">
+            <div className="lg:col-span-6 flex flex-col gap-6">
+              <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all max-w-[560px] mx-auto w-full">
                 {/* Document tab bar, Photoshop-style */}
                 <div className="flex items-center gap-2 bg-[#3f3f46] px-4 py-2 border-b border-zinc-600">
                   <button
@@ -844,7 +844,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <div
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
-                    className="flex-1 aspect-[16/10] overflow-hidden bg-white p-1.5 cursor-crosshair relative"
+                    className="flex-1 aspect-[4/5] overflow-hidden bg-white p-1.5 cursor-crosshair relative"
                   >
                     <div className="w-full h-full rounded-md overflow-hidden relative ps-marching-ants">
                       <img
@@ -878,7 +878,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
             </div>
      
             {/* Right column: Segmented Bento Cards */}
-            <div className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-24">
+            <div className="lg:col-span-6 flex flex-col gap-6 lg:sticky lg:top-24">
               
               {/* Card 1: Core details, Author, Tags & Description */}
               <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
