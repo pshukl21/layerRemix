@@ -75,7 +75,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         className="absolute inset-0 w-full h-full object-cover pointer-events-none"
       />
       {afterLabel && (
-        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2 py-0.5 rounded pointer-events-none">
+        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2 py-0.5 rounded whitespace-nowrap pointer-events-none">
           {afterLabel}
         </div>
       )}
@@ -93,7 +93,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           style={{ width: `${(100 / Math.max(position, 0.001)) * 100}%`, maxWidth: 'none' }}
         />
         {beforeLabel && (
-          <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2 py-0.5 rounded">
+          <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2 py-0.5 rounded whitespace-nowrap">
             {beforeLabel}
           </div>
         )}
