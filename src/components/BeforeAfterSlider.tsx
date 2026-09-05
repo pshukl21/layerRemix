@@ -8,6 +8,10 @@ interface BeforeAfterSliderProps {
   afterLabel?: string;
   className?: string;
   aspectRatio?: string; // Tailwind arbitrary value, e.g. "4/5" or "16/9"
+  // Lets a caller flatten specific corners (e.g. "rounded-t-xl") when this
+  // sits flush against another element, like a button directly below it,
+  // rather than always rounding all four corners.
+  roundedClassName?: string;
 }
 
 // Draggable before/after comparison — drag the handle (or tap/click
@@ -21,6 +25,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   afterLabel,
   className = '',
   aspectRatio = '4/5',
+  roundedClassName = 'rounded-xl',
 }) => {
   const [position, setPosition] = useState(50); // percent, 0 = all "before", 100 = all "after"
   const containerRef = useRef<HTMLDivElement>(null);
@@ -60,7 +65,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
       style={{ aspectRatio }}
-      className={`relative w-full rounded-xl overflow-hidden select-none cursor-ew-resize touch-none ${className}`}
+      className={`relative w-full ${roundedClassName} overflow-hidden select-none cursor-ew-resize touch-none ${className}`}
     >
       {/* After — full image, sits underneath */}
       <img
@@ -70,9 +75,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         className="absolute inset-0 w-full h-full object-cover pointer-events-none"
       />
       {afterLabel && (
-        <div className="absolute top-0 right-0 flex items-center gap-1.5 bg-[#3f3f46]/90 backdrop-blur-xs px-2.5 py-1.5 pointer-events-none">
-          <span className="text-[10px] font-bold text-zinc-200 truncate">{afterLabel}</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2 py-0.5 rounded pointer-events-none">
+          {afterLabel}
         </div>
       )}
 
@@ -89,9 +93,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           style={{ width: `${(100 / Math.max(position, 0.001)) * 100}%`, maxWidth: 'none' }}
         />
         {beforeLabel && (
-          <div className="absolute top-0 left-0 flex items-center gap-1.5 bg-[#3f3f46]/90 backdrop-blur-xs px-2.5 py-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
-            <span className="text-[10px] font-bold text-zinc-200 truncate">{beforeLabel}</span>
+          <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2 py-0.5 rounded">
+            {beforeLabel}
           </div>
         )}
       </div>

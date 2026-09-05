@@ -134,7 +134,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           identical bounds as the grid/tabs, not just the same max-width. */}
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         <section className="relative overflow-hidden rounded-xl my-4 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
-          <div className="relative z-10 px-6 md:px-12 py-6 grid md:grid-cols-2 gap-6 md:gap-10 items-center">
+          <div className="relative z-10 px-6 md:px-12 py-6 grid md:grid-cols-2 gap-6 md:gap-10 items-end">
             {/* Copy + CTAs */}
             <motion.div
               initial={{ opacity: 0, x: -16 }}
@@ -169,7 +169,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             </div>
 
             {hotTags.length > 0 && (
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-5">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 mt-5">
                 <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
                 {hotTags.map((tag) => {
                   const isActive = searchQuery.toLowerCase() === tag.toLowerCase();
@@ -177,7 +177,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     <button
                       key={tag}
                       onClick={() => handleTagClick(tag)}
-                      className={`text-[11px] font-bold px-3 py-1 rounded-md transition-all cursor-pointer uppercase border ${
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-md transition-all cursor-pointer uppercase border ${
                         isActive
                           ? 'bg-blue-600 border-blue-600 text-white'
                           : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border-slate-200'
@@ -194,18 +194,21 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           {/* Compact before/after demo — pure display only. No edit
               controls here at all — those live on the admin's own profile
               page now, so this view always matches exactly what every
-              visitor sees. */}
+              visitor sees. Slider + button share one outer border/shadow/
+              radius so there's no seam or width mismatch between them. */}
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="max-w-[420px] mx-auto w-full"
+            className="max-w-[420px] mx-auto w-full rounded-xl overflow-hidden border border-slate-200 shadow-md"
           >
             <BeforeAfterSlider
               beforeImage={heroBeforeImageUrl || '/hero-before.png'}
               afterImage={heroAfterImageUrl || '/hero-after.png'}
+              beforeLabel="RAW PSD"
+              afterLabel="REMIX"
               aspectRatio="3/2"
-              className="shadow-md border border-slate-200"
+              roundedClassName={heroDownloadUrl ? 'rounded-none' : 'rounded-xl'}
             />
 
             {/* Download button — same styling as the card hover action.
@@ -215,7 +218,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             {heroDownloadUrl && (
               <Link
                 to={toInternalPath(heroDownloadUrl)}
-                className="mt-3 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:bg-blue-800"
               >
                 <GitFork className="w-3.5 h-3.5" />
                 Fork / Download PSD
