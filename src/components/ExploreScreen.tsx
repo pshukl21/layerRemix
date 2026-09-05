@@ -140,40 +140,40 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.5 }}
             className="text-center md:text-left"
           >
-            <span className="inline-block bg-blue-100 text-blue-600 px-2.5 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border border-blue-200/50 mb-2">
+            <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-200/50 mb-3">
               🎨 Open-Source Artwork
             </span>
-            <h1 className="text-lg md:text-xl lg:text-2xl font-black tracking-tight text-slate-900 leading-tight mb-1.5">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 leading-tight mb-2.5">
               Where scrapped PSDs become finished art.
             </h1>
-            <p className="text-xs md:text-sm text-slate-500 font-semibold leading-snug mb-3 max-w-sm mx-auto md:mx-0">
+            <p className="text-sm md:text-base text-slate-500 font-semibold leading-snug mb-5 max-w-sm mx-auto md:mx-0">
               Upload unfinished PSDs, download real source layers, and turn dormant projects into finished artwork.
             </p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row gap-2.5 justify-center md:justify-start">
               <button
                 onClick={scrollToGrid}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 Explore Remixes
-                <ArrowDown className="w-3.5 h-3.5" />
+                <ArrowDown className="w-4 h-4" />
               </button>
               <button
                 onClick={() => navigate('/upload')}
-                className="bg-white border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-600 font-bold text-xs px-4 py-2 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                className="bg-white border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-600 font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                <Upload className="w-3.5 h-3.5" />
+                <Upload className="w-4 h-4" />
                 Drop a PSD
               </button>
             </div>
 
             {hotTags.length > 0 && (
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-4">
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-5">
+                <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
                 {hotTags.map((tag) => (
                   <button
                     key={tag}
                     onClick={() => handleTagClick(tag)}
-                    className="text-[10px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3 py-1 rounded-md transition-all cursor-pointer capitalize"
+                    className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3 py-1 rounded-md transition-all cursor-pointer uppercase"
                   >
                     #{tag}
                   </button>
