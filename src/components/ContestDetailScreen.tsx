@@ -106,12 +106,12 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
         Back to Contests
       </Link>
 
-      {/* Left: base file + all contest info stacked together. Right: a full-
-          height entries panel — with only a handful of contests running at
-          once, giving entries this much room is the better trade than a
-          cramped preview card squeezed under everything else. */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <div className="lg:col-span-5 flex flex-col gap-6">
+      {/* Image and contest info sit side by side, both visible without
+          scrolling — entries move to a full-width section below instead of
+          a tall right column that's mostly empty when there aren't many
+          submissions yet. */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-10">
+        <div className="lg:col-span-5">
           <div className="max-w-[420px] mx-auto w-full rounded-xl overflow-hidden border border-slate-300 shadow-sm">
             <img
               src={baseArtwork.image}
@@ -120,7 +120,9 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
               style={{ objectPosition: `${baseArtwork.focalX ?? 50}% ${baseArtwork.focalY ?? 50}%` }}
             />
           </div>
+        </div>
 
+        <div className="lg:col-span-7">
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Trophy className="w-5 h-5 text-amber-500" />
@@ -182,25 +184,23 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
             </div>
           </div>
         </div>
-
-        <div className="lg:col-span-7">
-          {entryCount === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-              <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">Entries</h3>
-              <p className="text-sm font-bold text-slate-400 text-center py-16">
-                No entries yet — be the first to remix and submit.
-              </p>
-            </div>
-          ) : (
-            <ContestEntriesList
-              entries={entryTree ? entryTree.children.map((n) => n.artwork) : []}
-              totalCount={entryCount}
-              maxShow={20}
-              onSelectArtwork={onSelectArtwork}
-            />
-          )}
-        </div>
       </div>
+
+      {entryCount === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+          <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">Entries</h3>
+          <p className="text-sm font-bold text-slate-400 text-center py-10">
+            No entries yet — be the first to remix and submit.
+          </p>
+        </div>
+      ) : (
+        <ContestEntriesList
+          entries={entryTree ? entryTree.children.map((n) => n.artwork) : []}
+          totalCount={entryCount}
+          maxShow={20}
+          onSelectArtwork={onSelectArtwork}
+        />
+      )}
     </div>
   );
 };

@@ -82,6 +82,33 @@ export async function createContest(
   return { error: error?.message || null };
 }
 
+// Admin-only in practice — enforced server-side by the contests table's
+// RLS policies, which check profiles.is_admin.
+export async function updateContest(
+  id: string,
+  title: string,
+  description: string,
+  baseArtworkId: string,
+  deadline: string | null,
+  prizeFirst: string | null,
+  prizeSecond: string | null,
+  prizeThird: string | null
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('contests')
+    .update({
+      title,
+      description,
+      base_artwork_id: baseArtworkId,
+      deadline,
+      prize_first: prizeFirst,
+      prize_second: prizeSecond,
+      prize_third: prizeThird,
+    })
+    .eq('id', id);
+  return { error: error?.message || null };
+}
+
 export async function deleteContest(id: string): Promise<{ error: string | null }> {
   const { error } = await supabase.from('contests').delete().eq('id', id);
   return { error: error?.message || null };

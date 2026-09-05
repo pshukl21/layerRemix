@@ -66,16 +66,19 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col gap-6">
         {contests.map((contest) => {
           const deadline = formatDeadline(contest.deadline);
           const hasPrizes = contest.prizeFirst || contest.prizeSecond || contest.prizeThird;
           return (
             <div
               key={contest.id}
-              className="group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col"
+              className="group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col sm:flex-row"
             >
-              <Link to={`/contests/${contest.id}`} className="aspect-[4/5] overflow-hidden bg-slate-100 relative block">
+              <Link
+                to={`/contests/${contest.id}`}
+                className="sm:w-56 shrink-0 aspect-[4/5] sm:aspect-auto overflow-hidden bg-slate-100 relative block"
+              >
                 {contest.baseImage && (
                   <img
                     src={contest.baseImage}
@@ -94,10 +97,10 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
                   </div>
                 )}
               </Link>
-              <div className="p-4 flex flex-col gap-3 flex-1">
+              <div className="p-5 flex flex-col gap-3 flex-1 min-w-0">
                 <div>
                   <Link to={`/contests/${contest.id}`}>
-                    <h2 className="font-black text-base text-slate-900 group-hover:text-blue-600 transition-colors">
+                    <h2 className="font-black text-lg text-slate-900 group-hover:text-blue-600 transition-colors">
                       {contest.title}
                     </h2>
                   </Link>
@@ -105,7 +108,7 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
                 </div>
 
                 {hasPrizes && (
-                  <div className="flex items-center gap-3 bg-amber-50/60 border border-amber-100 rounded-lg px-2.5 py-2 overflow-x-auto">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-2">
                     {contest.prizeFirst && (
                       <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
                         <span>🥇</span>
@@ -136,7 +139,7 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
 
                 <Link
                   to={`/contests/${contest.id}`}
-                  className="mt-auto w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98]"
+                  className="mt-auto sm:w-fit sm:self-start px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98]"
                 >
                   Enter Contest
                   <ArrowRight className="w-3.5 h-3.5" />

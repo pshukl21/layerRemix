@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Trash2, Loader2 } from 'lucide-react';
-import { fetchContests, createContest, deleteContest, Contest } from '../lib/contests';
+import { Trophy, Trash2, Pencil, Loader2 } from 'lucide-react';
+import { fetchContests, createContest, updateContest, deleteContest, Contest } from '../lib/contests';
 import { Artwork } from '../types';
 
 const DEFAULT_DESCRIPTION = `How to enter:
@@ -30,6 +30,7 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
   const [prizeThird, setPrizeThird] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const ownArtworks = artworks.filter((a) => a.ownerId === currentUserId);
 
@@ -44,28 +45,7 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
     loadContests();
   }, []);
 
-  const handleCreate = async () => {
-    if (!title.trim() || !description.trim() || !baseArtworkId) {
-      setError('Title, description, and a base artwork are all required.');
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    const { error: err } = await createContest(
-      title.trim(),
-      description.trim(),
-      baseArtworkId,
-      deadline ? new Date(deadline).toISOString() : null,
-      currentUserId,
-      prizeFirst.trim() || null,
-      prizeSecond.trim() || null,
-      prizeThird.trim() || null
-    );
-    setSubmitting(false);
-    if (err) {
-      setError(err);
-      return;
-    }
+  const resetForm = () => {
     setTitle('');
     setDescription(DEFAULT_DESCRIPTION);
     setBaseArtworkId('');
@@ -73,6 +53,57 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
     setPrizeFirst('');
     setPrizeSecond('');
     setPrizeThird('');
+    setEditingId(null);
+  };
+
+  const handleEditClick = (contest: Contest) => {
+    setEditingId(contest.id);
+    setTitle(contest.title);
+    setDescription(contest.description);
+    setBaseArtworkId(contest.baseArtworkId);
+    setDeadline(contest.deadline ? contest.deadline.split('T')[0] : '');
+    setPrizeFirst(contest.prizeFirst || '');
+    setPrizeSecond(contest.prizeSecond || '');
+    setPrizeThird(contest.prizeThird || '');
+    setError(null);
+  };
+
+  const handleSubmit = async () => {
+    if (!title.trim() || !description.trim() || !baseArtworkId) {
+      setError('Title, description, and a base artwork are all required.');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+
+    const { error: err } = editingId
+      ? await updateContest(
+          editingId,
+          title.trim(),
+          description.trim(),
+          baseArtworkId,
+          deadline ? new Date(deadline).toISOString() : null,
+          prizeFirst.trim() || null,
+          prizeSecond.trim() || null,
+          prizeThird.trim() || null
+        )
+      : await createContest(
+          title.trim(),
+          description.trim(),
+          baseArtworkId,
+          deadline ? new Date(deadline).toISOString() : null,
+          currentUserId,
+          prizeFirst.trim() || null,
+          prizeSecond.trim() || null,
+          prizeThird.trim() || null
+        );
+
+    setSubmitting(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    resetForm();
     loadContests();
   };
 
@@ -84,6 +115,7 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
       return;
     }
     setContests((prev) => prev.filter((c) => c.id !== id));
+    if (editingId === id) resetForm();
   };
 
   return (
@@ -95,7 +127,9 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
       </h3>
 
       <div className="bg-white border border-slate-200 rounded-lg p-4 mb-4">
-        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">New Contest</p>
+        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">
+          {editingId ? 'Edit Contest' : 'New Contest'}
+        </p>
         <div className="flex flex-col gap-2.5">
           <input
             value={title}
@@ -169,13 +203,23 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
             </div>
           </div>
           {error && <p className="text-[11px] font-semibold text-red-600">{error}</p>}
-          <button
-            onClick={handleCreate}
-            disabled={submitting}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-xs rounded-lg cursor-pointer transition-all"
-          >
-            {submitting ? 'Creating…' : 'Create Contest'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-xs rounded-lg cursor-pointer transition-all"
+            >
+              {submitting ? 'Saving…' : editingId ? 'Update Contest' : 'Create Contest'}
+            </button>
+            {editingId && (
+              <button
+                onClick={resetForm}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-lg cursor-pointer transition-all"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
         {ownArtworks.length === 0 && (
           <p className="text-[11px] text-slate-400 font-semibold mt-2">
@@ -193,12 +237,20 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
               <p className="text-xs font-bold text-slate-800 truncate">{contest.title}</p>
               <p className="text-[10px] text-slate-400 font-semibold">Base: {contest.baseTitle}</p>
             </div>
-            <button
-              onClick={() => handleDelete(contest.id)}
-              className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-all cursor-pointer shrink-0"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-red-600" />
-            </button>
+            <div className="flex gap-1.5 shrink-0">
+              <button
+                onClick={() => handleEditClick(contest)}
+                className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-all cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5 text-blue-600" />
+              </button>
+              <button
+                onClick={() => handleDelete(contest.id)}
+                className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+              </button>
+            </div>
           </div>
         ))}
       </div>
