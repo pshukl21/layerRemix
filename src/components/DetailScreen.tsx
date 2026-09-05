@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check, Share2, Flag } from 'lucide-react';
 import { Artwork } from '../types';
@@ -152,6 +152,16 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 }) => {
   const { user, profile, refreshProfile } = useAuth();
   const [viewMode, setViewMode] = useState<'showcase' | 'tree' | 'fork'>('showcase');
+  const [searchParams] = useSearchParams();
+
+  // Lets other pages (like a contest listing) link straight into the fork
+  // form via ?fork=true, instead of requiring an extra click once here.
+  useEffect(() => {
+    if (searchParams.get('fork') === 'true') {
+      setViewMode('fork');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [forkSubmitting, setForkSubmitting] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);

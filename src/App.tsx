@@ -11,6 +11,8 @@ import { DetailScreen } from './components/DetailScreen';
 import { AuthModal } from './components/AuthModal';
 import { ResetPasswordScreen } from './components/ResetPasswordScreen';
 import { TermsScreen } from './components/TermsScreen';
+import { ContestsScreen } from './components/ContestsScreen';
+import { ContestDetailScreen } from './components/ContestDetailScreen';
 import { NeedCreditsModal } from './components/NeedCreditsModal';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
@@ -474,6 +476,17 @@ export default function App() {
 
               <Route path="/reset-password" element={<ResetPasswordScreen />} />
               <Route path="/terms" element={<TermsScreen />} />
+              <Route path="/contests" element={<ContestsScreen />} />
+              <Route
+                path="/contests/:id"
+                element={
+                  <ContestDetailScreen
+                    artworks={artworks}
+                    onSelectArtwork={handleSelectArtwork}
+                    onRequireAuth={() => openAuthModal('signIn')}
+                  />
+                }
+              />
 
               <Route
                 path="/upload"

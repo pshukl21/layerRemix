@@ -601,3 +601,48 @@ end;
 $$;
 
 grant execute on function public.admin_delete_artwork(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Contests
+--
+-- A contest is built on top of a normal artwork: the admin publishes the
+-- base PSD through the regular upload flow (like anyone else would), then
+-- links that artwork as a contest's "base file" here. Entries are just
+-- ordinary remixes of that artwork — the existing parent_artwork_id
+-- relationship, fork mechanism, and tree-building logic all work
+-- unmodified. Publicly readable by everyone; only admins can create or
+-- manage them.
+-- ---------------------------------------------------------------------------
+create table if not exists public.contests (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text not null,
+  base_artwork_id uuid not null references public.artworks(id) on delete cascade,
+  deadline timestamptz,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.contests enable row level security;
+
+create policy "Contests are publicly readable"
+  on public.contests for select
+  using (true);
+
+create policy "Only admins can create contests"
+  on public.contests for insert
+  with check (
+    exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );
+
+create policy "Only admins can update contests"
+  on public.contests for update
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );
+
+create policy "Only admins can delete contests"
+  on public.contests for delete
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );

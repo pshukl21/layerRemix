@@ -32,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
   }, [menuOpen]);
 
   const isExplore = location.pathname === '/';
+  const isContests = location.pathname.startsWith('/contests');
   const isProfile = location.pathname === '/profile';
   const isUpload = location.pathname === '/upload';
 
@@ -69,6 +70,14 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
             }`}
           >
             Explore Art
+          </Link>
+          <Link
+            to="/contests"
+            className={`font-semibold transition-colors duration-200 text-sm ${
+              isContests ? 'text-blue-600 border-b-2 border-blue-600 pb-1 mt-1' : 'text-slate-600 hover:text-blue-600'
+            }`}
+          >
+            Contests
           </Link>
         </nav>
       </div>
