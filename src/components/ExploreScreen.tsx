@@ -396,29 +396,6 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     />
                   </button>
 
-                  {/* Open-challenge badges — floating directly on the image
-                      itself (not in the info block below), so cards are a
-                      consistent height whether or not a piece has any. Sits
-                      behind the hover overlay, so it's naturally replaced by
-                      the Fork/Download action on hover. */}
-                  {art.openChallenges.length > 0 && (
-                    <div className="absolute bottom-2 left-2 z-[5] flex flex-wrap gap-1 max-w-[calc(100%-1rem)]">
-                      {art.openChallenges.slice(0, 2).map((challenge) => (
-                        <span
-                          key={challenge}
-                          className="px-1.5 py-0.5 bg-amber-50/95 backdrop-blur-xs border border-amber-200 text-amber-700 rounded text-[9px] font-bold tracking-wide shadow-sm"
-                        >
-                          {challenge}
-                        </span>
-                      ))}
-                      {art.openChallenges.length > 2 && (
-                        <span className="px-1.5 py-0.5 bg-white/95 backdrop-blur-xs border border-slate-200 text-slate-500 rounded text-[9px] font-bold shadow-sm">
-                          +{art.openChallenges.length - 2}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
                   {/* Hover quick actions */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 gap-2">
                     <button
