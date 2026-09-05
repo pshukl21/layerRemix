@@ -9,7 +9,7 @@ import { BeforeAfterSlider } from './BeforeAfterSlider';
 interface ExploreScreenProps {
   artworks: Artwork[];
   searchQuery: string;
-  setSearchQuery: (query: string) => void;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   onSelectArtwork: (artworkId: string) => void;
   favoriteIds: Set<string>;
   onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
@@ -123,21 +123,23 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
   // Hot tag clicks
   const handleTagClick = (tag: string) => {
-    setSearchQuery(tag);
+    setSearchQuery((prev) => (prev.toLowerCase() === tag.toLowerCase() ? '' : tag));
   };
 
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
       {/* Hero Section — kept deliberately compact: this is a signpost, not
-          the main event. Same max-width container as the grid below, so
-          the card doesn't look oversized relative to it. */}
-      <section className="relative overflow-hidden rounded-xl max-w-7xl mx-auto my-4 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
-        <div className="relative z-10 px-6 md:px-12 py-6 grid md:grid-cols-2 gap-6 md:gap-10 items-center">
-          {/* Copy + CTAs */}
-          <motion.div
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
+          the main event. Wrapped in the exact same max-w-7xl + px-6/px-12
+          outer container as <main> below, so the card's edges land on the
+          identical bounds as the grid/tabs, not just the same max-width. */}
+      <div className="max-w-7xl mx-auto px-6 md:px-12">
+        <section className="relative overflow-hidden rounded-xl my-4 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
+          <div className="relative z-10 px-6 md:px-12 py-6 grid md:grid-cols-2 gap-6 md:gap-10 items-center">
+            {/* Copy + CTAs */}
+            <motion.div
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
             className="text-center md:text-left"
           >
             <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-200/50 mb-3">
@@ -169,15 +171,22 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             {hotTags.length > 0 && (
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-5">
                 <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
-                {hotTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => handleTagClick(tag)}
-                    className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3 py-1 rounded-md transition-all cursor-pointer uppercase"
-                  >
-                    #{tag}
-                  </button>
-                ))}
+                {hotTags.map((tag) => {
+                  const isActive = searchQuery.toLowerCase() === tag.toLowerCase();
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => handleTagClick(tag)}
+                      className={`text-[11px] font-bold px-3 py-1 rounded-md transition-all cursor-pointer uppercase border ${
+                        isActive
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border-slate-200'
+                      }`}
+                    >
+                      #{tag}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </motion.div>
@@ -215,6 +224,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           </motion.div>
         </div>
       </section>
+      </div>
 
       {/* Main Grid Content */}
       <main className="max-w-7xl mx-auto px-6 md:px-12 py-8">
