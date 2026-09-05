@@ -368,10 +368,10 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
       <header className="mb-12 mt-4 text-center md:text-left">
         <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 mb-2 font-sans">
-          Publish New Work
+          Publish Your Unfinished PSD
         </h1>
         <p className="text-sm md:text-base text-slate-500 font-semibold">
-          Share your latest masterpiece with the LayerRemix community.
+          Share a PSD you never finished — the LayerRemix community can help you complete it.
         </p>
       </header>
 
