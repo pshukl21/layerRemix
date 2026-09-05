@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Layers, HardDrive, Move, MousePointer2, Crop, Pipette, Paintbrush, Eraser, PenTool, Type, Hand } from 'lucide-react';
+import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Layers, HardDrive, Move, MousePointer2, Crop, Pipette, Paintbrush, Eraser, PenTool, Type, Hand, Trophy } from 'lucide-react';
 import { Artwork } from '../types';
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
@@ -209,6 +209,13 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
               >
                 <Upload className="w-4 h-4" />
                 Drop a PSD
+              </button>
+              <button
+                onClick={() => navigate('/contests')}
+                className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Trophy className="w-4 h-4" />
+                Contests
               </button>
             </div>
 
