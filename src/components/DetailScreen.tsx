@@ -835,10 +835,10 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           transition={{ duration: 0.3 }}
         >
           {/* Main Art Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
             {/* Left column: Image showcase as a Photoshop-style "canvas window" */}
-            <div className="lg:col-span-6 flex flex-col gap-6">
-              <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all max-w-[460px] mx-auto w-full">
+            <div className="lg:col-span-6 flex flex-col gap-6 h-full">
+              <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all max-w-[460px] mx-auto w-full flex flex-col h-full">
                 {/* Document tab bar, Photoshop-style */}
                 <div className="flex items-center gap-2 bg-[#3f3f46] px-4 py-2 border-b border-zinc-600">
                   <button
@@ -861,14 +861,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <div className="w-[22px] h-[22px] shrink-0 bg-[#27272a] border-r border-b border-zinc-600" />
                   <RulerH />
                 </div>
-                <div className="flex">
+                <div className="flex flex-1 min-h-0">
                   {/* Vertical ruler */}
                   <RulerV />
 
                   <div
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
-                    className="flex-1 aspect-[4/5] overflow-hidden bg-white p-1.5 cursor-crosshair relative"
+                    className="flex-1 min-h-[320px] max-h-[600px] overflow-hidden bg-white p-1.5 cursor-crosshair relative"
                   >
                     <div className="w-full h-full rounded-md overflow-hidden relative ps-marching-ants">
                       <img
