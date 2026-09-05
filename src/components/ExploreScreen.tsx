@@ -17,6 +17,8 @@ interface ExploreScreenProps {
   heroBeforeImageUrl: string | null;
   heroAfterImageUrl: string | null;
   onUpdateHeroImage: (side: 'before' | 'after', file: File) => Promise<{ error: string | null }>;
+  heroDownloadUrl: string | null;
+  onUpdateHeroDownloadUrl: (url: string) => Promise<{ error: string | null }>;
 }
 
 type TabType = 'all' | 'originals' | 'remixes' | 'trending';
@@ -38,6 +40,8 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   heroBeforeImageUrl,
   heroAfterImageUrl,
   onUpdateHeroImage,
+  heroDownloadUrl,
+  onUpdateHeroDownloadUrl,
 }) => {
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('all');
@@ -45,6 +49,9 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   const [activeChallengeFilter, setActiveChallengeFilter] = useState<string | null>(null);
   const [uploadingHeroSide, setUploadingHeroSide] = useState<'before' | 'after' | null>(null);
   const [heroUpdateError, setHeroUpdateError] = useState<string | null>(null);
+  const [editingDownloadLink, setEditingDownloadLink] = useState(false);
+  const [downloadLinkDraft, setDownloadLinkDraft] = useState('');
+  const [savingDownloadLink, setSavingDownloadLink] = useState(false);
   const navigate = useNavigate();
   const gridRef = useRef<HTMLDivElement>(null);
   const scrollToGrid = () => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -58,6 +65,23 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
     const { error } = await onUpdateHeroImage(side, file);
     setUploadingHeroSide(null);
     if (error) setHeroUpdateError(error);
+  };
+
+  const openDownloadLinkEditor = () => {
+    setDownloadLinkDraft(heroDownloadUrl || '');
+    setEditingDownloadLink(true);
+  };
+
+  const saveDownloadLink = async () => {
+    setSavingDownloadLink(true);
+    setHeroUpdateError(null);
+    const { error } = await onUpdateHeroDownloadUrl(downloadLinkDraft.trim());
+    setSavingDownloadLink(false);
+    if (error) {
+      setHeroUpdateError(error);
+      return;
+    }
+    setEditingDownloadLink(false);
   };
 
   // How many gallery cards to actually render at once. Rendering hundreds
@@ -131,11 +155,11 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
       {/* Hero Section — kept deliberately compact: this is a signpost, not
-          the main event. The art grid below is the actual focus. */}
-      <section className="relative overflow-hidden border-b border-slate-100">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-white" />
-
-        <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 py-6 md:py-8 grid md:grid-cols-2 gap-6 md:gap-10 items-center">
+          the main event. The art grid below is the actual focus. Restored
+          the original "contained card" look (rounded, inset, bordered)
+          rather than a full-bleed band. */}
+      <section className="relative overflow-hidden rounded-xl mx-4 md:mx-12 my-4 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
+        <div className="relative z-10 px-6 md:px-12 py-6 md:py-8 grid md:grid-cols-2 gap-6 md:gap-10 items-center">
           {/* Copy + CTAs */}
           <motion.div
             initial={{ opacity: 0, x: -16 }}
@@ -186,8 +210,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           </motion.div>
 
           {/* Compact before/after demo — no filename labels (just the pure
-              visual comparison). Falls back to the static placeholder
-              images until an admin uploads real ones. */}
+              visual comparison). */}
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -228,6 +251,59 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 ))}
               </div>
             )}
+
+            {/* Download button — same styling as the card hover action.
+                URL is admin-settable; hidden entirely for regular visitors
+                until an admin has set one. */}
+            {heroDownloadUrl && !editingDownloadLink && (
+              <a
+                href={heroDownloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+              >
+                <GitFork className="w-3.5 h-3.5" />
+                Fork / Download PSD
+              </a>
+            )}
+
+            {profile?.isAdmin && (
+              <div className="mt-2">
+                {editingDownloadLink ? (
+                  <div className="flex gap-1.5">
+                    <input
+                      autoFocus
+                      value={downloadLinkDraft}
+                      onChange={(e) => setDownloadLinkDraft(e.target.value)}
+                      placeholder="https://... link for the download button"
+                      className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+                    />
+                    <button
+                      onClick={saveDownloadLink}
+                      disabled={savingDownloadLink}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-[11px] rounded-lg cursor-pointer transition-all shrink-0"
+                    >
+                      {savingDownloadLink ? '...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditingDownloadLink(false)}
+                      className="px-3 py-2 bg-white border border-slate-200 text-slate-600 font-bold text-[11px] rounded-lg cursor-pointer transition-all shrink-0"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={openDownloadLinkEditor}
+                    className="w-full text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase tracking-widest flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    {heroDownloadUrl ? 'Change download link' : 'Set a download link'}
+                  </button>
+                )}
+              </div>
+            )}
+
             {heroUpdateError && (
               <p className="text-[10px] font-semibold text-red-600 text-center mt-1.5">{heroUpdateError}</p>
             )}

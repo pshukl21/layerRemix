@@ -485,10 +485,14 @@ create table if not exists public.site_settings (
   id boolean primary key default true check (id),
   hero_before_image_path text,
   hero_after_image_path text,
+  hero_download_url text,
   updated_at timestamptz not null default now()
 );
 
 insert into public.site_settings (id) values (true) on conflict (id) do nothing;
+
+-- Safe to run standalone if site_settings already existed before this column did.
+alter table public.site_settings add column if not exists hero_download_url text;
 
 alter table public.site_settings enable row level security;
 

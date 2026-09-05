@@ -15,7 +15,7 @@ import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
 import { fetchArtworks, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds } from './lib/artworks';
-import { fetchSiteSettings, updateHeroImage, SiteSettings } from './lib/siteSettings';
+import { fetchSiteSettings, updateHeroImage, updateHeroDownloadUrl, SiteSettings } from './lib/siteSettings';
 
 interface PublishInput {
   title: string;
@@ -151,7 +151,7 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'signIn' | 'signUp'>('signIn');
   const [needCreditsModalOpen, setNeedCreditsModalOpen] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ heroBeforeImageUrl: null, heroAfterImageUrl: null });
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ heroBeforeImageUrl: null, heroAfterImageUrl: null, heroDownloadUrl: null });
   const [creditsBannerDismissed, setCreditsBannerDismissed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -217,6 +217,16 @@ export default function App() {
   // the settings on success so the new image shows immediately.
   const handleUpdateHeroImage = async (side: 'before' | 'after', file: File): Promise<{ error: string | null }> => {
     const { error } = await updateHeroImage(side, file);
+    if (error) {
+      return { error };
+    }
+    const fresh = await fetchSiteSettings();
+    setSiteSettings(fresh);
+    return { error: null };
+  };
+
+  const handleUpdateHeroDownloadUrl = async (url: string): Promise<{ error: string | null }> => {
+    const { error } = await updateHeroDownloadUrl(url);
     if (error) {
       return { error };
     }
@@ -426,6 +436,8 @@ export default function App() {
                     heroBeforeImageUrl={siteSettings.heroBeforeImageUrl}
                     heroAfterImageUrl={siteSettings.heroAfterImageUrl}
                     onUpdateHeroImage={handleUpdateHeroImage}
+                    heroDownloadUrl={siteSettings.heroDownloadUrl}
+                    onUpdateHeroDownloadUrl={handleUpdateHeroDownloadUrl}
                   />
                 }
               />
