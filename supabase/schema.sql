@@ -79,6 +79,11 @@ create table if not exists public.artworks (
   forks integer not null default 0,
   views integer not null default 0,
   resolution text default '',
+  -- Real layer count and original file size, captured at publish time —
+  -- shown as a badge on cards ("12 Layers · 142 MB"). Null for legacy rows
+  -- published before these existed.
+  layer_count integer,
+  file_size_bytes bigint,
   -- Where the crop should focus when this preview is shown cropped (e.g.
   -- gallery cards). Percentages, 0-100; 50/50 is dead center. Only affects
   -- cropping/positioning — never changes which image is actually shown.
@@ -116,6 +121,8 @@ alter table public.artworks add column if not exists focal_x real not null defau
 alter table public.artworks add column if not exists focal_y real not null default 50;
 alter table public.artworks add column if not exists file_hash text;
 alter table public.artworks add column if not exists open_challenges text[] not null default '{}';
+alter table public.artworks add column if not exists layer_count integer;
+alter table public.artworks add column if not exists file_size_bytes bigint;
 
 -- Partial unique index: enforces "no two artworks share the same file
 -- hash" as a hard database-level backstop, while still allowing any

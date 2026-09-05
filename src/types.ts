@@ -11,6 +11,8 @@ export interface Artwork {
   hearts: string;
   tags: string[];
   openChallenges: string[];
+  layerCount: number | null;
+  fileSizeBytes: number | null;
   type: 'Original' | 'Remix';
   parentArtworkId?: string;
   parentAuthor?: string;

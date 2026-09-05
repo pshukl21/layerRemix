@@ -27,6 +27,8 @@ interface DetailScreenProps {
     description: string;
     tags: string[];
     openChallenges: string[];
+    layerCount: number | null;
+    fileSizeBytes: number | null;
     previewFile: File;
     sourceFilePath: string | null;
     sourceFileName: string | null;
@@ -37,7 +39,15 @@ interface DetailScreenProps {
   }) => Promise<{ error: string | null }>;
   onUpdateArtwork?: (
     artworkId: string,
-    updates: { title: string; description: string; tags: string[]; newPreviewFile: File | null }
+    updates: {
+      title: string;
+      description: string;
+      tags: string[];
+      openChallenges: string[];
+      newPreviewFile: File | null;
+      focalX: number;
+      focalY: number;
+    }
   ) => Promise<{ error: string | null }>;
   onDeleteArtwork?: (artworkId: string) => Promise<{ error: string | null }>;
 }
@@ -160,6 +170,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [forkFocalX, setForkFocalX] = useState(50);
   const [forkFocalY, setForkFocalY] = useState(50);
   const [forkFileHash, setForkFileHash] = useState<string | null>(null);
+  const [forkPublishLayerCount, setForkPublishLayerCount] = useState<number | null>(null);
+  const [forkPublishFileSizeBytes, setForkPublishFileSizeBytes] = useState<number | null>(null);
   const [forkHadColorIssue, setForkHadColorIssue] = useState(false);
   const [forkPsdRealDimensions, setForkPsdRealDimensions] = useState<{ width: number; height: number } | null>(null);
   const [forkManualPreviewFile, setForkManualPreviewFile] = useState<File | null>(null);
@@ -194,6 +206,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkFocalX(50);
     setForkFocalY(50);
     setForkFileHash(null);
+    setForkPublishLayerCount(null);
+    setForkPublishFileSizeBytes(null);
   }, [artwork.id]);
 
   // Count a view once per visit to this artwork's page. Demo content is
@@ -325,6 +339,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkFocalX(50);
     setForkFocalY(50);
     setForkFileHash(null);
+    setForkPublishLayerCount(null);
+    setForkPublishFileSizeBytes(null);
     setForkHadColorIssue(false);
     setForkPsdRealDimensions(null);
     setForkManualPreviewFile(null);
@@ -355,6 +371,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     const { thumbnail, layerCount, hadColorIssue: colorIssue } = await analyzePsd(file);
     setForkExtracting(false);
     setForkHadColorIssue(colorIssue);
+    setForkPublishLayerCount(layerCount);
+    setForkPublishFileSizeBytes(file.size);
 
     if (colorIssue) {
       const psdInfo = await parsePsdHeader(file);
@@ -483,6 +501,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         description: forkDescription,
         tags: forkTags.split(',').map(t => t.trim()).filter(Boolean),
         openChallenges: forkSelectedChallenges,
+        layerCount: forkPublishLayerCount,
+        fileSizeBytes: forkPublishFileSizeBytes,
         previewFile: (forkManualPreviewFile || forkThumbnail) as File,
         sourceFilePath: forkUploadedSourcePath,
         sourceFileName: forkPsdFile.name,

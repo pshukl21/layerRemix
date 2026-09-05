@@ -21,6 +21,8 @@ interface PublishInput {
   description: string;
   tags: string[];
   openChallenges: string[];
+  layerCount: number | null;
+  fileSizeBytes: number | null;
   previewFile: File;
   sourceFilePath: string | null;
   sourceFileName: string | null;

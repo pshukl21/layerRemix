@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart } from 'lucide-react';
+import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Layers, HardDrive, Eye } from 'lucide-react';
 import { Artwork } from '../types';
 import { OPEN_CHALLENGES } from '../lib/challenges';
+import { BeforeAfterSlider } from './BeforeAfterSlider';
 
 interface ExploreScreenProps {
   artworks: Artwork[];
@@ -15,6 +16,13 @@ interface ExploreScreenProps {
 }
 
 type TabType = 'all' | 'originals' | 'remixes' | 'trending';
+type SortType = 'recent' | 'downloaded';
+
+function formatFileSize(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  if (mb < 1) return `${Math.round(bytes / 1024)} KB`;
+  return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
+}
 
 export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   artworks,
@@ -25,8 +33,11 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   onToggleFavorite,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [sortBy, setSortBy] = useState<SortType>('recent');
   const [activeChallengeFilter, setActiveChallengeFilter] = useState<string | null>(null);
-  const [localSearch, setLocalSearch] = useState('');
+  const navigate = useNavigate();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const scrollToGrid = () => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // How many gallery cards to actually render at once. Rendering hundreds
   // of animated cards into the DOM at once is the real performance cost
@@ -34,17 +45,10 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   const PAGE_SIZE = 24;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Combine parent search with local hero search
-  const handleHeroSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearchQuery(localSearch);
-  };
-
-  const activeSearch = searchQuery || localSearch;
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [activeTab, activeSearch]);
+  }, [activeTab, searchQuery]);
 
   // Real "hot tags": count how often each tag appears across every original artwork
   const hotTags = useMemo(() => {
@@ -79,8 +83,8 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       return art.openChallenges.includes(activeChallengeFilter);
     })
     .filter((art) => {
-      if (!activeSearch) return true;
-      const lowerSearch = activeSearch.toLowerCase();
+      if (!searchQuery) return true;
+      const lowerSearch = searchQuery.toLowerCase();
       const matchTitle = art.title.toLowerCase().includes(lowerSearch);
       const matchAuthor = art.author.toLowerCase().includes(lowerSearch);
       const matchTags = art.tags.some((t) => t.toLowerCase().includes(lowerSearch));
@@ -92,100 +96,113 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
         if (heartsDiff !== 0) return heartsDiff;
         return (Number(b.downloads) || 0) - (Number(a.downloads) || 0);
       }
+      if (sortBy === 'downloaded') {
+        return (Number(b.downloads) || 0) - (Number(a.downloads) || 0);
+      }
       return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     });
 
   // Hot tag clicks
   const handleTagClick = (tag: string) => {
-    setLocalSearch(tag);
     setSearchQuery(tag);
   };
 
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
-      {/* Hero Section styled as a premium Large Bento Card */}
-      <section className="relative h-auto min-h-[210px] md:min-h-[260px] py-5 flex flex-col justify-center items-center text-center px-6 overflow-hidden rounded-xl mx-4 md:mx-12 my-4 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
-        {/* Decorative Bento Grid Line Overlays */}
-        <div className="absolute inset-0 opacity-[0.14] pointer-events-none ps-grid-bg" />
-        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-500/5 blur-[120px]" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-500/10 blur-[120px]" />
+      {/* Hero Section — split layout: copy + CTAs on one side, an
+          interactive before/after demo on the other. Background is a soft
+          neutral texture (not a technical grid) so the artwork itself
+          stays the visual focus. */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-white to-white" />
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(100,116,139,0.15) 1px, transparent 0)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-500/5 blur-[120px]" />
+        <div className="absolute -bottom-32 -right-24 w-96 h-96 rounded-full bg-indigo-500/5 blur-[120px]" />
 
-        {/* Centered Hero Content Container */}
-        <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="mb-1.5 inline-flex items-center justify-center"
+        <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 py-14 md:py-20 grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+          {/* Copy + CTAs */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center md:text-left"
           >
-            <span className="bg-blue-100 text-blue-600 px-2.5 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider shadow-2xs border border-blue-200/50">
-              🎨 OPEN-SOURCE ARTWORK
+            <span className="inline-block bg-blue-100 text-blue-600 px-2.5 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border border-blue-200/50 mb-4">
+              🎨 Open-Source Artwork
             </span>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-tight mb-4">
+              Where scrapped PSDs become finished art.
+            </h1>
+            <p className="text-sm md:text-base text-slate-500 font-semibold leading-relaxed mb-7 max-w-md mx-auto md:mx-0">
+              Upload unfinished PSDs, download real source layers, and turn dormant projects into finished artwork.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+              <button
+                onClick={scrollToGrid}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                Explore Remixes
+                <ArrowDown className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => navigate('/upload')}
+                className="bg-white border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-600 font-bold text-sm px-6 py-3 rounded-xl shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Drop a PSD
+              </button>
+            </div>
+
+            {hotTags.length > 0 && (
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-6">
+                <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
+                {hotTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => handleTagClick(tag)}
+                    className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3.5 py-1 rounded-md transition-all cursor-pointer capitalize"
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="w-full max-w-full text-center whitespace-normal sm:whitespace-nowrap text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 mb-1.5 font-sans leading-tight"
-          >
-            Where scrapped PSDs become finished art.
-          </motion.h1>
-
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-[11px] md:text-sm text-slate-500 max-w-2xl mx-auto mb-3 font-semibold leading-relaxed"
-          >
-            Upload unfinished PSDs, download source layers, and turn dormant projects into final artwork.
-          </motion.p>
-
-          {/* Hero Search Bar */}
-          <motion.form 
-            onSubmit={handleHeroSearchSubmit}
+          {/* Interactive before/after demo — drag to compare. Swap
+              /hero-before.png and /hero-after.png in /public for your own
+              real example whenever you're ready; these are placeholders. */}
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="w-full max-w-xl mx-auto bg-slate-100/90 backdrop-blur-md rounded-full p-1 flex items-center border border-slate-200 shadow-md focus-within:border-blue-600 focus-within:bg-white transition-all"
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="max-w-sm mx-auto w-full"
           >
-            <input
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
-              className="flex-grow bg-transparent border-none focus:outline-none focus:ring-0 text-sm px-6 text-slate-800 placeholder-slate-400 font-semibold"
-              placeholder="Search by tag: abstract, 3D, neon..."
-              type="text"
+            <BeforeAfterSlider
+              beforeImage="/hero-before.png"
+              afterImage="/hero-after.png"
+              beforeLabel="Scrapped WIP"
+              afterLabel="Finished Remix"
+              className="shadow-xl border border-slate-200"
             />
-            <button 
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-md"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-          </motion.form>
-
-          {/* Hot Tags suggestion */}
-          {hotTags.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-              <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
-              {hotTags.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => handleTagClick(tag)}
-                  className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3.5 py-1 rounded-md transition-all cursor-pointer capitalize"
-                >
-                  #{tag}
-                </button>
-              ))}
-            </div>
-          )}
+            <p className="text-center text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-3">
+              Drag to compare
+            </p>
+          </motion.div>
         </div>
       </section>
 
       {/* Main Grid Content */}
       <main className="max-w-7xl mx-auto px-6 md:px-12 py-8">
-        {/* Navigation Filters */}
-        <div className="flex items-center mb-8 overflow-x-auto">
+        {/* Filter bar — docked directly above the grid: type tabs, a
+            separate sort control, and the "what's needed" browse row. */}
+        <div className="flex flex-wrap items-center gap-3 mb-6">
           <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm whitespace-nowrap">
             {(['all', 'trending', 'originals', 'remixes'] as TabType[]).map((tab) => (
               <button
@@ -210,6 +227,23 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 </span>
               </button>
             ))}
+          </div>
+
+          {/* Sort — independent of the type tabs above (Trending already has
+              its own fixed sort, so this only applies to All/Originals/Remixes). */}
+          <div className="flex items-center gap-2 ml-auto">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Sort
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortType)}
+              disabled={activeTab === 'trending'}
+              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:border-blue-600"
+            >
+              <option value="recent">Most Recent</option>
+              <option value="downloaded">Most Downloaded</option>
+            </select>
           </div>
         </div>
 
@@ -243,85 +277,112 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           <div className="py-24 text-center bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
             <p className="text-slate-400 text-sm mb-2 font-semibold">No artwork matches your search criteria.</p>
             <button 
-              onClick={() => { setLocalSearch(''); setSearchQuery(''); }}
+              onClick={() => setSearchQuery('')}
               className="text-blue-600 text-xs font-bold hover:underline"
             >
               Reset all search filters
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">
+          <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16 scroll-mt-24">
             {filteredArtworks.slice(0, visibleCount).map((art) => (
               <motion.div
                 key={art.id}
                 layout
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.3 }}
-                className="group relative flex flex-col gap-4 p-3 bg-white border border-slate-200 hover:border-blue-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
+                className="group relative flex flex-col bg-white border border-slate-200 hover:border-blue-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
               >
-                {/* Image Wrap */}
-                <div className="rounded-lg border border-slate-200 overflow-hidden">
-                  <div className="flex items-center gap-1.5 bg-[#3f3f46] px-2.5 py-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 shrink-0" />
-                    <span className="text-[9px] font-bold text-zinc-200 truncate ps-stat">{art.title}.psd</span>
-                    <span className="flex-1" />
-                    <span
-                      className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0 ${
-                        art.type === 'Remix' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-blue-500/20 text-blue-300'
-                      }`}
-                    >
-                      {art.type === 'Remix' ? 'Remix' : 'Original'}
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => onSelectArtwork(art.id)}
-                    className="aspect-[4/5] overflow-hidden relative cursor-pointer"
+                {/* Image — bleeds edge-to-edge, no info bar cutting into it.
+                    Only a small floating type badge + the favorite heart
+                    sit on top of the art itself. */}
+                <div
+                  onClick={() => onSelectArtwork(art.id)}
+                  className="aspect-[4/5] overflow-hidden relative cursor-pointer"
+                >
+                  <img
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    style={{ objectPosition: `${art.focalX ?? 50}% ${art.focalY ?? 50}%` }}
+                    src={art.image}
+                    alt={art.title}
+                    referrerPolicy="no-referrer"
+                  />
+
+                  <span
+                    className={`absolute top-2.5 left-2.5 z-10 text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md backdrop-blur-xs ${
+                      art.type === 'Remix' ? 'bg-indigo-500/80 text-white' : 'bg-blue-600/80 text-white'
+                    }`}
                   >
-                    <div className="w-full h-full overflow-hidden relative">
-                      <img
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        style={{ objectPosition: `${art.focalX ?? 50}% ${art.focalY ?? 50}%` }}
-                        src={art.image}
-                        alt={art.title}
-                        referrerPolicy="no-referrer"
-                      />
+                    {art.type === 'Remix' ? 'Remix' : 'Original'}
+                  </span>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFavorite(art.id);
+                    }}
+                    title={favoriteIds.has(art.id) ? 'Remove from favorites' : 'Add to favorites'}
+                    className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-slate-950/50 backdrop-blur-xs flex items-center justify-center hover:bg-slate-950/70 transition-all active:scale-90 cursor-pointer"
+                  >
+                    <Heart
+                      className={`w-4 h-4 transition-colors ${
+                        favoriteIds.has(art.id) ? 'fill-red-500 text-red-500' : 'text-white'
+                      }`}
+                    />
+                  </button>
+
+                  {/* Hover quick actions */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 gap-2">
+                    <div className="flex gap-2">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleFavorite(art.id);
-                        }}
-                        title={favoriteIds.has(art.id) ? 'Remove from favorites' : 'Add to favorites'}
-                        className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-slate-950/50 backdrop-blur-xs flex items-center justify-center hover:bg-slate-950/70 transition-all active:scale-90 cursor-pointer"
+                        onClick={() => onSelectArtwork(art.id)}
+                        className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                       >
-                        <Heart
-                          className={`w-4 h-4 transition-colors ${
-                            favoriteIds.has(art.id) ? 'fill-red-500 text-red-500' : 'text-white'
-                          }`}
-                        />
+                        <GitFork className="w-3.5 h-3.5" />
+                        Fork / Download PSD
                       </button>
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                        <button
-                          onClick={() => onSelectArtwork(art.id)}
-                          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                        >
-                          View Project
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => onSelectArtwork(art.id)}
+                        title="Quick preview"
+                        className="w-10 shrink-0 bg-white/15 hover:bg-white/25 backdrop-blur-xs rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4 text-white" />
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Info block */}
-                <div className="px-1 pb-1 flex flex-col">
-                  <h3 
+                {/* Info block — title, metadata, author, attribution, stats.
+                    Everything about the piece lives here, below the art. */}
+                <div className="p-3.5 flex flex-col gap-2">
+                  <h3
                     onClick={() => onSelectArtwork(art.id)}
-                    className="font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer text-sm truncate mb-0.5"
+                    className="font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer text-sm truncate"
                   >
                     {art.title}
                   </h3>
+
+                  {/* Layer count / file size badge */}
+                  {(art.layerCount || art.fileSizeBytes) && (
+                    <div className="flex items-center gap-2.5 text-[10px] font-bold text-slate-400">
+                      {art.layerCount && (
+                        <span className="flex items-center gap-1">
+                          <Layers className="w-3 h-3" />
+                          {art.layerCount} Layers
+                        </span>
+                      )}
+                      {art.layerCount && art.fileSizeBytes && <span className="text-slate-300">•</span>}
+                      {art.fileSizeBytes && (
+                        <span className="flex items-center gap-1">
+                          <HardDrive className="w-3 h-3" />
+                          {formatFileSize(art.fileSizeBytes)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {art.openChallenges.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-1.5">
+                    <div className="flex flex-wrap gap-1">
                       {art.openChallenges.slice(0, 2).map((challenge) => (
                         <span
                           key={challenge}
@@ -337,7 +398,20 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                       )}
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
+
+                  {/* Remix attribution — links back to the original */}
+                  {art.type === 'Remix' && art.parentArtworkId && art.parentAuthor && (
+                    <Link
+                      to={`/art/${art.parentArtworkId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-700 hover:underline w-fit"
+                    >
+                      <GitFork className="w-3 h-3" />
+                      remixed from @{art.parentAuthor}
+                    </Link>
+                  )}
+
+                  <div className="flex items-center justify-between pt-0.5">
                     <Link
                       to={`/profile/${art.author}`}
                       onClick={(e) => e.stopPropagation()}
@@ -350,7 +424,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                         <Download className="w-3.5 h-3.5" />
                         <span>{art.downloads}</span>
                       </div>
-                      <div className="flex items-center gap-1" title="Forks">
+                      <div className="flex items-center gap-1" title="Times remixed">
                         <GitFork className="w-3.5 h-3.5" />
                         <span>{art.forks}</span>
                       </div>

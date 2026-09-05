@@ -14,6 +14,8 @@ interface UploadScreenProps {
     description: string;
     tags: string[];
     openChallenges: string[];
+    layerCount: number | null;
+    fileSizeBytes: number | null;
     previewFile: File;
     sourceFilePath: string | null;
     sourceFileName: string | null;
@@ -49,6 +51,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const [extracting, setExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [fileHash, setFileHash] = useState<string | null>(null);
+  const [publishLayerCount, setPublishLayerCount] = useState<number | null>(null);
+  const [publishFileSizeBytes, setPublishFileSizeBytes] = useState<number | null>(null);
   // Set only when the HD preview extraction hit the specific "collapsed to
   // grayscale" failure mode — narrowly allows a manual preview override,
   // unlike the general "no embedded preview at all" case which stays fully
@@ -137,6 +141,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     setFocalX(50);
     setFocalY(50);
     setFileHash(null);
+    setPublishLayerCount(null);
+    setPublishFileSizeBytes(null);
     setHadColorIssue(false);
     setPsdRealDimensions(null);
     setManualPreviewFile(null);
@@ -169,6 +175,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     }
 
     const { thumbnail, layerCount, hadColorIssue: colorIssue } = await analyzePsd(file);
+    setPublishLayerCount(layerCount);
+    setPublishFileSizeBytes(file.size);
     setExtracting(false);
     setHadColorIssue(colorIssue);
 
@@ -327,6 +335,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       description: description.trim(),
       tags: tagsArray,
       openChallenges: selectedChallenges,
+      layerCount: publishLayerCount,
+      fileSizeBytes: publishFileSizeBytes,
       previewFile: (manualPreviewFile || extractedThumbnail) as File,
       sourceFilePath: uploadedSourcePath,
       sourceFileName: psdFile.name,

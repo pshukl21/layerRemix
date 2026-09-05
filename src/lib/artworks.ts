@@ -8,6 +8,8 @@ interface ArtworkRow {
   description: string;
   tags: string[];
   open_challenges: string[];
+  layer_count: number | null;
+  file_size_bytes: number | null;
   image_path: string;
   source_file_path: string | null;
   source_file_name: string | null;
@@ -54,6 +56,8 @@ function rowToArtwork(row: ArtworkRow, parentUsername?: string): Artwork {
     hearts: String(row.hearts_count ?? 0),
     tags: row.tags,
     openChallenges: row.open_challenges || [],
+    layerCount: row.layer_count,
+    fileSizeBytes: row.file_size_bytes,
     type: row.type,
     parentArtworkId: row.parent_artwork_id || undefined,
     parentAuthor: parentUsername,
@@ -156,6 +160,8 @@ interface PublishInput {
   description: string;
   tags: string[];
   openChallenges: string[];
+  layerCount: number | null;
+  fileSizeBytes: number | null;
   previewFile: File;
   // The source file (zipped PSD) is uploaded up-front, with progress shown
   // to the user, well before "Publish" is clicked — so by this point we
@@ -195,6 +201,8 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
       description: input.description,
       tags: input.tags,
       open_challenges: input.openChallenges,
+      layer_count: input.layerCount,
+      file_size_bytes: input.fileSizeBytes,
       image_path: previewPath,
       source_file_path: input.sourceFilePath,
       source_file_name: input.sourceFileName,

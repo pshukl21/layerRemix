@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Upload, Search, LogOut, Coins } from 'lucide-react';
+import { Upload, Search, LogOut, Coins, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR } from '../lib/artworks';
 
@@ -13,6 +14,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequireAuth }) => {
   const { user, profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [creditPromptDismissed, setCreditPromptDismissed] = useState(false);
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,14 +103,39 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
 
           {user ? (
             <div ref={menuContainerRef} className="relative flex items-center gap-2.5">
-              <button
-                onClick={handleAvatarClick}
-                title="Download credits"
-                className="hidden sm:flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-amber-100 transition-colors"
-              >
-                <Coins className="w-3.5 h-3.5" />
-                {profile?.credits ?? 0}
-              </button>
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={handleAvatarClick}
+                  title="Download credits"
+                  className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-amber-100 transition-colors"
+                >
+                  <Coins className="w-3.5 h-3.5" />
+                  {profile?.credits ?? 0}
+                </button>
+
+                {/* Native, in-navbar incentive nudge — replaces a separate
+                    top-of-page banner. Only shown for 0-credit users, and
+                    dismissible so it doesn't nag forever. */}
+                <AnimatePresence>
+                  {(profile?.credits ?? 0) === 0 && !creditPromptDismissed && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      className="absolute right-0 top-full mt-2 w-52 bg-slate-900 text-white text-[11px] font-semibold leading-snug rounded-lg px-3 py-2.5 shadow-lg z-30"
+                    >
+                      <button
+                        onClick={() => setCreditPromptDismissed(true)}
+                        className="absolute top-1.5 right-1.5 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <span className="pr-3 block">Upload your first PSD to earn a credit.</span>
+                      <div className="absolute -top-1 right-4 w-2 h-2 bg-slate-900 rotate-45" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               <div
                 onClick={handleAvatarClick}
                 className={`w-9 h-9 rounded-full border overflow-hidden cursor-pointer hover:border-blue-600 transition-all ${
