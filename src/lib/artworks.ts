@@ -312,50 +312,41 @@ export async function updateArtwork(
 // Falls back to the preview image if no source file was uploaded (e.g. demo seed art).
 export function getDownloadTarget(artwork: Artwork): { url: string; filename: string } {
   if (artwork.sourceFilePath) {
-    const { publicUrl } = supabase.storage.from(SOURCE_FILES_BUCKET).getPublicUrl(artwork.sourceFilePath).data;
     // The stored file is always a .zip (containing the original .psd) — the
     // suggested download filename needs to match that, or the browser saves
     // a file with a .psd extension that's actually zip-archive bytes inside.
     const baseName = (artwork.sourceFileName || artwork.title).replace(/\.[^./\\]+$/, '');
-    return { url: publicUrl, filename: `${baseName}.zip` };
+    const filename = `${baseName}.zip`;
+    // Passing `download` here makes Supabase Storage's own server set a
+    // real Content-Disposition header naming this file — the browser then
+    // does a normal, instant, natively-streamed download with the correct
+    // name baked in from the very first byte. This is a server-set header,
+    // not a client-side <a download> attribute, so it isn't subject to the
+    // same-origin restriction that attribute has for cross-origin URLs.
+    const { publicUrl } = supabase.storage
+      .from(SOURCE_FILES_BUCKET)
+      .getPublicUrl(artwork.sourceFilePath, { download: filename }).data;
+    return { url: publicUrl, filename };
   }
   return { url: artwork.image, filename: `${artwork.title}.jpg` };
 }
 
-// Actually triggers a download with the given filename. A plain
-// `<a href={crossOriginUrl} download={filename}>` doesn't work reliably for
-// this — browsers only honor the `download` attribute's suggested filename
-// for same-origin URLs; for a cross-origin URL (like Supabase storage,
-// which is a different origin from the site itself), they silently fall
-// back to the URL's own path-derived name — which is exactly the random
-// storage key, not the human-readable title. Fetching the bytes first and
-// downloading from a local blob: URL (which is same-origin) sidesteps this
-// entirely, so the filename is always honored correctly.
-export async function triggerFileDownload(url: string, filename: string): Promise<void> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(blobUrl);
-  } catch (err) {
-    // Fallback for the rare case the fetch itself fails (e.g. a network
-    // hiccup) — the download still happens, just without a guaranteed
-    // filename, rather than failing silently.
-    console.error('Blob download failed, falling back to direct link:', err);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+// Triggers an instant, natively-streamed download. This works correctly
+// now because getDownloadTarget's URL already has Supabase's `download`
+// param baked in — the server sets a real Content-Disposition header
+// naming the file, so the browser starts downloading immediately, same as
+// before, with the correct filename from the first byte. (An earlier
+// version of this fetched the whole file into a blob first to force the
+// filename — that fixed the name but made every download wait for the
+// entire file before it could even start, which was a real regression for
+// large PSDs. Not needed anymore now that the server sets the header.)
+export function triggerFileDownload(url: string, filename: string): void {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // Best-effort download counter increment. Uses an RPC rather than a plain

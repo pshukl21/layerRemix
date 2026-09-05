@@ -627,12 +627,9 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       return;
     }
 
-    // Fetches the file into a blob first so the correct filename is
-    // actually honored — the source file lives on a different origin
-    // (Supabase storage), and browsers ignore a `download` attribute's
-    // suggested filename for cross-origin URLs, falling back to the raw
-    // storage path instead. Not awaited here since the credit-spend logic
-    // below doesn't depend on the download having finished.
+    // Downloads instantly via the native browser mechanism — the filename
+    // is set correctly by Supabase Storage's own Content-Disposition
+    // header (baked into downloadTarget.url), not a client-side attribute.
     triggerFileDownload(downloadTarget.url, downloadTarget.filename);
     if (!artwork.isDemo) {
       incrementDownloads(artwork.id, Number(artwork.downloads) || 0);

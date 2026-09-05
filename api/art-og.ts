@@ -74,15 +74,30 @@ export default async function handler(req: any, res: any) {
     }
   }
 
+  // Read the built index.html directly from disk rather than fetching it
+  // over HTTP from this same deployment. A serverless function making a
+  // live network round-trip to its own domain on every single request is a
+  // real reliability risk — any transient hiccup in that self-fetch (DNS,
+  // a cold start, routing) previously meant this function returned a hard
+  // 500 and the visitor saw nothing at all. Reading the file is faster and
+  // has no such failure mode; the old self-fetch is kept only as a
+  // fallback in case the on-disk path is ever wrong for a given deploy.
   let html: string;
   try {
-    const htmlResp = await fetch(`${baseUrl}/index.html`);
-    html = await htmlResp.text();
-  } catch (err) {
-    console.error('art-og: failed to fetch base index.html', err);
-    res.statusCode = 500;
-    res.end('Failed to load page');
-    return;
+    const fs = await import('fs');
+    const path = await import('path');
+    html = fs.readFileSync(path.join(process.cwd(), 'dist', 'index.html'), 'utf-8');
+  } catch (diskErr) {
+    console.error('art-og: failed to read index.html from disk, falling back to self-fetch', diskErr);
+    try {
+      const htmlResp = await fetch(`${baseUrl}/index.html`);
+      html = await htmlResp.text();
+    } catch (fetchErr) {
+      console.error('art-og: fallback self-fetch also failed', fetchErr);
+      res.statusCode = 500;
+      res.end('Failed to load page');
+      return;
+    }
   }
 
   const safeTitle = escapeHtml(title);
