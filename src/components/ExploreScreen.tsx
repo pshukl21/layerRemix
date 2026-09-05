@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Layers, HardDrive, Eye } from 'lucide-react';
+import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Layers, HardDrive, Pencil, Loader2 } from 'lucide-react';
 import { Artwork } from '../types';
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ExploreScreenProps {
   artworks: Artwork[];
@@ -13,6 +14,9 @@ interface ExploreScreenProps {
   onSelectArtwork: (artworkId: string) => void;
   favoriteIds: Set<string>;
   onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
+  heroBeforeImageUrl: string | null;
+  heroAfterImageUrl: string | null;
+  onUpdateHeroImage: (side: 'before' | 'after', file: File) => Promise<{ error: string | null }>;
 }
 
 type TabType = 'all' | 'originals' | 'remixes' | 'trending';
@@ -31,13 +35,30 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   onSelectArtwork,
   favoriteIds,
   onToggleFavorite,
+  heroBeforeImageUrl,
+  heroAfterImageUrl,
+  onUpdateHeroImage,
 }) => {
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [sortBy, setSortBy] = useState<SortType>('recent');
   const [activeChallengeFilter, setActiveChallengeFilter] = useState<string | null>(null);
+  const [uploadingHeroSide, setUploadingHeroSide] = useState<'before' | 'after' | null>(null);
+  const [heroUpdateError, setHeroUpdateError] = useState<string | null>(null);
   const navigate = useNavigate();
   const gridRef = useRef<HTMLDivElement>(null);
   const scrollToGrid = () => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const handleHeroImageChange = async (side: 'before' | 'after', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setHeroUpdateError(null);
+    setUploadingHeroSide(side);
+    const { error } = await onUpdateHeroImage(side, file);
+    setUploadingHeroSide(null);
+    if (error) setHeroUpdateError(error);
+  };
 
   // How many gallery cards to actually render at once. Rendering hundreds
   // of animated cards into the DOM at once is the real performance cost
@@ -122,6 +143,9 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             transition={{ duration: 0.5 }}
             className="text-center md:text-left"
           >
+            <span className="inline-block bg-blue-100 text-blue-600 px-2.5 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border border-blue-200/50 mb-2">
+              🎨 Open-Source Artwork
+            </span>
             <h1 className="text-lg md:text-xl lg:text-2xl font-black tracking-tight text-slate-900 leading-tight mb-1.5">
               Where scrapped PSDs become finished art.
             </h1>
@@ -144,44 +168,71 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 Drop a PSD
               </button>
             </div>
+
+            {hotTags.length > 0 && (
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-4">
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
+                {hotTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => handleTagClick(tag)}
+                    className="text-[10px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3 py-1 rounded-md transition-all cursor-pointer capitalize"
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
 
-          {/* Compact before/after demo — deliberately short (not the 4:5
-              gallery-card ratio) so it doesn't tower over the actual art
-              grid, which is the point of the page. Swap /hero-before.png
-              and /hero-after.png in /public for your own real example
-              whenever you're ready; these are placeholders. */}
+          {/* Compact before/after demo — no filename labels (just the pure
+              visual comparison). Falls back to the static placeholder
+              images until an admin uploads real ones. */}
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="max-w-[280px] mx-auto w-full"
+            className="max-w-[420px] mx-auto w-full relative"
           >
             <BeforeAfterSlider
-              beforeImage="/hero-before.png"
-              afterImage="/hero-after.png"
-              beforeLabel="raw_psd_layers.png"
-              afterLabel="completed_remix.png"
+              beforeImage={heroBeforeImageUrl || '/hero-before.png'}
+              afterImage={heroAfterImageUrl || '/hero-after.png'}
               aspectRatio="3/2"
               className="shadow-md border border-slate-200"
             />
+
+            {/* Admin-only edit controls — only rendered for accounts with
+                is_admin set. Even if this check were somehow bypassed, the
+                actual upload is still blocked server-side by RLS. */}
+            {profile?.isAdmin && (
+              <div className="absolute top-2 right-2 flex gap-1.5 z-20">
+                {(['before', 'after'] as const).map((side) => (
+                  <label
+                    key={side}
+                    title={`Replace ${side} image`}
+                    className="w-7 h-7 rounded-full bg-slate-950/70 hover:bg-slate-950/90 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-all"
+                  >
+                    {uploadingHeroSide === side ? (
+                      <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                    ) : (
+                      <Pencil className="w-3.5 h-3.5 text-white" />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingHeroSide !== null}
+                      onChange={(e) => handleHeroImageChange(side, e)}
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+            {heroUpdateError && (
+              <p className="text-[10px] font-semibold text-red-600 text-center mt-1.5">{heroUpdateError}</p>
+            )}
           </motion.div>
         </div>
-
-        {hotTags.length > 0 && (
-          <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 pb-4 flex flex-wrap items-center justify-center md:justify-start gap-2">
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
-            {hotTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => handleTagClick(tag)}
-                className="text-[10px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3 py-1 rounded-md transition-all cursor-pointer capitalize"
-              >
-                #{tag}
-              </button>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* Main Grid Content */}
@@ -324,22 +375,13 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
                   {/* Hover quick actions */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 gap-2">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => onSelectArtwork(art.id)}
-                        className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                      >
-                        <GitFork className="w-3.5 h-3.5" />
-                        Fork / Download PSD
-                      </button>
-                      <button
-                        onClick={() => onSelectArtwork(art.id)}
-                        title="Quick preview"
-                        className="w-10 shrink-0 bg-white/15 hover:bg-white/25 backdrop-blur-xs rounded-lg flex items-center justify-center transition-all cursor-pointer"
-                      >
-                        <Eye className="w-4 h-4 text-white" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => onSelectArtwork(art.id)}
+                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      <GitFork className="w-3.5 h-3.5" />
+                      Fork / Download PSD
+                    </button>
                   </div>
                 </div>
 

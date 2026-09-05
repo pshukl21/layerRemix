@@ -15,6 +15,7 @@ import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
 import { fetchArtworks, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds } from './lib/artworks';
+import { fetchSiteSettings, updateHeroImage, SiteSettings } from './lib/siteSettings';
 
 interface PublishInput {
   title: string;
@@ -150,6 +151,7 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'signIn' | 'signUp'>('signIn');
   const [needCreditsModalOpen, setNeedCreditsModalOpen] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ heroBeforeImageUrl: null, heroAfterImageUrl: null });
   const [creditsBannerDismissed, setCreditsBannerDismissed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -170,6 +172,12 @@ export default function App() {
   useEffect(() => {
     loadArtworks();
   }, [loadArtworks]);
+
+  // Public data — fetched once regardless of login state, since every
+  // visitor needs the current hero images to render the homepage.
+  useEffect(() => {
+    fetchSiteSettings().then(setSiteSettings);
+  }, []);
 
   // Load the current user's own hearted-artwork ids on login (and clear
   // them on logout) — this list is private, never fetched for anyone else.
@@ -202,6 +210,19 @@ export default function App() {
   const openAuthModal = (mode: 'signIn' | 'signUp' = 'signIn') => {
     setAuthModalMode(mode);
     setAuthModalOpen(true);
+  };
+
+  // Only actually succeeds for admins — enforced server-side by the
+  // site_settings/site-assets RLS policies, not just this check. Refetches
+  // the settings on success so the new image shows immediately.
+  const handleUpdateHeroImage = async (side: 'before' | 'after', file: File): Promise<{ error: string | null }> => {
+    const { error } = await updateHeroImage(side, file);
+    if (error) {
+      return { error };
+    }
+    const fresh = await fetchSiteSettings();
+    setSiteSettings(fresh);
+    return { error: null };
   };
 
   const handleToggleFavorite = async (artworkId: string): Promise<{ error: string | null }> => {
@@ -402,6 +423,9 @@ export default function App() {
                     onSelectArtwork={handleSelectArtwork}
                     favoriteIds={favoriteIds}
                     onToggleFavorite={handleToggleFavorite}
+                    heroBeforeImageUrl={siteSettings.heroBeforeImageUrl}
+                    heroAfterImageUrl={siteSettings.heroAfterImageUrl}
+                    onUpdateHeroImage={handleUpdateHeroImage}
                   />
                 }
               />

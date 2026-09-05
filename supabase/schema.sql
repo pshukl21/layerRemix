@@ -465,3 +465,63 @@ create policy "Users can delete their own avatar"
     bucket_id = 'avatars'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ---------------------------------------------------------------------------
+-- Site admin flag + homepage hero images
+--
+-- A small number of trusted accounts (set manually via SQL — see below) can
+-- update the before/after images shown in the homepage hero, without
+-- needing a code change. Everyone else can only read the current images.
+-- ---------------------------------------------------------------------------
+alter table public.profiles
+  add column if not exists is_admin boolean not null default false;
+
+-- To grant someone admin access, run (replace the username):
+--   update public.profiles set is_admin = true where username = 'ParthCreations';
+
+-- Singleton table — the `check (id)` trick means only one row can ever
+-- exist, since `true` is the only boolean value satisfying it.
+create table if not exists public.site_settings (
+  id boolean primary key default true check (id),
+  hero_before_image_path text,
+  hero_after_image_path text,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.site_settings (id) values (true) on conflict (id) do nothing;
+
+alter table public.site_settings enable row level security;
+
+create policy "Site settings are publicly readable"
+  on public.site_settings for select
+  using (true);
+
+create policy "Only admins can update site settings"
+  on public.site_settings for update
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );
+
+-- "site-assets" holds admin-managed images (currently just the hero
+-- before/after pair). Public-read, but only admins may upload/replace them.
+insert into storage.buckets (id, name, public)
+values ('site-assets', 'site-assets', true)
+on conflict (id) do nothing;
+
+create policy "Site assets are publicly readable"
+  on storage.objects for select
+  using (bucket_id = 'site-assets');
+
+create policy "Only admins can upload site assets"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'site-assets'
+    and exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );
+
+create policy "Only admins can update site assets"
+  on storage.objects for update
+  using (
+    bucket_id = 'site-assets'
+    and exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );

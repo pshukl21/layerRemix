@@ -50,5 +50,6 @@ export interface Profile {
   avatarUrl: string | null;
   bio: string;
   credits: number;
+  isAdmin: boolean;
   createdAt: string;
 }

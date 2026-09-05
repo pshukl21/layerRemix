@@ -28,6 +28,7 @@ function mapProfile(row: any): Profile {
     avatarUrl: row.avatar_url,
     bio: row.bio || '',
     credits: typeof row.credits === 'number' ? row.credits : 0,
+    isAdmin: !!row.is_admin,
     createdAt: row.created_at,
   };
 }
