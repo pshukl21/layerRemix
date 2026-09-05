@@ -20,6 +20,17 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Defensive backstop against page-level horizontal scroll — if any single
+   element (a filter row, a wide card, anything) ever overflows the
+   viewport width without its own contained scroll handling, this stops it
+   from dragging the whole page sideways rather than just clipping that
+   one element. Individual scrollable rows (e.g. overflow-x-auto on filter
+   chips) are unaffected and still scroll normally within themselves. */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 /* ---------------------------------------------------------------------
    Photoshop-inspired accents — kept light-themed, not a literal skin.
    ------------------------------------------------------------------- */

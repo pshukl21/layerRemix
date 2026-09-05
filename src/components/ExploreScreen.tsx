@@ -285,7 +285,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
         {/* Filter bar — docked directly above the grid: type tabs, a
             separate sort control, and the "what's needed" browse row. */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
-          <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm whitespace-nowrap">
+          <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm whitespace-nowrap overflow-x-auto max-w-full">
             {(['all', 'trending', 'originals', 'remixes'] as TabType[]).map((tab) => (
               <button
                 key={tab}
