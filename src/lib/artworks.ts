@@ -322,6 +322,42 @@ export function getDownloadTarget(artwork: Artwork): { url: string; filename: st
   return { url: artwork.image, filename: `${artwork.title}.jpg` };
 }
 
+// Actually triggers a download with the given filename. A plain
+// `<a href={crossOriginUrl} download={filename}>` doesn't work reliably for
+// this — browsers only honor the `download` attribute's suggested filename
+// for same-origin URLs; for a cross-origin URL (like Supabase storage,
+// which is a different origin from the site itself), they silently fall
+// back to the URL's own path-derived name — which is exactly the random
+// storage key, not the human-readable title. Fetching the bytes first and
+// downloading from a local blob: URL (which is same-origin) sidesteps this
+// entirely, so the filename is always honored correctly.
+export async function triggerFileDownload(url: string, filename: string): Promise<void> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    // Fallback for the rare case the fetch itself fails (e.g. a network
+    // hiccup) — the download still happens, just without a guaranteed
+    // filename, rather than failing silently.
+    console.error('Blob download failed, falling back to direct link:', err);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}
+
 // Best-effort download counter increment. Uses an RPC rather than a plain
 // update — a direct update would be silently blocked by RLS whenever the
 // downloader doesn't own the artwork, which is the common case.

@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Trophy, Clock, Download, GitFork, ArrowLeft, Loader2 } from 'lucide-react';
 import { fetchContestById, Contest } from '../lib/contests';
 import { Artwork } from '../types';
-import { getDownloadTarget, incrementDownloads } from '../lib/artworks';
+import { getDownloadTarget, incrementDownloads, triggerFileDownload } from '../lib/artworks';
 import { useAuth } from '../contexts/AuthContext';
 import { ContestEntriesList } from './ContestEntriesList';
 
@@ -58,10 +58,7 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
     }
     if (!baseArtwork) return;
     const { url, filename } = getDownloadTarget(baseArtwork);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
+    triggerFileDownload(url, filename);
     incrementDownloads(baseArtwork.id);
   };
 

@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { Check, Heart, Download, LogIn, Coins, Camera, Pencil, SearchX } from 'lucide-react';
 import { Artwork, Profile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername } from '../lib/artworks';
+import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername, triggerFileDownload } from '../lib/artworks';
 import { HeroSettingsPanel } from './HeroSettingsPanel';
 import { AdminReportsPanel } from './AdminReportsPanel';
 import { AdminContestsPanel } from './AdminContestsPanel';
@@ -143,6 +143,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const handleDownloadClick = (art: Artwork, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
+    const { url, filename } = getDownloadTarget(art);
+    triggerFileDownload(url, filename);
     if (!art.isDemo) {
       incrementDownloads(art.id, Number(art.downloads) || 0);
     }
@@ -212,7 +215,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       {list.map((art) => {
         const isHovered = hoveredCardId === art.id;
         const isFav = favoriteIds.has(art.id);
-        const downloadTarget = getDownloadTarget(art);
         return (
           <div
             key={art.id}
@@ -259,8 +261,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                       <Heart className={`w-4 h-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
                     </button>
                     <a
-                      href={downloadTarget.url}
-                      download={downloadTarget.filename}
+                      href="#"
                       onClick={(e) => handleDownloadClick(art, e)}
                       className="hover:text-blue-400 transition-colors p-1.5 bg-slate-900/40 border border-white/10 rounded-lg backdrop-blur-xs cursor-pointer"
                     >

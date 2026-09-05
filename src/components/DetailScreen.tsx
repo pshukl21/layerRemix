@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check, Share2, Flag } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews, findDuplicateByHash } from '../lib/artworks';
+import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews, findDuplicateByHash, triggerFileDownload } from '../lib/artworks';
 import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT, getImageDimensions } from '../lib/psd';
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
@@ -615,15 +615,6 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const downloadTarget = getDownloadTarget(artwork);
   const isOwnArtwork = !!user && user.id === artwork.ownerId;
 
-  const triggerFileDownload = (url: string, filename: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const handleDownloadClick = () => {
     if (!user) {
       onRequireAuth();
@@ -636,9 +627,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       return;
     }
 
-    // Trigger the download immediately, synchronously, within this click —
-    // browsers silently ignore programmatic downloads once you `await`
-    // something first, since the "real user click" window has closed by then.
+    // Fetches the file into a blob first so the correct filename is
+    // actually honored — the source file lives on a different origin
+    // (Supabase storage), and browsers ignore a `download` attribute's
+    // suggested filename for cross-origin URLs, falling back to the raw
+    // storage path instead. Not awaited here since the credit-spend logic
+    // below doesn't depend on the download having finished.
     triggerFileDownload(downloadTarget.url, downloadTarget.filename);
     if (!artwork.isDemo) {
       incrementDownloads(artwork.id, Number(artwork.downloads) || 0);
