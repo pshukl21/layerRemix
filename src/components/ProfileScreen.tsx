@@ -5,6 +5,7 @@ import { Check, Heart, Download, LogIn, Coins, Camera, Pencil, SearchX } from 'l
 import { Artwork, Profile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername } from '../lib/artworks';
+import { HeroSettingsPanel } from './HeroSettingsPanel';
 
 interface ProfileScreenProps {
   artworks: Artwork[];
@@ -16,6 +17,13 @@ interface ProfileScreenProps {
   // the logged-in user's own profile. Omit (or pass the logged-in user's
   // own username) to get the normal editable "my profile" experience.
   viewedUsername?: string;
+  // Only needed for the admin's own profile view — omitted entirely on the
+  // public profile route, since HeroSettingsPanel never renders there.
+  heroBeforeImageUrl?: string | null;
+  heroAfterImageUrl?: string | null;
+  heroDownloadUrl?: string | null;
+  onUpdateHeroImage?: (side: 'before' | 'after', file: File) => Promise<{ error: string | null }>;
+  onUpdateHeroDownloadUrl?: (url: string) => Promise<{ error: string | null }>;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
@@ -25,6 +33,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   favoriteIds,
   onToggleFavorite,
   viewedUsername,
+  heroBeforeImageUrl,
+  heroAfterImageUrl,
+  heroDownloadUrl,
+  onUpdateHeroImage,
+  onUpdateHeroDownloadUrl,
 }) => {
   const { user, profile: ownProfile, updateAvatar, updateBio } = useAuth();
 
@@ -398,6 +411,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           )}
         </div>
       </section>
+
+      {isOwnProfile && ownProfile?.isAdmin && onUpdateHeroImage && onUpdateHeroDownloadUrl && (
+        <HeroSettingsPanel
+          heroBeforeImageUrl={heroBeforeImageUrl ?? null}
+          heroAfterImageUrl={heroAfterImageUrl ?? null}
+          heroDownloadUrl={heroDownloadUrl ?? null}
+          onUpdateHeroImage={onUpdateHeroImage}
+          onUpdateHeroDownloadUrl={onUpdateHeroDownloadUrl}
+        />
+      )}
 
       <nav className="flex gap-10 border-b border-slate-200 mb-8 overflow-x-auto select-none">
         <button

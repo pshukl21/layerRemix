@@ -435,9 +435,7 @@ export default function App() {
                     onToggleFavorite={handleToggleFavorite}
                     heroBeforeImageUrl={siteSettings.heroBeforeImageUrl}
                     heroAfterImageUrl={siteSettings.heroAfterImageUrl}
-                    onUpdateHeroImage={handleUpdateHeroImage}
                     heroDownloadUrl={siteSettings.heroDownloadUrl}
-                    onUpdateHeroDownloadUrl={handleUpdateHeroDownloadUrl}
                   />
                 }
               />
@@ -451,6 +449,11 @@ export default function App() {
                     onRequireAuth={() => openAuthModal('signIn')}
                     favoriteIds={favoriteIds}
                     onToggleFavorite={handleToggleFavorite}
+                    heroBeforeImageUrl={siteSettings.heroBeforeImageUrl}
+                    heroAfterImageUrl={siteSettings.heroAfterImageUrl}
+                    heroDownloadUrl={siteSettings.heroDownloadUrl}
+                    onUpdateHeroImage={handleUpdateHeroImage}
+                    onUpdateHeroDownloadUrl={handleUpdateHeroDownloadUrl}
                   />
                 }
               />

@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Layers, HardDrive, Pencil, Loader2 } from 'lucide-react';
+import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Layers, HardDrive } from 'lucide-react';
 import { Artwork } from '../types';
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
-import { useAuth } from '../contexts/AuthContext';
 
 interface ExploreScreenProps {
   artworks: Artwork[];
@@ -16,9 +15,7 @@ interface ExploreScreenProps {
   onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
   heroBeforeImageUrl: string | null;
   heroAfterImageUrl: string | null;
-  onUpdateHeroImage: (side: 'before' | 'after', file: File) => Promise<{ error: string | null }>;
   heroDownloadUrl: string | null;
-  onUpdateHeroDownloadUrl: (url: string) => Promise<{ error: string | null }>;
 }
 
 type TabType = 'all' | 'originals' | 'remixes' | 'trending';
@@ -39,49 +36,26 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   onToggleFavorite,
   heroBeforeImageUrl,
   heroAfterImageUrl,
-  onUpdateHeroImage,
   heroDownloadUrl,
-  onUpdateHeroDownloadUrl,
 }) => {
-  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [sortBy, setSortBy] = useState<SortType>('recent');
   const [activeChallengeFilter, setActiveChallengeFilter] = useState<string | null>(null);
-  const [uploadingHeroSide, setUploadingHeroSide] = useState<'before' | 'after' | null>(null);
-  const [heroUpdateError, setHeroUpdateError] = useState<string | null>(null);
-  const [editingDownloadLink, setEditingDownloadLink] = useState(false);
-  const [downloadLinkDraft, setDownloadLinkDraft] = useState('');
-  const [savingDownloadLink, setSavingDownloadLink] = useState(false);
   const navigate = useNavigate();
   const gridRef = useRef<HTMLDivElement>(null);
   const scrollToGrid = () => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  const handleHeroImageChange = async (side: 'before' | 'after', e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    setHeroUpdateError(null);
-    setUploadingHeroSide(side);
-    const { error } = await onUpdateHeroImage(side, file);
-    setUploadingHeroSide(null);
-    if (error) setHeroUpdateError(error);
-  };
-
-  const openDownloadLinkEditor = () => {
-    setDownloadLinkDraft(heroDownloadUrl || '');
-    setEditingDownloadLink(true);
-  };
-
-  const saveDownloadLink = async () => {
-    setSavingDownloadLink(true);
-    setHeroUpdateError(null);
-    const { error } = await onUpdateHeroDownloadUrl(downloadLinkDraft.trim());
-    setSavingDownloadLink(false);
-    if (error) {
-      setHeroUpdateError(error);
-      return;
+  // Strips any protocol/host from an admin-entered link, so the download
+  // button can only ever navigate within this site — even if someone pastes
+  // a full URL (including one pointing at this site's own domain) rather
+  // than a bare path, this normalizes it to just the internal path.
+  const toInternalPath = (input: string): string => {
+    try {
+      const url = new URL(input, window.location.origin);
+      return url.pathname + url.search + url.hash;
+    } catch {
+      return input;
     }
-    setEditingDownloadLink(false);
   };
 
   // How many gallery cards to actually render at once. Rendering hundreds
@@ -155,11 +129,10 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
       {/* Hero Section — kept deliberately compact: this is a signpost, not
-          the main event. The art grid below is the actual focus. Restored
-          the original "contained card" look (rounded, inset, bordered)
-          rather than a full-bleed band. */}
-      <section className="relative overflow-hidden rounded-xl mx-4 md:mx-12 my-4 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
-        <div className="relative z-10 px-6 md:px-12 py-6 md:py-8 grid md:grid-cols-2 gap-6 md:gap-10 items-center">
+          the main event. Same max-width container as the grid below, so
+          the card doesn't look oversized relative to it. */}
+      <section className="relative overflow-hidden rounded-xl max-w-7xl mx-auto my-4 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
+        <div className="relative z-10 px-6 md:px-12 py-6 grid md:grid-cols-2 gap-6 md:gap-10 items-center">
           {/* Copy + CTAs */}
           <motion.div
             initial={{ opacity: 0, x: -16 }}
@@ -209,13 +182,15 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             )}
           </motion.div>
 
-          {/* Compact before/after demo — no filename labels (just the pure
-              visual comparison). */}
+          {/* Compact before/after demo — pure display only. No edit
+              controls here at all — those live on the admin's own profile
+              page now, so this view always matches exactly what every
+              visitor sees. */}
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="max-w-[420px] mx-auto w-full relative"
+            className="max-w-[420px] mx-auto w-full"
           >
             <BeforeAfterSlider
               beforeImage={heroBeforeImageUrl || '/hero-before.png'}
@@ -224,88 +199,18 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
               className="shadow-md border border-slate-200"
             />
 
-            {/* Admin-only edit controls — only rendered for accounts with
-                is_admin set. Even if this check were somehow bypassed, the
-                actual upload is still blocked server-side by RLS. */}
-            {profile?.isAdmin && (
-              <div className="absolute top-2 right-2 flex gap-1.5 z-20">
-                {(['before', 'after'] as const).map((side) => (
-                  <label
-                    key={side}
-                    title={`Replace ${side} image`}
-                    className="w-7 h-7 rounded-full bg-slate-950/70 hover:bg-slate-950/90 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-all"
-                  >
-                    {uploadingHeroSide === side ? (
-                      <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-                    ) : (
-                      <Pencil className="w-3.5 h-3.5 text-white" />
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingHeroSide !== null}
-                      onChange={(e) => handleHeroImageChange(side, e)}
-                    />
-                  </label>
-                ))}
-              </div>
-            )}
-
             {/* Download button — same styling as the card hover action.
-                URL is admin-settable; hidden entirely for regular visitors
-                until an admin has set one. */}
-            {heroDownloadUrl && !editingDownloadLink && (
-              <a
-                href={heroDownloadUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+                Always same-tab, and always treated as an internal site
+                path (any host portion of the URL is stripped), matching
+                what the admin sets on their profile page. */}
+            {heroDownloadUrl && (
+              <Link
+                to={toInternalPath(heroDownloadUrl)}
                 className="mt-3 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
               >
                 <GitFork className="w-3.5 h-3.5" />
                 Fork / Download PSD
-              </a>
-            )}
-
-            {profile?.isAdmin && (
-              <div className="mt-2">
-                {editingDownloadLink ? (
-                  <div className="flex gap-1.5">
-                    <input
-                      autoFocus
-                      value={downloadLinkDraft}
-                      onChange={(e) => setDownloadLinkDraft(e.target.value)}
-                      placeholder="https://... link for the download button"
-                      className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
-                    />
-                    <button
-                      onClick={saveDownloadLink}
-                      disabled={savingDownloadLink}
-                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-[11px] rounded-lg cursor-pointer transition-all shrink-0"
-                    >
-                      {savingDownloadLink ? '...' : 'Save'}
-                    </button>
-                    <button
-                      onClick={() => setEditingDownloadLink(false)}
-                      className="px-3 py-2 bg-white border border-slate-200 text-slate-600 font-bold text-[11px] rounded-lg cursor-pointer transition-all shrink-0"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={openDownloadLinkEditor}
-                    className="w-full text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase tracking-widest flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <Pencil className="w-3 h-3" />
-                    {heroDownloadUrl ? 'Change download link' : 'Set a download link'}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {heroUpdateError && (
-              <p className="text-[10px] font-semibold text-red-600 text-center mt-1.5">{heroUpdateError}</p>
+              </Link>
             )}
           </motion.div>
         </div>
