@@ -7,6 +7,7 @@ interface BeforeAfterSliderProps {
   beforeLabel?: string;
   afterLabel?: string;
   className?: string;
+  aspectRatio?: string; // Tailwind arbitrary value, e.g. "4/5" or "16/9"
 }
 
 // Draggable before/after comparison — drag the handle (or tap/click
@@ -19,6 +20,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   beforeLabel = 'Before',
   afterLabel = 'After',
   className = '',
+  aspectRatio = '4/5',
 }) => {
   const [position, setPosition] = useState(50); // percent, 0 = all "before", 100 = all "after"
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,7 +59,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
-      className={`relative w-full aspect-[4/5] rounded-xl overflow-hidden select-none cursor-ew-resize touch-none ${className}`}
+      style={{ aspectRatio }}
+      className={`relative w-full rounded-xl overflow-hidden select-none cursor-ew-resize touch-none ${className}`}
     >
       {/* After — full image, sits underneath */}
       <img

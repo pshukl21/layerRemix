@@ -109,93 +109,79 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-12">
-      {/* Hero Section — split layout: copy + CTAs on one side, an
-          interactive before/after demo on the other. Background is a soft
-          neutral texture (not a technical grid) so the artwork itself
-          stays the visual focus. */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-white to-white" />
-        <div
-          className="absolute inset-0 opacity-40"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(100,116,139,0.15) 1px, transparent 0)',
-            backgroundSize: '24px 24px',
-          }}
-        />
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-500/5 blur-[120px]" />
-        <div className="absolute -bottom-32 -right-24 w-96 h-96 rounded-full bg-indigo-500/5 blur-[120px]" />
+      {/* Hero Section — kept deliberately compact: this is a signpost, not
+          the main event. The art grid below is the actual focus. */}
+      <section className="relative overflow-hidden border-b border-slate-100">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-white" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 py-14 md:py-20 grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+        <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 py-6 md:py-8 grid md:grid-cols-2 gap-6 md:gap-10 items-center">
           {/* Copy + CTAs */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
             className="text-center md:text-left"
           >
-            <span className="inline-block bg-blue-100 text-blue-600 px-2.5 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border border-blue-200/50 mb-4">
-              🎨 Open-Source Artwork
-            </span>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-tight mb-4">
+            <h1 className="text-lg md:text-xl lg:text-2xl font-black tracking-tight text-slate-900 leading-tight mb-1.5">
               Where scrapped PSDs become finished art.
             </h1>
-            <p className="text-sm md:text-base text-slate-500 font-semibold leading-relaxed mb-7 max-w-md mx-auto md:mx-0">
+            <p className="text-xs md:text-sm text-slate-500 font-semibold leading-snug mb-3 max-w-sm mx-auto md:mx-0">
               Upload unfinished PSDs, download real source layers, and turn dormant projects into finished artwork.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row gap-2 justify-center md:justify-start">
               <button
                 onClick={scrollToGrid}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
                 Explore Remixes
-                <ArrowDown className="w-4 h-4" />
+                <ArrowDown className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => navigate('/upload')}
-                className="bg-white border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-600 font-bold text-sm px-6 py-3 rounded-xl shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="bg-white border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-600 font-bold text-xs px-4 py-2 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
-                <Upload className="w-4 h-4" />
+                <Upload className="w-3.5 h-3.5" />
                 Drop a PSD
               </button>
             </div>
-
-            {hotTags.length > 0 && (
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-6">
-                <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
-                {hotTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => handleTagClick(tag)}
-                    className="text-[11px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3.5 py-1 rounded-md transition-all cursor-pointer capitalize"
-                  >
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-            )}
           </motion.div>
 
-          {/* Interactive before/after demo — drag to compare. Swap
-              /hero-before.png and /hero-after.png in /public for your own
-              real example whenever you're ready; these are placeholders. */}
+          {/* Compact before/after demo — deliberately short (not the 4:5
+              gallery-card ratio) so it doesn't tower over the actual art
+              grid, which is the point of the page. Swap /hero-before.png
+              and /hero-after.png in /public for your own real example
+              whenever you're ready; these are placeholders. */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-            className="max-w-sm mx-auto w-full"
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="max-w-[280px] mx-auto w-full"
           >
             <BeforeAfterSlider
               beforeImage="/hero-before.png"
               afterImage="/hero-after.png"
               beforeLabel="raw_psd_layers.png"
               afterLabel="completed_remix.png"
-              className="shadow-xl border border-slate-200"
+              aspectRatio="3/2"
+              className="shadow-md border border-slate-200"
             />
-            <p className="text-center text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-3">
-              Drag to compare
-            </p>
           </motion.div>
         </div>
+
+        {hotTags.length > 0 && (
+          <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 pb-4 flex flex-wrap items-center justify-center md:justify-start gap-2">
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
+            {hotTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => handleTagClick(tag)}
+                className="text-[10px] font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50 bg-slate-100/80 border border-slate-200 px-3 py-1 rounded-md transition-all cursor-pointer capitalize"
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Main Grid Content */}
