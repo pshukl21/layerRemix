@@ -838,7 +838,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-8">
             {/* Left column: Image showcase as a Photoshop-style "canvas window" */}
             <div className="lg:col-span-6 flex flex-col gap-6">
-              <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all max-w-[560px] mx-auto w-full">
+              <div className="bg-white border border-slate-300 rounded-xl overflow-hidden group relative shadow-sm hover:shadow-md transition-all max-w-[460px] mx-auto w-full">
                 {/* Document tab bar, Photoshop-style */}
                 <div className="flex items-center gap-2 bg-[#3f3f46] px-4 py-2 border-b border-zinc-600">
                   <button
@@ -1065,6 +1065,55 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 )}
                 </div>
               </div>
+
+              {/* Compact tree peek — a small, always-visible preview of the
+                  lineage, rather than the tree being entirely hidden until
+                  you click through and scroll. Shows the root plus up to 2
+                  direct children; "View Full Tree" switches to the full
+                  dedicated tree view for the rest. */}
+              {totalVersions > 1 && (
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Development Tree</h3>
+                    <span className="text-[10px] font-bold text-slate-400">{totalVersions} versions</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {[rootTreeNode, ...rootTreeNode.children.slice(0, 2)].map((node, i) => (
+                      <div
+                        key={node.artwork.id}
+                        onClick={() => onSelectArtwork(node.artwork.id)}
+                        className={`flex items-center gap-2.5 cursor-pointer rounded-lg p-1.5 hover:bg-slate-50 transition-colors ${i > 0 ? 'ml-4' : ''}`}
+                      >
+                        <img
+                          src={node.artwork.image}
+                          alt={node.artwork.title}
+                          className="w-9 h-9 rounded-md object-cover shrink-0 border border-slate-200"
+                          style={{ objectPosition: `${node.artwork.focalX ?? 50}% ${node.artwork.focalY ?? 50}%` }}
+                        />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-800 truncate">{node.artwork.title}</div>
+                          <div className="text-[10px] font-semibold text-slate-400 truncate">by @{node.artwork.author}</div>
+                        </div>
+                      </div>
+                    ))}
+                    {rootTreeNode.children.length > 2 && (
+                      <p className="text-[10px] font-bold text-slate-400 ml-4">
+                        +{totalVersions - 1 - Math.min(2, rootTreeNode.children.length)} more
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setViewMode('tree');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-full mt-3 text-[11px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    View Full Tree
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
 
             </div>
           </div>
