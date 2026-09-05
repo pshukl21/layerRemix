@@ -212,7 +212,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
               </button>
               <button
                 onClick={() => navigate('/contests')}
-                className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="bg-white border-2 border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <Trophy className="w-4 h-4" />
                 Contests
