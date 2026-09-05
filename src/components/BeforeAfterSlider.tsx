@@ -66,8 +66,9 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         draggable={false}
         className="absolute inset-0 w-full h-full object-cover pointer-events-none"
       />
-      <div className="absolute bottom-3 right-3 bg-slate-950/60 backdrop-blur-xs text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md pointer-events-none">
-        {afterLabel}
+      <div className="absolute top-0 right-0 flex items-center gap-1.5 bg-[#3f3f46]/90 backdrop-blur-xs px-2.5 py-1.5 pointer-events-none">
+        <span className="text-[10px] font-bold text-zinc-200 truncate">{afterLabel}</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
       </div>
 
       {/* Before — clipped to the handle position, sits on top */}
@@ -82,8 +83,9 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           className="absolute inset-0 h-full object-cover"
           style={{ width: `${(100 / Math.max(position, 0.001)) * 100}%`, maxWidth: 'none' }}
         />
-        <div className="absolute bottom-3 left-3 bg-slate-950/60 backdrop-blur-xs text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md">
-          {beforeLabel}
+        <div className="absolute top-0 left-0 flex items-center gap-1.5 bg-[#3f3f46]/90 backdrop-blur-xs px-2.5 py-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
+          <span className="text-[10px] font-bold text-zinc-200 truncate">{beforeLabel}</span>
         </div>
       </div>
 

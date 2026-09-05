@@ -187,8 +187,8 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             <BeforeAfterSlider
               beforeImage="/hero-before.png"
               afterImage="/hero-after.png"
-              beforeLabel="Scrapped WIP"
-              afterLabel="Finished Remix"
+              beforeLabel="raw_psd_layers.png"
+              afterLabel="completed_remix.png"
               className="shadow-xl border border-slate-200"
             />
             <p className="text-center text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-3">
@@ -293,9 +293,22 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 transition={{ duration: 0.3 }}
                 className="group relative flex flex-col bg-white border border-slate-200 hover:border-blue-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
               >
-                {/* Image — bleeds edge-to-edge, no info bar cutting into it.
-                    Only a small floating type badge + the favorite heart
-                    sit on top of the art itself. */}
+                {/* Dark document-tab-style bar — filename + type badge,
+                    restored per feedback (sits on top of the image, like
+                    the original design). */}
+                <div className="flex items-center gap-1.5 bg-[#3f3f46] px-2.5 py-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 shrink-0" />
+                  <span className="text-[9px] font-bold text-zinc-200 truncate ps-stat">{art.title}.psd</span>
+                  <span className="flex-1" />
+                  <span
+                    className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0 ${
+                      art.type === 'Remix' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-blue-500/20 text-blue-300'
+                    }`}
+                  >
+                    {art.type === 'Remix' ? 'Remix' : 'Original'}
+                  </span>
+                </div>
+
                 <div
                   onClick={() => onSelectArtwork(art.id)}
                   className="aspect-[4/5] overflow-hidden relative cursor-pointer"
@@ -307,14 +320,6 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     alt={art.title}
                     referrerPolicy="no-referrer"
                   />
-
-                  <span
-                    className={`absolute top-2.5 left-2.5 z-10 text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md backdrop-blur-xs ${
-                      art.type === 'Remix' ? 'bg-indigo-500/80 text-white' : 'bg-blue-600/80 text-white'
-                    }`}
-                  >
-                    {art.type === 'Remix' ? 'Remix' : 'Original'}
-                  </span>
 
                   <button
                     onClick={(e) => {
