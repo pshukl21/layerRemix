@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Layers, HardDrive } from 'lucide-react';
+import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Layers, HardDrive, Move, MousePointer2, Crop, Pipette, Paintbrush, Eraser, PenTool, Type, Hand } from 'lucide-react';
 import { Artwork } from '../types';
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
@@ -142,36 +142,60 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
               transition={{ duration: 0.5 }}
             className="text-center md:text-left"
           >
-            <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-200/50 mb-3">
-              🎨 Open-Source Artwork
-            </span>
-            {/* Styled to mimic an active Photoshop Text Tool / Transform
-                box — a small, intentional easter egg leaning into the
-                platform's whole PSD theme. The 8 handles are generated from
-                one position list rather than repeated by hand, so the
-                bounding box stays easy to resize/adjust later. */}
-            <div className="relative inline-block border border-dashed border-neutral-400 px-1 py-1 mb-2.5">
-              {[
-                { top: '0%', left: '0%' },
-                { top: '0%', left: '50%' },
-                { top: '0%', left: '100%' },
-                { top: '50%', left: '0%' },
-                { top: '50%', left: '100%' },
-                { top: '100%', left: '0%' },
-                { top: '100%', left: '50%' },
-                { top: '100%', left: '100%' },
-              ].map((pos, i) => (
-                <span
-                  key={i}
-                  className="absolute w-1.5 h-1.5 bg-white border border-neutral-800 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                  style={pos}
-                />
-              ))}
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 leading-tight">
-                Where scrapped PSDs become{' '}
-                <span className="bg-blue-600 text-white px-1">finished art.</span>
-                <span className="inline-block w-[2px] h-[0.9em] bg-slate-900 align-middle ml-1 ps-cursor-blink" />
-              </h1>
+            <div className="flex items-start gap-3 justify-center md:justify-start">
+              {/* Compact tool panel — decorative, mirrors the real Photoshop
+                  toolbar (Move, Marquee, Crop, Eyedropper, Brush, Eraser,
+                  Pen, Type, Hand) plus the foreground/background color
+                  swatches at the bottom. */}
+              <div className="hidden sm:flex flex-col items-center gap-1 bg-neutral-800 border border-neutral-700 rounded-lg p-1.5 shrink-0">
+                {[Move, MousePointer2, Crop, Pipette, Paintbrush, Eraser, PenTool, Type, Hand].map((Icon, i) => (
+                  <div
+                    key={i}
+                    className={`w-6 h-6 rounded flex items-center justify-center ${
+                      i === 7 ? 'bg-blue-600' : 'hover:bg-neutral-700'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 text-neutral-300" />
+                  </div>
+                ))}
+                <div className="relative w-6 h-6 mt-1.5">
+                  <div className="absolute top-0 left-0 w-4 h-4 bg-blue-600 border border-neutral-600 rounded-sm" />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-white border border-neutral-600 rounded-sm" />
+                </div>
+              </div>
+
+              <div>
+                <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-200/50 mb-3">
+                  🎨 Open-Source Artwork
+                </span>
+                {/* Styled to mimic an active Photoshop Text Tool / Transform
+                    box — a small, intentional easter egg leaning into the
+                    platform's whole PSD theme. The 8 handles are generated from
+                    one position list rather than repeated by hand, so the
+                    bounding box stays easy to resize/adjust later. */}
+                <div className="relative inline-block border border-dashed border-neutral-400 px-1 py-1 mb-2.5">
+                  {[
+                    { top: '0%', left: '0%' },
+                    { top: '0%', left: '50%' },
+                    { top: '0%', left: '100%' },
+                    { top: '50%', left: '0%' },
+                    { top: '50%', left: '100%' },
+                    { top: '100%', left: '0%' },
+                    { top: '100%', left: '50%' },
+                    { top: '100%', left: '100%' },
+                  ].map((pos, i) => (
+                    <span
+                      key={i}
+                      className="absolute w-1.5 h-1.5 bg-white border border-neutral-800 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                      style={pos}
+                    />
+                  ))}
+                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 leading-tight">
+                    Where scrapped PSDs become{' '}
+                    <span className="bg-blue-600 text-white px-1">finished art.</span>
+                  </h1>
+                </div>
+              </div>
             </div>
             <p className="text-sm md:text-base text-slate-500 font-semibold leading-snug mb-5 max-w-sm mx-auto md:mx-0">
               Upload unfinished PSDs, download real source layers, and turn dormant projects into finished artwork.
