@@ -87,23 +87,23 @@ export const ContestsScreen: React.FC = () => {
                 </div>
 
                 {hasPrizes && (
-                  <div className="flex flex-col gap-1 bg-amber-50/60 border border-amber-100 rounded-lg px-2.5 py-2">
+                  <div className="flex items-center gap-3 bg-amber-50/60 border border-amber-100 rounded-lg px-2.5 py-2 overflow-x-auto">
                     {contest.prizeFirst && (
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
                         <span>🥇</span>
-                        <span className="truncate">{contest.prizeFirst}</span>
+                        {contest.prizeFirst}
                       </div>
                     )}
                     {contest.prizeSecond && (
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
                         <span>🥈</span>
-                        <span className="truncate">{contest.prizeSecond}</span>
+                        {contest.prizeSecond}
                       </div>
                     )}
                     {contest.prizeThird && (
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
                         <span>🥉</span>
-                        <span className="truncate">{contest.prizeThird}</span>
+                        {contest.prizeThird}
                       </div>
                     )}
                   </div>

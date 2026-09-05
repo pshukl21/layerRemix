@@ -92,9 +92,11 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
   }
 
   const isPastDeadline = contest.deadline ? new Date(contest.deadline).getTime() < Date.now() : false;
+  const hasPrizes = contest.prizeFirst || contest.prizeSecond || contest.prizeThird;
+  const entryCount = entryTree ? countEntries(entryTree) : 0;
 
   return (
-    <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-5xl mx-auto">
+    <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
       <Link
         to="/contests"
         className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 uppercase tracking-widest mb-6 transition-colors"
@@ -103,9 +105,13 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
         Back to Contests
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-6">
-          <div className="max-w-[460px] mx-auto w-full rounded-xl overflow-hidden border border-slate-300 shadow-sm">
+      {/* Left: base file + all contest info stacked together. Right: a full-
+          height entries panel — with only a handful of contests running at
+          once, giving entries this much room is the better trade than a
+          cramped preview card squeezed under everything else. */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <div className="max-w-[420px] mx-auto w-full rounded-xl overflow-hidden border border-slate-300 shadow-sm">
             <img
               src={baseArtwork.image}
               alt={contest.title}
@@ -113,9 +119,7 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
               style={{ objectPosition: `${baseArtwork.focalX ?? 50}% ${baseArtwork.focalY ?? 50}%` }}
             />
           </div>
-        </div>
 
-        <div className="lg:col-span-6 flex flex-col gap-6">
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Trophy className="w-5 h-5 text-amber-500" />
@@ -132,24 +136,23 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
               </div>
             )}
 
-            {(contest.prizeFirst || contest.prizeSecond || contest.prizeThird) && (
-              <div className="flex flex-col gap-1.5 bg-amber-50/60 border border-amber-100 rounded-lg px-3.5 py-3 mb-4">
-                <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-0.5">Prizes</p>
+            {hasPrizes && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-amber-50/60 border border-amber-100 rounded-lg px-3.5 py-2.5 mb-4">
                 {contest.prizeFirst && (
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                    <span className="text-lg">🥇</span>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 whitespace-nowrap">
+                    <span className="text-base">🥇</span>
                     {contest.prizeFirst}
                   </div>
                 )}
                 {contest.prizeSecond && (
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                    <span className="text-lg">🥈</span>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 whitespace-nowrap">
+                    <span className="text-base">🥈</span>
                     {contest.prizeSecond}
                   </div>
                 )}
                 {contest.prizeThird && (
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                    <span className="text-lg">🥉</span>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 whitespace-nowrap">
+                    <span className="text-base">🥉</span>
                     {contest.prizeThird}
                   </div>
                 )}
@@ -177,40 +180,46 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
               </button>
             </div>
           </div>
+        </div>
 
-          {entryTree && countEntries(entryTree) > 0 && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Entries</h3>
-                <span className="text-[10px] font-bold text-slate-400">{countEntries(entryTree)} submitted</span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {entryTree.children.slice(0, 5).map((node) => (
+        <div className="lg:col-span-7">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Entries</h3>
+              <span className="text-xs font-bold text-slate-400">{entryCount} submitted</span>
+            </div>
+
+            {entryCount === 0 && (
+              <p className="text-sm font-bold text-slate-400 text-center py-16">
+                No entries yet — be the first to remix and submit.
+              </p>
+            )}
+
+            {entryTree && entryCount > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {entryTree.children.map((node) => (
                   <div
                     key={node.artwork.id}
                     onClick={() => onSelectArtwork(node.artwork.id)}
-                    className="flex items-center gap-2.5 cursor-pointer rounded-lg p-1.5 hover:bg-slate-50 transition-colors"
+                    className="cursor-pointer group"
                   >
-                    <img
-                      src={node.artwork.image}
-                      alt={node.artwork.title}
-                      className="w-9 h-9 rounded-md object-cover shrink-0 border border-slate-200"
-                      style={{ objectPosition: `${node.artwork.focalX ?? 50}% ${node.artwork.focalY ?? 50}%` }}
-                    />
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-800 truncate">{node.artwork.title}</div>
-                      <div className="text-[10px] font-semibold text-slate-400 truncate">by @{node.artwork.author}</div>
+                    <div className="aspect-[4/5] rounded-lg overflow-hidden border border-slate-200 mb-2">
+                      <img
+                        src={node.artwork.image}
+                        alt={node.artwork.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        style={{ objectPosition: `${node.artwork.focalX ?? 50}% ${node.artwork.focalY ?? 50}%` }}
+                      />
                     </div>
+                    <div className="text-xs font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
+                      {node.artwork.title}
+                    </div>
+                    <div className="text-[10px] font-semibold text-slate-400 truncate">by @{node.artwork.author}</div>
                   </div>
                 ))}
-                {entryTree.children.length > 5 && (
-                  <p className="text-[10px] font-bold text-slate-400 pl-1.5">
-                    +{entryTree.children.length - 5} more
-                  </p>
-                )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
