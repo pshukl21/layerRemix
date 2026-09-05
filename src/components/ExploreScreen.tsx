@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart } from 'lucide-react';
 import { Artwork } from '../types';
+import { OPEN_CHALLENGES } from '../lib/challenges';
 
 interface ExploreScreenProps {
   artworks: Artwork[];
@@ -24,6 +25,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   onToggleFavorite,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [activeChallengeFilter, setActiveChallengeFilter] = useState<string | null>(null);
   const [localSearch, setLocalSearch] = useState('');
 
   // How many gallery cards to actually render at once. Rendering hundreds
@@ -71,6 +73,10 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       if (activeTab === 'originals') return art.type === 'Original';
       if (activeTab === 'remixes') return art.type === 'Remix';
       return true;
+    })
+    .filter((art) => {
+      if (!activeChallengeFilter) return true;
+      return art.openChallenges.includes(activeChallengeFilter);
     })
     .filter((art) => {
       if (!activeSearch) return true;
@@ -207,6 +213,31 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           </div>
         </div>
 
+        {/* Browse by what's needed — a separate filter dimension from the
+            tabs above (which filter by type), letting people jump straight
+            to pieces flagged as needing a specific kind of work. */}
+        <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">
+            Needs:
+          </span>
+          {OPEN_CHALLENGES.map((challenge) => {
+            const isActive = activeChallengeFilter === challenge;
+            return (
+              <button
+                key={challenge}
+                onClick={() => setActiveChallengeFilter(isActive ? null : challenge)}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-wide cursor-pointer transition-all border ${
+                  isActive
+                    ? 'bg-amber-500 border-amber-500 text-white'
+                    : 'bg-white border-slate-200 text-slate-500 hover:border-amber-300 hover:text-amber-600'
+                }`}
+              >
+                {challenge}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Art Cards Grid */}
         {filteredArtworks.length === 0 ? (
           <div className="py-24 text-center bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
@@ -289,6 +320,23 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                   >
                     {art.title}
                   </h3>
+                  {art.openChallenges.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-1.5">
+                      {art.openChallenges.slice(0, 2).map((challenge) => (
+                        <span
+                          key={challenge}
+                          className="px-1.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded text-[9px] font-bold tracking-wide"
+                        >
+                          {challenge}
+                        </span>
+                      ))}
+                      {art.openChallenges.length > 2 && (
+                        <span className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 text-slate-400 rounded text-[9px] font-bold">
+                          +{art.openChallenges.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <Link
                       to={`/profile/${art.author}`}

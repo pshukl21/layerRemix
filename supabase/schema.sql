@@ -64,6 +64,12 @@ create table if not exists public.artworks (
   title text not null,
   description text default '',
   tags text[] not null default '{}',
+  -- Structured "what's needed" flags, distinct from the freeform
+  -- description — e.g. {"Background","Color Grading"}. Lets the gallery
+  -- be filtered by specific gaps instead of relying on reading every
+  -- description. Values are validated client-side against a fixed list
+  -- (see OPEN_CHALLENGES in src/lib/challenges.ts).
+  open_challenges text[] not null default '{}',
   image_path text not null,          -- path inside the "previews" storage bucket
   source_file_path text,             -- path inside the "source-files" storage bucket
   source_file_name text,             -- original filename, e.g. "my-art.psd"
@@ -109,6 +115,7 @@ create policy "Users can delete their own artworks"
 alter table public.artworks add column if not exists focal_x real not null default 50;
 alter table public.artworks add column if not exists focal_y real not null default 50;
 alter table public.artworks add column if not exists file_hash text;
+alter table public.artworks add column if not exists open_challenges text[] not null default '{}';
 
 -- Partial unique index: enforces "no two artworks share the same file
 -- hash" as a hard database-level backstop, while still allowing any

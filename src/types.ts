@@ -10,6 +10,7 @@ export interface Artwork {
   views: string;
   hearts: string;
   tags: string[];
+  openChallenges: string[];
   type: 'Original' | 'Remix';
   parentArtworkId?: string;
   parentAuthor?: string;

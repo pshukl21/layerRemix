@@ -6,6 +6,7 @@ import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews, findDuplicateByHash } from '../lib/artworks';
 import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT, getImageDimensions } from '../lib/psd';
+import { OPEN_CHALLENGES } from '../lib/challenges';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { generateShareImage } from '../lib/shareImage';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
@@ -25,6 +26,7 @@ interface DetailScreenProps {
     title: string;
     description: string;
     tags: string[];
+    openChallenges: string[];
     previewFile: File;
     sourceFilePath: string | null;
     sourceFileName: string | null;
@@ -147,6 +149,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [forkTitle, setForkTitle] = useState(`${artwork.title} ${computeNewForkVersionLabel(artwork, artworks)}`);
   const [forkDescription, setForkDescription] = useState('');
   const [forkTags, setForkTags] = useState(artwork.tags.join(', '));
+  const [forkSelectedChallenges, setForkSelectedChallenges] = useState<string[]>([]);
   const [forkPsdFile, setForkPsdFile] = useState<File | null>(null);
   // The preview is extracted straight from the remix's own PSD, never
   // uploaded manually — same reasoning as the main Upload form.
@@ -479,6 +482,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         title: forkTitle,
         description: forkDescription,
         tags: forkTags.split(',').map(t => t.trim()).filter(Boolean),
+        openChallenges: forkSelectedChallenges,
         previewFile: (forkManualPreviewFile || forkThumbnail) as File,
         sourceFilePath: forkUploadedSourcePath,
         sourceFileName: forkPsdFile.name,
@@ -955,6 +959,19 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   </p>
                 </div>
 
+                {artwork.openChallenges.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {artwork.openChallenges.map((challenge) => (
+                      <span
+                        key={challenge}
+                        className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-[10px] font-bold tracking-wider uppercase"
+                      >
+                        Needs: {challenge}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {artwork.tags.map((tag) => (
                     <span 
@@ -1354,6 +1371,37 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                     placeholder="Describe your design modifications, color alterations, layer overrides, or rendering upgrades..."
                     rows={4}
                   />
+                </div>
+
+                {/* Open Challenges — still-open (or newly-introduced) gaps
+                    after this remix, separate from the changes description. */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                    What's Still Needed? <span className="normal-case tracking-normal text-slate-400">(optional, pick any that apply)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {OPEN_CHALLENGES.map((challenge) => {
+                      const isSelected = forkSelectedChallenges.includes(challenge);
+                      return (
+                        <button
+                          type="button"
+                          key={challenge}
+                          onClick={() =>
+                            setForkSelectedChallenges((prev) =>
+                              isSelected ? prev.filter((c) => c !== challenge) : [...prev, challenge]
+                            )
+                          }
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-wide cursor-pointer transition-all border ${
+                            isSelected
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'
+                          }`}
+                        >
+                          {challenge}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Tags */}

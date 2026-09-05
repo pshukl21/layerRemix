@@ -20,6 +20,7 @@ interface PublishInput {
   title: string;
   description: string;
   tags: string[];
+  openChallenges: string[];
   previewFile: File;
   sourceFilePath: string | null;
   sourceFileName: string | null;
@@ -33,6 +34,7 @@ interface UpdateInput {
   title: string;
   description: string;
   tags: string[];
+  openChallenges: string[];
   newPreviewFile: File | null;
   focalX: number;
   focalY: number;
@@ -310,6 +312,7 @@ export default function App() {
       title: updates.title,
       description: updates.description,
       tags: updates.tags,
+      openChallenges: updates.openChallenges,
       newPreviewFile: updates.newPreviewFile,
       previousImagePath: updates.newPreviewFile ? current.imagePath : undefined,
       focalX: updates.focalX,

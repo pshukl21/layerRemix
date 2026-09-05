@@ -4,6 +4,7 @@ import { X, Sparkles, Trash2 } from 'lucide-react';
 import { Artwork } from '../types';
 import { FocalPointPicker } from './FocalPointPicker';
 import { useAuth } from '../contexts/AuthContext';
+import { OPEN_CHALLENGES } from '../lib/challenges';
 
 interface EditArtworkModalProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface EditArtworkModalProps {
       title: string;
       description: string;
       tags: string[];
+      openChallenges: string[];
       newPreviewFile: File | null;
       focalX: number;
       focalY: number;
@@ -29,6 +31,7 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
   const [title, setTitle] = useState(artwork?.title || '');
   const [description, setDescription] = useState(artwork?.description || '');
   const [tagsInput, setTagsInput] = useState(artwork?.tags.join(', ') || '');
+  const [selectedChallenges, setSelectedChallenges] = useState<string[]>(artwork?.openChallenges || []);
   const [focalX, setFocalX] = useState(artwork?.focalX ?? 50);
   const [focalY, setFocalY] = useState(artwork?.focalY ?? 50);
   const [submitting, setSubmitting] = useState(false);
@@ -43,6 +46,7 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
       setTitle(artwork.title);
       setDescription(artwork.description);
       setTagsInput(artwork.tags.join(', '));
+      setSelectedChallenges(artwork.openChallenges || []);
       setFocalX(artwork.focalX ?? 50);
       setFocalY(artwork.focalY ?? 50);
       setError(null);
@@ -73,6 +77,7 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
       title: title.trim(),
       description: description.trim() || 'No notes on what needs work yet.',
       tags: tags.length > 0 ? tags : ['DigitalArt'],
+      openChallenges: selectedChallenges,
       newPreviewFile: null,
       focalX,
       focalY,
@@ -155,6 +160,35 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
                   placeholder="e.g., Background FX need work, missing text layers, lighting feels off, needs a 3D element..."
                   className="w-full bg-slate-100/80 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-colors resize-none"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                  What's Needed? <span className="normal-case tracking-normal text-slate-400">(optional)</span>
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {OPEN_CHALLENGES.map((challenge) => {
+                    const isSelected = selectedChallenges.includes(challenge);
+                    return (
+                      <button
+                        type="button"
+                        key={challenge}
+                        onClick={() =>
+                          setSelectedChallenges((prev) =>
+                            isSelected ? prev.filter((c) => c !== challenge) : [...prev, challenge]
+                          )
+                        }
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-wide cursor-pointer transition-all border ${
+                          isSelected
+                            ? 'bg-blue-600 border-blue-600 text-white'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'
+                        }`}
+                      >
+                        {challenge}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-1.5">

@@ -7,6 +7,7 @@ interface ArtworkRow {
   title: string;
   description: string;
   tags: string[];
+  open_challenges: string[];
   image_path: string;
   source_file_path: string | null;
   source_file_name: string | null;
@@ -52,6 +53,7 @@ function rowToArtwork(row: ArtworkRow, parentUsername?: string): Artwork {
     views: String(row.views),
     hearts: String(row.hearts_count ?? 0),
     tags: row.tags,
+    openChallenges: row.open_challenges || [],
     type: row.type,
     parentArtworkId: row.parent_artwork_id || undefined,
     parentAuthor: parentUsername,
@@ -153,6 +155,7 @@ interface PublishInput {
   title: string;
   description: string;
   tags: string[];
+  openChallenges: string[];
   previewFile: File;
   // The source file (zipped PSD) is uploaded up-front, with progress shown
   // to the user, well before "Publish" is clicked — so by this point we
@@ -191,6 +194,7 @@ export async function publishArtwork(input: PublishInput): Promise<{ artwork: Ar
       title: input.title,
       description: input.description,
       tags: input.tags,
+      open_challenges: input.openChallenges,
       image_path: previewPath,
       source_file_path: input.sourceFilePath,
       source_file_name: input.sourceFileName,
@@ -239,6 +243,7 @@ interface UpdateArtworkInput {
   title: string;
   description: string;
   tags: string[];
+  openChallenges: string[];
   newPreviewFile?: File | null;
   previousImagePath?: string;
   focalX?: number;
@@ -256,6 +261,7 @@ export async function updateArtwork(
     title: input.title,
     description: input.description,
     tags: input.tags,
+    open_challenges: input.openChallenges,
   };
   if (typeof input.focalX === 'number') updates.focal_x = input.focalX;
   if (typeof input.focalY === 'number') updates.focal_y = input.focalY;

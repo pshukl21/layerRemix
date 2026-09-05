@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileUp, Image as ImageIcon, Sparkles, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT, getImageDimensions } from '../lib/psd';
+import { OPEN_CHALLENGES } from '../lib/challenges';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { findDuplicateByHash } from '../lib/artworks';
@@ -12,6 +13,7 @@ interface UploadScreenProps {
     title: string;
     description: string;
     tags: string[];
+    openChallenges: string[];
     previewFile: File;
     sourceFilePath: string | null;
     sourceFileName: string | null;
@@ -29,6 +31,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tagsInput, setTagsInput] = useState('');
+  const [selectedChallenges, setSelectedChallenges] = useState<string[]>([]);
   const [certified, setCertified] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -323,6 +326,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       title,
       description: description.trim(),
       tags: tagsArray,
+      openChallenges: selectedChallenges,
       previewFile: (manualPreviewFile || extractedThumbnail) as File,
       sourceFilePath: uploadedSourcePath,
       sourceFileName: psdFile.name,
@@ -555,6 +559,37 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               <p className={`text-[10px] font-bold ${description.trim().length < MIN_DESCRIPTION_LENGTH ? 'text-slate-400' : 'text-emerald-600'}`}>
                 {description.trim().length}/{MIN_DESCRIPTION_LENGTH} characters minimum
               </p>
+            </div>
+
+            {/* Open Challenges — structured flags for what's specifically needed,
+                separate from the freeform description above. Optional. */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                What's Needed? <span className="normal-case tracking-normal text-slate-400">(optional, pick any that apply)</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {OPEN_CHALLENGES.map((challenge) => {
+                  const isSelected = selectedChallenges.includes(challenge);
+                  return (
+                    <button
+                      type="button"
+                      key={challenge}
+                      onClick={() =>
+                        setSelectedChallenges((prev) =>
+                          isSelected ? prev.filter((c) => c !== challenge) : [...prev, challenge]
+                        )
+                      }
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-wide cursor-pointer transition-all border ${
+                        isSelected
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'
+                      }`}
+                    >
+                      {challenge}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Tags Input */}
