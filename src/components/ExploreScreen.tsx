@@ -145,9 +145,34 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-200/50 mb-3">
               🎨 Open-Source Artwork
             </span>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 leading-tight mb-2.5">
-              Where scrapped PSDs become finished art.
-            </h1>
+            {/* Styled to mimic an active Photoshop Text Tool / Transform
+                box — a small, intentional easter egg leaning into the
+                platform's whole PSD theme. The 8 handles are generated from
+                one position list rather than repeated by hand, so the
+                bounding box stays easy to resize/adjust later. */}
+            <div className="relative inline-block border border-dashed border-neutral-400 px-1 py-1 mb-2.5">
+              {[
+                { top: '0%', left: '0%' },
+                { top: '0%', left: '50%' },
+                { top: '0%', left: '100%' },
+                { top: '50%', left: '0%' },
+                { top: '50%', left: '100%' },
+                { top: '100%', left: '0%' },
+                { top: '100%', left: '50%' },
+                { top: '100%', left: '100%' },
+              ].map((pos, i) => (
+                <span
+                  key={i}
+                  className="absolute w-1.5 h-1.5 bg-white border border-neutral-800 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                  style={pos}
+                />
+              ))}
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 leading-tight">
+                Where scrapped PSDs become{' '}
+                <span className="bg-blue-600 text-white px-1">finished art.</span>
+                <span className="inline-block w-[2px] h-[0.9em] bg-slate-900 align-middle ml-1 animate-pulse" />
+              </h1>
+            </div>
             <p className="text-sm md:text-base text-slate-500 font-semibold leading-snug mb-5 max-w-sm mx-auto md:mx-0">
               Upload unfinished PSDs, download real source layers, and turn dormant projects into finished artwork.
             </p>
