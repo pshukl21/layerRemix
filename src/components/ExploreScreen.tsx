@@ -19,7 +19,6 @@ interface ExploreScreenProps {
 }
 
 type TabType = 'all' | 'originals' | 'remixes' | 'trending';
-type SortType = 'recent' | 'downloaded';
 
 function formatFileSize(bytes: number): string {
   const mb = bytes / (1024 * 1024);
@@ -39,7 +38,6 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   heroDownloadUrl,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
-  const [sortBy, setSortBy] = useState<SortType>('recent');
   const [activeChallengeFilter, setActiveChallengeFilter] = useState<string | null>(null);
   const navigate = useNavigate();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -113,9 +111,6 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
       if (activeTab === 'trending') {
         const heartsDiff = (Number(b.hearts) || 0) - (Number(a.hearts) || 0);
         if (heartsDiff !== 0) return heartsDiff;
-        return (Number(b.downloads) || 0) - (Number(a.downloads) || 0);
-      }
-      if (sortBy === 'downloaded') {
         return (Number(b.downloads) || 0) - (Number(a.downloads) || 0);
       }
       return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
@@ -309,23 +304,6 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                 </span>
               </button>
             ))}
-          </div>
-
-          {/* Sort — independent of the type tabs above (Trending already has
-              its own fixed sort, so this only applies to All/Originals/Remixes). */}
-          <div className="flex items-center gap-2 ml-auto">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Sort
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortType)}
-              disabled={activeTab === 'trending'}
-              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:border-blue-600"
-            >
-              <option value="recent">Most Recent</option>
-              <option value="downloaded">Most Downloaded</option>
-            </select>
           </div>
         </div>
 
