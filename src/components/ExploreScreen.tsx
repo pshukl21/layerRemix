@@ -142,7 +142,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
               transition={{ duration: 0.5 }}
             className="text-center md:text-left"
           >
-            <div className="flex items-start gap-3 justify-center md:justify-start">
+            <div className="flex items-stretch gap-3 justify-center md:justify-start">
               {/* Compact tool panel — decorative, mirrors the real Photoshop
                   toolbar (Move, Marquee, Crop, Eyedropper, Brush, Eraser,
                   Pen, Type, Hand) plus the foreground/background color
@@ -158,7 +158,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     <Icon className="w-3.5 h-3.5 text-neutral-300" />
                   </div>
                 ))}
-                <div className="relative w-6 h-6 mt-1.5">
+                <div className="relative w-6 h-6 mt-auto pt-1.5">
                   <div className="absolute top-0 left-0 w-4 h-4 bg-blue-600 border border-neutral-600 rounded-sm" />
                   <div className="absolute bottom-0 right-0 w-4 h-4 bg-white border border-neutral-600 rounded-sm" />
                 </div>
