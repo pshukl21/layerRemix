@@ -25,6 +25,9 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
   const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
   const [baseArtworkId, setBaseArtworkId] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [prizeFirst, setPrizeFirst] = useState('');
+  const [prizeSecond, setPrizeSecond] = useState('');
+  const [prizeThird, setPrizeThird] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +56,10 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
       description.trim(),
       baseArtworkId,
       deadline ? new Date(deadline).toISOString() : null,
-      currentUserId
+      currentUserId,
+      prizeFirst.trim() || null,
+      prizeSecond.trim() || null,
+      prizeThird.trim() || null
     );
     setSubmitting(false);
     if (err) {
@@ -64,6 +70,9 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
     setDescription(DEFAULT_DESCRIPTION);
     setBaseArtworkId('');
     setDeadline('');
+    setPrizeFirst('');
+    setPrizeSecond('');
+    setPrizeThird('');
     loadContests();
   };
 
@@ -123,6 +132,41 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
               onChange={(e) => setDeadline(e.target.value)}
               className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-600"
             />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              Prizes (all optional)
+            </label>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-base w-6 text-center shrink-0">🥇</span>
+                <input
+                  value={prizeFirst}
+                  onChange={(e) => setPrizeFirst(e.target.value)}
+                  placeholder="1st place prize"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-base w-6 text-center shrink-0">🥈</span>
+                <input
+                  value={prizeSecond}
+                  onChange={(e) => setPrizeSecond(e.target.value)}
+                  placeholder="2nd place prize"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-base w-6 text-center shrink-0">🥉</span>
+                <input
+                  value={prizeThird}
+                  onChange={(e) => setPrizeThird(e.target.value)}
+                  placeholder="3rd place prize"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+            </div>
           </div>
           {error && <p className="text-[11px] font-semibold text-red-600">{error}</p>}
           <button

@@ -646,3 +646,8 @@ create policy "Only admins can delete contests"
   using (
     exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
   );
+
+-- Prizes are all optional — a contest doesn't have to offer any.
+alter table public.contests add column if not exists prize_first text;
+alter table public.contests add column if not exists prize_second text;
+alter table public.contests add column if not exists prize_third text;

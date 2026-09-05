@@ -7,6 +7,9 @@ export interface Contest {
   baseArtworkId: string;
   deadline: string | null;
   createdAt: string;
+  prizeFirst: string | null;
+  prizeSecond: string | null;
+  prizeThird: string | null;
   // Joined from the base artwork, for display without a second query.
   baseTitle: string;
   baseImage: string;
@@ -21,6 +24,9 @@ function rowToContest(row: any): Contest {
     baseArtworkId: row.base_artwork_id,
     deadline: row.deadline,
     createdAt: row.created_at,
+    prizeFirst: row.prize_first || null,
+    prizeSecond: row.prize_second || null,
+    prizeThird: row.prize_third || null,
     baseTitle: row.base?.title || '',
     baseImage: row.base?.image_path
       ? supabase.storage.from('previews').getPublicUrl(row.base.image_path).data.publicUrl
@@ -58,7 +64,10 @@ export async function createContest(
   description: string,
   baseArtworkId: string,
   deadline: string | null,
-  createdBy: string
+  createdBy: string,
+  prizeFirst: string | null,
+  prizeSecond: string | null,
+  prizeThird: string | null
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.from('contests').insert({
     title,
@@ -66,6 +75,9 @@ export async function createContest(
     base_artwork_id: baseArtworkId,
     deadline,
     created_by: createdBy,
+    prize_first: prizeFirst,
+    prize_second: prizeSecond,
+    prize_third: prizeThird,
   });
   return { error: error?.message || null };
 }

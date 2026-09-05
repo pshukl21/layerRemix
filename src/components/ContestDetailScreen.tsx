@@ -131,6 +131,31 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
                 {isPastDeadline ? 'Contest ended' : `Ends ${new Date(contest.deadline).toLocaleDateString()}`}
               </div>
             )}
+
+            {(contest.prizeFirst || contest.prizeSecond || contest.prizeThird) && (
+              <div className="flex flex-col gap-1.5 bg-amber-50/60 border border-amber-100 rounded-lg px-3.5 py-3 mb-4">
+                <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-0.5">Prizes</p>
+                {contest.prizeFirst && (
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <span className="text-lg">🥇</span>
+                    {contest.prizeFirst}
+                  </div>
+                )}
+                {contest.prizeSecond && (
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <span className="text-lg">🥈</span>
+                    {contest.prizeSecond}
+                  </div>
+                )}
+                {contest.prizeThird && (
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <span className="text-lg">🥉</span>
+                    {contest.prizeThird}
+                  </div>
+                )}
+              </div>
+            )}
+
             <p className="text-sm text-slate-600 font-semibold leading-relaxed whitespace-pre-line mb-5">
               {contest.description}
             </p>
