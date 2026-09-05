@@ -967,6 +967,22 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                       </Link>
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Creator</span>
                     </div>
+
+                    {artwork.type === 'Remix' && artwork.parentArtworkId && artwork.parentAuthor && (
+                      <>
+                        <div className="h-8 w-px bg-slate-200 mx-1" />
+                        <Link
+                          to={`/art/${artwork.parentArtworkId}`}
+                          className="flex flex-col cursor-pointer group/parent"
+                        >
+                          <span className="font-bold text-sm text-indigo-500 group-hover/parent:text-indigo-700 group-hover/parent:underline w-fit flex items-center gap-1">
+                            <GitFork className="w-3 h-3" />
+                            @{artwork.parentAuthor}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Remixed From</span>
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
 

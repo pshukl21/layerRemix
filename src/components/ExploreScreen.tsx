@@ -398,6 +398,19 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
                   {/* Hover quick actions */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3 gap-2">
+                    {/* Remix attribution — only exists in the hover state now,
+                        not the info block below, so cards are the same
+                        height whether or not a piece is a remix. */}
+                    {art.type === 'Remix' && art.parentArtworkId && art.parentAuthor && (
+                      <Link
+                        to={`/art/${art.parentArtworkId}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-200 hover:text-white hover:underline w-fit"
+                      >
+                        <GitFork className="w-3 h-3" />
+                        remixed from @{art.parentAuthor}
+                      </Link>
+                    )}
                     <button
                       onClick={() => onSelectArtwork(art.id)}
                       className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
@@ -435,18 +448,6 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                         </span>
                       )}
                     </div>
-                  )}
-
-                  {/* Remix attribution — links back to the original */}
-                  {art.type === 'Remix' && art.parentArtworkId && art.parentAuthor && (
-                    <Link
-                      to={`/art/${art.parentArtworkId}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-700 hover:underline w-fit"
-                    >
-                      <GitFork className="w-3 h-3" />
-                      remixed from @{art.parentAuthor}
-                    </Link>
                   )}
 
                   <div className="flex items-center justify-between pt-0.5">
