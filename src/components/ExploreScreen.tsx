@@ -193,7 +193,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
               </h1>
             </div>
             <p className="text-sm md:text-base text-slate-500 font-semibold leading-snug mb-5 max-w-sm mx-auto md:mx-0">
-              Upload unfinished PSDs, download real source layers, and turn dormant projects into finished artwork.
+              Upload unfinished PSDs and let the LayerRemix community finish your art.
             </p>
             <div className="flex flex-col sm:flex-row gap-2.5 justify-center md:justify-start">
               <button
