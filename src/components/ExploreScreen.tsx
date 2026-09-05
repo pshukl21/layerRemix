@@ -454,7 +454,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     <Link
                       to={`/profile/${art.author}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="text-xs text-slate-400 font-bold hover:text-blue-600 hover:underline"
+                      className="text-xs text-blue-600 font-bold hover:text-blue-700 hover:underline"
                     >
                       by @{art.author}
                     </Link>
