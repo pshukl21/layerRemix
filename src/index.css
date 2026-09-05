@@ -99,6 +99,18 @@ body {
   to { background-position: 12px 0, 100% 12px, -12px 100%, 0 -12px; }
 }
 
+/* A real on/off blink, like an active text-tool cursor — Tailwind's
+   built-in animate-pulse only smoothly fades to 50% opacity, which reads
+   as "breathing" rather than an actual blinking cursor. This snaps fully
+   on then fully off. */
+.ps-cursor-blink {
+  animation: ps-cursor-blink 1s steps(1) infinite;
+}
+@keyframes ps-cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
 /* A compact monospace status bar, like Photoshop's document-info strip at
    the bottom of the canvas window (zoom %, dimensions, color mode). */
 .ps-statusbar {

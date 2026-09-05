@@ -170,7 +170,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 leading-tight">
                 Where scrapped PSDs become{' '}
                 <span className="bg-blue-600 text-white px-1">finished art.</span>
-                <span className="inline-block w-[2px] h-[0.9em] bg-slate-900 align-middle ml-1 animate-pulse" />
+                <span className="inline-block w-[2px] h-[0.9em] bg-slate-900 align-middle ml-1 ps-cursor-blink" />
               </h1>
             </div>
             <p className="text-sm md:text-base text-slate-500 font-semibold leading-snug mb-5 max-w-sm mx-auto md:mx-0">
