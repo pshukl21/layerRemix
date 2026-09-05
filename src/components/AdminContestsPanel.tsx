@@ -3,6 +3,13 @@ import { Trophy, Trash2, Loader2 } from 'lucide-react';
 import { fetchContests, createContest, deleteContest, Contest } from '../lib/contests';
 import { Artwork } from '../types';
 
+const DEFAULT_DESCRIPTION = `How to enter:
+1. Download the base PSD above.
+2. Remix it — change whatever you want, make it your own.
+3. Hit "Enter With Your Remix" and publish your version.
+
+Your entry will automatically show up in this contest's entry list.`;
+
 interface AdminContestsPanelProps {
   artworks: Artwork[];
   currentUserId: string;
@@ -15,7 +22,7 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
   const [baseArtworkId, setBaseArtworkId] = useState('');
   const [deadline, setDeadline] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -54,7 +61,7 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
       return;
     }
     setTitle('');
-    setDescription('');
+    setDescription(DEFAULT_DESCRIPTION);
     setBaseArtworkId('');
     setDeadline('');
     loadContests();
@@ -90,7 +97,7 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={3}
+            rows={6}
             placeholder="Rules / description"
             className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 resize-none"
           />
