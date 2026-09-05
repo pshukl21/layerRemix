@@ -5,6 +5,7 @@ import { fetchContestById, Contest } from '../lib/contests';
 import { Artwork } from '../types';
 import { getDownloadTarget, incrementDownloads } from '../lib/artworks';
 import { useAuth } from '../contexts/AuthContext';
+import { ContestEntriesList } from './ContestEntriesList';
 
 interface ContestDetailScreenProps {
   artworks: Artwork[];
@@ -183,43 +184,21 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
         </div>
 
         <div className="lg:col-span-7">
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Entries</h3>
-              <span className="text-xs font-bold text-slate-400">{entryCount} submitted</span>
-            </div>
-
-            {entryCount === 0 && (
+          {entryCount === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">Entries</h3>
               <p className="text-sm font-bold text-slate-400 text-center py-16">
                 No entries yet — be the first to remix and submit.
               </p>
-            )}
-
-            {entryTree && entryCount > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {entryTree.children.map((node) => (
-                  <div
-                    key={node.artwork.id}
-                    onClick={() => onSelectArtwork(node.artwork.id)}
-                    className="cursor-pointer group"
-                  >
-                    <div className="aspect-[4/5] rounded-lg overflow-hidden border border-slate-200 mb-2">
-                      <img
-                        src={node.artwork.image}
-                        alt={node.artwork.title}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        style={{ objectPosition: `${node.artwork.focalX ?? 50}% ${node.artwork.focalY ?? 50}%` }}
-                      />
-                    </div>
-                    <div className="text-xs font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
-                      {node.artwork.title}
-                    </div>
-                    <div className="text-[10px] font-semibold text-slate-400 truncate">by @{node.artwork.author}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <ContestEntriesList
+              entries={entryTree ? entryTree.children.map((n) => n.artwork) : []}
+              totalCount={entryCount}
+              maxShow={20}
+              onSelectArtwork={onSelectArtwork}
+            />
+          )}
         </div>
       </div>
     </div>

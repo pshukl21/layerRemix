@@ -2,8 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Clock, Loader2, ArrowRight } from 'lucide-react';
 import { fetchContests, Contest } from '../lib/contests';
+import { Artwork } from '../types';
+import { ContestEntriesList } from './ContestEntriesList';
 
-export const ContestsScreen: React.FC = () => {
+interface ContestsScreenProps {
+  artworks: Artwork[];
+  onSelectArtwork: (artworkId: string) => void;
+}
+
+export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSelectArtwork }) => {
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +29,17 @@ export const ContestsScreen: React.FC = () => {
       text: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
       isPast,
     };
+  };
+
+  // Direct entries for the compact card preview, plus a total count that
+  // includes deeper remix-of-a-remix chains — same split the detail page
+  // uses, kept consistent between the two so numbers never disagree.
+  const getEntries = (baseArtworkId: string): Artwork[] =>
+    artworks.filter((a) => a.parentArtworkId === baseArtworkId);
+
+  const countAllDescendants = (artworkId: string): number => {
+    const children = artworks.filter((a) => a.parentArtworkId === artworkId);
+    return children.reduce((acc, child) => acc + 1 + countAllDescendants(child.id), 0);
   };
 
   return (
@@ -108,6 +126,13 @@ export const ContestsScreen: React.FC = () => {
                     )}
                   </div>
                 )}
+
+                <ContestEntriesList
+                  entries={getEntries(contest.baseArtworkId)}
+                  totalCount={countAllDescendants(contest.baseArtworkId)}
+                  maxShow={2}
+                  onSelectArtwork={onSelectArtwork}
+                />
 
                 <Link
                   to={`/contests/${contest.id}`}

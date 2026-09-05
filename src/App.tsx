@@ -476,7 +476,10 @@ export default function App() {
 
               <Route path="/reset-password" element={<ResetPasswordScreen />} />
               <Route path="/terms" element={<TermsScreen />} />
-              <Route path="/contests" element={<ContestsScreen />} />
+              <Route
+                path="/contests"
+                element={<ContestsScreen artworks={artworks} onSelectArtwork={handleSelectArtwork} />}
+              />
               <Route
                 path="/contests/:id"
                 element={
