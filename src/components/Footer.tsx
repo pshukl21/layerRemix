@@ -13,6 +13,9 @@ export const Footer: React.FC = () => {
       <p className="text-slate-500 text-[11px] font-medium tracking-wide">
         © 2026 LayerRemix. The digital artist's canvas.
       </p>
+      <Link to="/terms" className="text-slate-400 hover:text-blue-600 text-[11px] font-bold tracking-wide transition-colors">
+        Terms of Service
+      </Link>
     </footer>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check, Share2 } from 'lucide-react';
+import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check, Share2, Flag } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews, findDuplicateByHash } from '../lib/artworks';
@@ -9,6 +9,7 @@ import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT, getIm
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { generateShareImage } from '../lib/shareImage';
+import { ReportModal } from './ReportModal';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
 import { FocalPointPicker } from './FocalPointPicker';
@@ -593,6 +594,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
 
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [generatingShareImage, setGeneratingShareImage] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const [sharePreviewBlob, setSharePreviewBlob] = useState<Blob | null>(null);
   const [sharePreviewUrl, setSharePreviewUrl] = useState<string | null>(null);
   const [sharePreviewFileName, setSharePreviewFileName] = useState('');
@@ -1063,6 +1065,13 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 {shareError && (
                   <p className="text-[11px] font-semibold text-red-600 text-center">{shareError}</p>
                 )}
+                <button
+                  onClick={() => setReportModalOpen(true)}
+                  className="w-full text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase tracking-widest flex items-center justify-center gap-1.5 cursor-pointer pt-1"
+                >
+                  <Flag className="w-3 h-3" />
+                  Report this artwork
+                </button>
                 </div>
               </div>
 
@@ -1571,6 +1580,15 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ReportModal
+        open={reportModalOpen}
+        artworkId={artwork.id}
+        artworkTitle={artwork.title}
+        reporterId={user?.id || null}
+        onClose={() => setReportModalOpen(false)}
+        onRequireAuth={onRequireAuth}
+      />
     </div>
   );
 };

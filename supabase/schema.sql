@@ -529,3 +529,75 @@ create policy "Only admins can update site assets"
     bucket_id = 'site-assets'
     and exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
   );
+
+-- ---------------------------------------------------------------------------
+-- Content reports + admin takedown
+--
+-- Any signed-in user can report an artwork. Reports are private — only
+-- admins can ever read them (not even the reporter can see others' reports,
+-- and the reported artwork's owner never sees who reported them). Admins
+-- get a real enforcement path: a takedown function that can actually
+-- remove violating content, not just a form that goes into a black hole.
+-- ---------------------------------------------------------------------------
+create table if not exists public.reports (
+  id uuid primary key default gen_random_uuid(),
+  artwork_id uuid not null references public.artworks(id) on delete cascade,
+  reporter_id uuid references public.profiles(id) on delete set null,
+  reason text not null,
+  details text,
+  status text not null default 'pending' check (status in ('pending', 'reviewed', 'dismissed', 'actioned')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.reports enable row level security;
+
+create policy "Users can submit their own reports"
+  on public.reports for insert
+  with check (auth.uid() = reporter_id);
+
+create policy "Only admins can view reports"
+  on public.reports for select
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );
+
+create policy "Only admins can update report status"
+  on public.reports for update
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );
+
+-- Admin-only takedown — deliberately separate from the regular
+-- delete_artwork_with_credit_check function, since this isn't the owner
+-- removing their own work (no credit cost, no ownership check) — it's an
+-- admin acting on a report. Returns the storage paths so the client can
+-- clean up the actual files, same pattern as the regular delete function.
+create or replace function public.admin_delete_artwork(p_artwork_id uuid)
+returns table(image_path text, source_file_path text)
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_image_path text;
+  v_source_file_path text;
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and is_admin = true) then
+    raise exception 'Not authorized';
+  end if;
+
+  select artworks.image_path, artworks.source_file_path
+    into v_image_path, v_source_file_path
+    from public.artworks
+    where id = p_artwork_id;
+
+  if v_image_path is null then
+    raise exception 'Artwork not found';
+  end if;
+
+  delete from public.artworks where id = p_artwork_id;
+
+  return query select v_image_path, v_source_file_path;
+end;
+$$;
+
+grant execute on function public.admin_delete_artwork(uuid) to authenticated;

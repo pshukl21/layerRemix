@@ -6,6 +6,7 @@ import { Artwork, Profile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername } from '../lib/artworks';
 import { HeroSettingsPanel } from './HeroSettingsPanel';
+import { AdminReportsPanel } from './AdminReportsPanel';
 
 interface ProfileScreenProps {
   artworks: Artwork[];
@@ -421,6 +422,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           onUpdateHeroDownloadUrl={onUpdateHeroDownloadUrl}
         />
       )}
+
+      {isOwnProfile && ownProfile?.isAdmin && <AdminReportsPanel />}
 
       <nav className="flex gap-10 border-b border-slate-200 mb-8 overflow-x-auto select-none">
         <button
