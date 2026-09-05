@@ -134,7 +134,32 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           identical bounds as the grid/tabs, not just the same max-width. */}
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         <section className="relative overflow-hidden rounded-xl my-4 bg-gradient-to-br from-white via-slate-50 to-blue-50/20 border border-slate-200 shadow-xs">
-          <div className="relative z-10 px-6 md:px-12 py-6 grid md:grid-cols-2 gap-6 md:gap-10 items-end">
+          {/* Compact tool panel — decorative, mirrors the real Photoshop
+              toolbar (Move, Marquee, Crop, Eyedropper, Brush, Eraser,
+              Pen, Type, Hand) plus the foreground/background color
+              swatches at the bottom. Spans the full height of the hero
+              card itself (like a real Photoshop window's toolbar runs the
+              whole app height), not just the headline next to it — a
+              fixed reference point rather than one that shifts depending
+              on how the headline happens to wrap. */}
+          <div className="hidden sm:flex absolute left-3 md:left-4 top-3 md:top-4 bottom-3 md:bottom-4 flex-col items-center gap-1 bg-neutral-800 border border-neutral-700 rounded-lg p-1.5 z-20">
+            {[Move, MousePointer2, Crop, Pipette, Paintbrush, Eraser, PenTool, Type, Hand].map((Icon, i) => (
+              <div
+                key={i}
+                className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${
+                  i === 7 ? 'bg-blue-600' : 'hover:bg-neutral-700'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5 text-neutral-300" />
+              </div>
+            ))}
+            <div className="relative w-6 h-6 mt-auto pt-1.5 shrink-0">
+              <div className="absolute top-0 left-0 w-4 h-4 bg-blue-600 border border-neutral-600 rounded-sm" />
+              <div className="absolute bottom-0 right-0 w-4 h-4 bg-white border border-neutral-600 rounded-sm" />
+            </div>
+          </div>
+
+          <div className="relative z-10 pr-6 md:pr-12 pl-6 sm:pl-20 md:pl-24 py-6 grid md:grid-cols-2 gap-6 md:gap-10 items-end">
             {/* Copy + CTAs */}
             <motion.div
               initial={{ opacity: 0, x: -16 }}
@@ -142,60 +167,35 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
               transition={{ duration: 0.5 }}
             className="text-center md:text-left"
           >
-            <div className="flex items-stretch gap-3 justify-center md:justify-start">
-              {/* Compact tool panel — decorative, mirrors the real Photoshop
-                  toolbar (Move, Marquee, Crop, Eyedropper, Brush, Eraser,
-                  Pen, Type, Hand) plus the foreground/background color
-                  swatches at the bottom. */}
-              <div className="hidden sm:flex flex-col items-center gap-1 bg-neutral-800 border border-neutral-700 rounded-lg p-1.5 shrink-0">
-                {[Move, MousePointer2, Crop, Pipette, Paintbrush, Eraser, PenTool, Type, Hand].map((Icon, i) => (
-                  <div
-                    key={i}
-                    className={`w-6 h-6 rounded flex items-center justify-center ${
-                      i === 7 ? 'bg-blue-600' : 'hover:bg-neutral-700'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5 text-neutral-300" />
-                  </div>
-                ))}
-                <div className="relative w-6 h-6 mt-auto pt-1.5">
-                  <div className="absolute top-0 left-0 w-4 h-4 bg-blue-600 border border-neutral-600 rounded-sm" />
-                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-white border border-neutral-600 rounded-sm" />
-                </div>
-              </div>
-
-              <div>
-                <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-200/50 mb-3">
-                  🎨 Open-Source Artwork
-                </span>
-                {/* Styled to mimic an active Photoshop Text Tool / Transform
-                    box — a small, intentional easter egg leaning into the
-                    platform's whole PSD theme. The 8 handles are generated from
-                    one position list rather than repeated by hand, so the
-                    bounding box stays easy to resize/adjust later. */}
-                <div className="relative inline-block border border-dashed border-neutral-400 px-1 py-1 mb-2.5">
-                  {[
-                    { top: '0%', left: '0%' },
-                    { top: '0%', left: '50%' },
-                    { top: '0%', left: '100%' },
-                    { top: '50%', left: '0%' },
-                    { top: '50%', left: '100%' },
-                    { top: '100%', left: '0%' },
-                    { top: '100%', left: '50%' },
-                    { top: '100%', left: '100%' },
-                  ].map((pos, i) => (
-                    <span
-                      key={i}
-                      className="absolute w-1.5 h-1.5 bg-white border border-neutral-800 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                      style={pos}
-                    />
-                  ))}
-                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 leading-tight">
-                    Where scrapped PSDs become{' '}
-                    <span className="bg-blue-600 text-white px-1">finished art.</span>
-                  </h1>
-                </div>
-              </div>
+            <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-200/50 mb-3">
+              🎨 Open-Source Artwork
+            </span>
+            {/* Styled to mimic an active Photoshop Text Tool / Transform
+                box — a small, intentional easter egg leaning into the
+                platform's whole PSD theme. The 8 handles are generated from
+                one position list rather than repeated by hand, so the
+                bounding box stays easy to resize/adjust later. */}
+            <div className="relative inline-block border border-dashed border-neutral-400 px-1 py-1 mb-2.5">
+              {[
+                { top: '0%', left: '0%' },
+                { top: '0%', left: '50%' },
+                { top: '0%', left: '100%' },
+                { top: '50%', left: '0%' },
+                { top: '50%', left: '100%' },
+                { top: '100%', left: '0%' },
+                { top: '100%', left: '50%' },
+                { top: '100%', left: '100%' },
+              ].map((pos, i) => (
+                <span
+                  key={i}
+                  className="absolute w-1.5 h-1.5 bg-white border border-neutral-800 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                  style={pos}
+                />
+              ))}
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 leading-tight">
+                Where scrapped PSDs become{' '}
+                <span className="bg-blue-600 text-white px-1">finished art.</span>
+              </h1>
             </div>
             <p className="text-sm md:text-base text-slate-500 font-semibold leading-snug mb-5 max-w-sm mx-auto md:mx-0">
               Upload unfinished PSDs, download real source layers, and turn dormant projects into finished artwork.
