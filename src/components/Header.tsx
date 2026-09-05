@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Upload, Search, LogOut, Coins } from 'lucide-react';
+import { Upload, Search, LogOut, Coins, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR } from '../lib/artworks';
 
@@ -13,7 +13,9 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequireAuth }) => {
   const { user, profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const menuContainerRef = useRef<HTMLDivElement>(null);
+  const mobileNavRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,6 +32,23 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (mobileNavRef.current && !mobileNavRef.current.contains(e.target as Node)) {
+        setMobileNavOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [mobileNavOpen]);
+
+  // Close the mobile nav automatically on any route change (e.g. tapping
+  // a link inside it), rather than relying solely on each link's onClick.
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
 
   const isExplore = location.pathname === '/';
   const isContests = location.pathname.startsWith('/contests');
@@ -54,7 +73,14 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
 
   return (
     <header className="fixed top-0 w-full z-50 flex justify-between items-center px-4 md:px-12 h-16 bg-gradient-to-b from-[#eaeefd]/95 to-[#d9e2fc]/95 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-3 md:gap-8">
+        <button
+          onClick={() => setMobileNavOpen((open) => !open)}
+          className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-900/5 transition-colors cursor-pointer shrink-0"
+          aria-label="Toggle navigation menu"
+        >
+          {mobileNavOpen ? <X className="w-5 h-5 text-slate-700" /> : <Menu className="w-5 h-5 text-slate-700" />}
+        </button>
         <Link
           to="/"
           className="flex items-center gap-1.5 md:gap-2 font-bold text-lg md:text-2xl tracking-tighter text-slate-900 cursor-pointer hover:opacity-95 select-none shrink-0"
@@ -81,6 +107,33 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
           </Link>
         </nav>
       </div>
+
+      {/* Mobile nav dropdown — the md:flex nav above is fully hidden below
+          that breakpoint with no other way to reach it, so this is the only
+          path to Explore Art / Contests on a phone. */}
+      {mobileNavOpen && (
+        <div
+          ref={mobileNavRef}
+          className="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-lg py-2 z-40"
+        >
+          <Link
+            to="/"
+            className={`block px-6 py-3 text-sm font-semibold ${
+              isExplore ? 'text-blue-600 bg-blue-50' : 'text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            Explore Art
+          </Link>
+          <Link
+            to="/contests"
+            className={`block px-6 py-3 text-sm font-semibold ${
+              isContests ? 'text-blue-600 bg-blue-50' : 'text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            Contests
+          </Link>
+        </div>
+      )}
 
       <div className="flex items-center gap-3 md:gap-6">
         {/* Header Search Bar (Only shown or styled nicely on md screens) */}
