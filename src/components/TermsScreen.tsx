@@ -14,16 +14,12 @@ export const TermsScreen: React.FC = () => {
       </Link>
 
       <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 mb-2">Terms of Service</h1>
-      <p className="text-sm text-slate-400 font-semibold mb-8">Last updated: [DATE]</p>
+      <p className="text-sm text-slate-400 font-semibold mb-8">Last updated: September 5, 2026</p>
 
       <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-10">
         <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
         <p className="text-xs text-amber-800 font-semibold leading-relaxed">
-          This is a working draft, not finished legal advice. Before relying on it, have a lawyer review it —
-          particularly the sections on user-uploaded content and intellectual property, given the platform hosts
-          fan art and other derivative work that may reference third-party trademarks or copyrighted material.
-          Replace every <span className="font-mono bg-amber-100 px-1 rounded">[bracketed]</span> placeholder with
-          your actual details before publishing this for real.
+          This Terms of Service has not yet been reviewed by a legal professional.
         </p>
       </div>
 
@@ -60,6 +56,16 @@ export const TermsScreen: React.FC = () => {
             rights to the Content, or have all necessary rights and permissions to upload it and to grant the
             licenses described above — including rights to any third-party material, likenesses, trademarks, or
             copyrighted elements incorporated into it.
+          </p>
+          <p>
+            <span className="font-black">This applies in full to fan art, sports art, and other derivative
+            compositions</span>, including work built from licensed photography, team or league trademarks, or a
+            real person's likeness. Whether such a use qualifies as fair use, or otherwise doesn't require
+            permission, depends on factors specific to each piece — it is not automatically permitted merely because
+            the Service is free to use or Content is shared without payment. The licenses you grant under this
+            Section do not, and cannot, grant you or anyone else any right to use third-party material beyond what
+            the actual rights holder has authorized. If the underlying material was used without the necessary
+            rights, that responsibility remains with the person who uploaded it, not with LayerRemix.
           </p>
         </Section>
 

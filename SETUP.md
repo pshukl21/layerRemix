@@ -137,3 +137,69 @@ that requires making the bucket private and issuing short-lived signed
 URLs from a server-side function (like a Supabase Edge Function) that
 checks and spends the credit before handing out the link — happy to build
 that out if it becomes important.
+
+## Email notifications ("your art was remixed")
+
+When someone publishes a remix, the original creator gets an email. This is
+built as a general notification system — adding new notification types later
+(e.g. "someone downloaded your file") means editing one function, not
+rebuilding anything. The code lives in
+`supabase/functions/send-notification-email/index.ts`.
+
+There's no per-user "turn off emails" setting yet — everyone whose art gets
+remixed gets notified. Worth adding later if it becomes a common request.
+
+### One-time setup (all manual — these are steps only you can do)
+
+**1. Create a Resend account** at [resend.com](https://resend.com) (free tier
+covers 3,000 emails/month, plenty to start).
+
+**2. Verify your sending domain.** In Resend, go to *Domains → Add Domain*,
+enter `layerremix.com`, and add the DNS records it gives you (a few TXT/CNAME
+records) wherever your domain's DNS is managed. This can take a few minutes
+to a few hours to verify — email providers won't accept mail from an
+unverified domain.
+
+**3. Create an API key** in Resend (*API Keys → Create API Key*).
+
+**4. Install the Supabase CLI** if you don't have it:
+```bash
+npm install -g supabase
+```
+
+**5. Link your project and set secrets:**
+```bash
+supabase login
+supabase link --project-ref <your-project-ref>   # found in your Supabase project URL
+
+supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxx
+supabase secrets set NOTIFICATION_FROM="LayerRemix <notifications@layerremix.com>"
+supabase secrets set SITE_URL=https://layerremix.com
+```
+
+**6. Deploy the Edge Function:**
+```bash
+supabase functions deploy send-notification-email
+```
+
+**7. Connect it to your database with a Database Webhook** — this is what
+actually triggers the email whenever a remix gets published:
+- In the Supabase dashboard, go to **Database → Webhooks → Create a new webhook**
+- Name: `notify-on-remix` (or anything)
+- Table: `artworks`
+- Events: check **Insert** only
+- Type: **Supabase Edge Functions**
+- Select the `send-notification-email` function — this handles authentication automatically
+- Save
+
+That's it — every new row in `artworks` will now ping the function, which
+checks whether it's actually a remix (skipping originals and self-remixes)
+before sending anything.
+
+### Testing it
+
+Publish a remix of someone else's artwork (as a different account than the
+original creator) and check that account's inbox. If nothing arrives, check
+**Database → Webhooks** in the dashboard for delivery logs, and **Edge
+Functions → Logs** for errors from the function itself — that'll tell you
+whether the webhook fired, the function ran, or Resend rejected the send.
