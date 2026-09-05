@@ -194,13 +194,15 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
           {/* Compact before/after demo — pure display only. No edit
               controls here at all — those live on the admin's own profile
               page now, so this view always matches exactly what every
-              visitor sees. Slider + button share one outer border/shadow/
-              radius so there's no seam or width mismatch between them. */}
+              visitor sees. Slider and button are styled independently
+              (each with its own full rounding/border/shadow) but share the
+              same w-full parent, so they stay the same width with a gap
+              between them rather than sitting flush. */}
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="max-w-[420px] mx-auto w-full rounded-xl overflow-hidden border border-slate-200 shadow-md"
+            className="max-w-[420px] mx-auto w-full"
           >
             <BeforeAfterSlider
               beforeImage={heroBeforeImageUrl || '/hero-before.png'}
@@ -208,7 +210,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
               beforeLabel="RAW PSD"
               afterLabel="REMIX"
               aspectRatio="3/2"
-              roundedClassName={heroDownloadUrl ? 'rounded-none' : 'rounded-xl'}
+              className="shadow-md border border-slate-200"
             />
 
             {/* Download button — same styling as the card hover action.
@@ -218,7 +220,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             {heroDownloadUrl && (
               <Link
                 to={toInternalPath(heroDownloadUrl)}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:bg-blue-800"
+                className="mt-3 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
               >
                 <GitFork className="w-3.5 h-3.5" />
                 Fork / Download PSD
