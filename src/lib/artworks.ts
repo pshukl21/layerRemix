@@ -310,23 +310,29 @@ export async function updateArtwork(
 
 // Resolves a real, fetchable download URL + suggested filename for an artwork.
 // Falls back to the preview image if no source file was uploaded (e.g. demo seed art).
-export function getDownloadTarget(artwork: Artwork): { url: string; filename: string } {
+export async function getDownloadTarget(
+  artwork: Artwork
+): Promise<{ url: string; filename: string; error?: undefined } | { url?: undefined; filename?: undefined; error: string }> {
   if (artwork.sourceFilePath) {
     // The stored file is always a .zip (containing the original .psd) — the
     // suggested download filename needs to match that, or the browser saves
     // a file with a .psd extension that's actually zip-archive bytes inside.
     const baseName = (artwork.sourceFileName || artwork.title).replace(/\.[^./\\]+$/, '');
     const filename = `${baseName}.zip`;
-    // Passing `download` here makes Supabase Storage's own server set a
-    // real Content-Disposition header naming this file — the browser then
-    // does a normal, instant, natively-streamed download with the correct
-    // name baked in from the very first byte. This is a server-set header,
-    // not a client-side <a download> attribute, so it isn't subject to the
-    // same-origin restriction that attribute has for cross-origin URLs.
-    const { publicUrl } = supabase.storage
+    // A signed URL (rather than a public one) is required now that the
+    // bucket is private — this is what actually makes the "contest entries
+    // are locked until judging" restriction real, since Storage checks the
+    // caller's own RLS-governed access before it will even issue the URL,
+    // not just before serving the bytes. `download` still gets Supabase's
+    // own server to set the Content-Disposition header, so the filename
+    // and instant-start behavior from before are both preserved.
+    const { data, error } = await supabase.storage
       .from(SOURCE_FILES_BUCKET)
-      .getPublicUrl(artwork.sourceFilePath, { download: filename }).data;
-    return { url: publicUrl, filename };
+      .createSignedUrl(artwork.sourceFilePath, 60, { download: filename });
+    if (error || !data) {
+      return { error: error?.message || 'This file is not available for download right now.' };
+    }
+    return { url: data.signedUrl, filename };
   }
   return { url: artwork.image, filename: `${artwork.title}.jpg` };
 }

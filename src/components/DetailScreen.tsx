@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check, Share2, Flag } from 'lucide-react';
+import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check, Share2, Flag, Lock } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews, findDuplicateByHash, triggerFileDownload } from '../lib/artworks';
@@ -10,6 +10,7 @@ import { OPEN_CHALLENGES } from '../lib/challenges';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { generateShareImage } from '../lib/shareImage';
 import { ReportModal } from './ReportModal';
+import { Contest } from '../lib/contests';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
 import { FocalPointPicker } from './FocalPointPicker';
@@ -17,6 +18,7 @@ import { FocalPointPicker } from './FocalPointPicker';
 interface DetailScreenProps {
   artwork: Artwork;
   artworks: Artwork[];
+  contests: Contest[];
   onSelectArtwork: (artworkId: string) => void;
   onNavigateToProfile: () => void;
   onRequireAuth: () => void;
@@ -140,6 +142,7 @@ function computeNewForkVersionLabel(parent: Artwork, allArtworks: Artwork[]): st
 export const DetailScreen: React.FC<DetailScreenProps> = ({
   artwork,
   artworks,
+  contests,
   onSelectArtwork,
   onNavigateToProfile,
   onRequireAuth,
@@ -612,31 +615,64 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [downloading, setDownloading] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
-  const downloadTarget = getDownloadTarget(artwork);
   const isOwnArtwork = !!user && user.id === artwork.ownerId;
+  const isContestBase = contests.some((c) => c.baseArtworkId === artwork.id);
+  // Contest base files are always free to download (that's the whole point
+  // of a contest — get people downloading and remixing it), same as your
+  // own uploads already are.
+  const downloadIsFree = isOwnArtwork || isContestBase;
 
-  const handleDownloadClick = () => {
+  // A contest entry (a remix of some contest's base file) is locked from
+  // everyone except its own creator and admins until that contest's
+  // deadline passes — this stops contestants from downloading and copying
+  // each other's submissions before judging. Real enforcement lives in
+  // storage RLS (see schema.sql); this check is just for a clear, upfront
+  // message instead of a confusing raw permission error.
+  const lockedEntryContest = artwork.parentArtworkId
+    ? contests.find(
+        (c) => c.baseArtworkId === artwork.parentArtworkId && c.deadline && new Date(c.deadline).getTime() > Date.now()
+      )
+    : undefined;
+  const isLockedEntry = !!lockedEntryContest && !isOwnArtwork && !profile?.isAdmin;
+
+  const handleDownloadClick = async () => {
     if (!user) {
       onRequireAuth();
       return;
     }
     setDownloadError(null);
 
-    if (!isOwnArtwork && (profile?.credits ?? 0) < 1) {
+    if (isLockedEntry) {
+      setDownloadError(
+        `This is a contest entry — downloads unlock for everyone once judging closes on ${new Date(
+          lockedEntryContest!.deadline!
+        ).toLocaleDateString()}.`
+      );
+      return;
+    }
+
+    if (!downloadIsFree && (profile?.credits ?? 0) < 1) {
       onRequireCredits();
+      return;
+    }
+
+    setDownloading(true);
+    const downloadTarget = await getDownloadTarget(artwork);
+    if (downloadTarget.error) {
+      setDownloading(false);
+      setDownloadError(downloadTarget.error);
       return;
     }
 
     // Downloads instantly via the native browser mechanism — the filename
     // is set correctly by Supabase Storage's own Content-Disposition
-    // header (baked into downloadTarget.url), not a client-side attribute.
+    // header (baked into the signed URL), not a client-side attribute.
     triggerFileDownload(downloadTarget.url, downloadTarget.filename);
     if (!artwork.isDemo) {
       incrementDownloads(artwork.id, Number(artwork.downloads) || 0);
     }
 
-    if (!isOwnArtwork) {
-      setDownloading(true);
+    if (!downloadIsFree) {
       spendDownloadCredit(user.id).then(({ error }) => {
         setDownloading(false);
         if (error) {
@@ -649,6 +685,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         }
         refreshProfile();
       });
+    } else {
+      setDownloading(false);
     }
   };
 
@@ -1032,18 +1070,30 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 <div className="p-6 flex flex-col gap-3">
                 <button
                   onClick={handleDownloadClick}
-                  disabled={downloading}
-                  className="w-full bg-blue-600 text-white py-3.5 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm disabled:opacity-60 cursor-pointer"
+                  disabled={downloading || isLockedEntry}
+                  className={`w-full py-3.5 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-sm disabled:opacity-60 cursor-pointer ${
+                    isLockedEntry
+                      ? 'bg-slate-200 text-slate-500'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
                 >
-                  <Download className="w-4 h-4" />
-                  {downloading
+                  {isLockedEntry ? <Lock className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+                  {isLockedEntry
+                    ? 'Locked Until Judging'
+                    : downloading
                     ? 'Downloading…'
                     : artwork.sourceFilePath
                     ? 'Download PSD (.zip)'
                     : 'Download Image'}
                 </button>
                 <p className="text-[11px] font-semibold text-slate-400 text-center -mt-1.5">
-                  {isOwnArtwork ? 'Free — this is your upload' : 'Costs 1 download credit'}
+                  {isLockedEntry
+                    ? `Unlocks ${new Date(lockedEntryContest!.deadline!).toLocaleDateString()}`
+                    : downloadIsFree
+                    ? isContestBase
+                      ? 'Free — contest base file'
+                      : 'Free — this is your upload'
+                    : 'Costs 1 download credit'}
                 </p>
                 {downloadError && (
                   <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">

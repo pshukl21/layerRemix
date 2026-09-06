@@ -19,6 +19,7 @@ import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
 import { fetchArtworks, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds } from './lib/artworks';
 import { fetchSiteSettings, updateHeroImage, updateHeroDownloadUrl, SiteSettings } from './lib/siteSettings';
+import { fetchContests, Contest } from './lib/contests';
 
 interface PublishInput {
   title: string;
@@ -50,6 +51,7 @@ interface UpdateInput {
 // so a direct link/refresh/share to /art/:id always shows the right piece.
 function DetailRoute({
   artworks,
+  contests,
   loadingArtworks,
   onSelectArtwork,
   onNavigateToProfile,
@@ -62,6 +64,7 @@ function DetailRoute({
   onToggleFavorite,
 }: {
   artworks: Artwork[];
+  contests: Contest[];
   loadingArtworks: boolean;
   onSelectArtwork: (id: string) => void;
   onNavigateToProfile: () => void;
@@ -105,6 +108,7 @@ function DetailRoute({
     <DetailScreen
       artwork={artwork}
       artworks={artworks}
+      contests={contests}
       onSelectArtwork={onSelectArtwork}
       onNavigateToProfile={onNavigateToProfile}
       onPublishFork={onPublishFork}
@@ -155,6 +159,7 @@ export default function App() {
   const [needCreditsModalOpen, setNeedCreditsModalOpen] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({ heroBeforeImageUrl: null, heroAfterImageUrl: null, heroDownloadUrl: null });
+  const [contests, setContests] = useState<Contest[]>([]);
   const [creditsBannerDismissed, setCreditsBannerDismissed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -180,6 +185,13 @@ export default function App() {
   // visitor needs the current hero images to render the homepage.
   useEffect(() => {
     fetchSiteSettings().then(setSiteSettings);
+  }, []);
+
+  // Public data too — every artwork page needs to know whether it's a
+  // contest base file (free download) or a locked entry (blocked until
+  // judging), regardless of who's viewing it.
+  useEffect(() => {
+    fetchContests().then(setContests);
   }, []);
 
   // Load the current user's own hearted-artwork ids on login (and clear
@@ -519,6 +531,7 @@ export default function App() {
                 element={
                   <DetailRoute
                     artworks={artworks}
+                    contests={contests}
                     loadingArtworks={loadingArtworks}
                     onSelectArtwork={handleSelectArtwork}
                     onNavigateToProfile={() => navigate('/profile')}

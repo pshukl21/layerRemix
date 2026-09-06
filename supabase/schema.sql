@@ -399,6 +399,12 @@ insert into storage.buckets (id, name, public)
 values ('source-files', 'source-files', true)
 on conflict (id) do nothing;
 
+-- Flip to private now that access is meant to be conditional (contest
+-- entries before judging) rather than always-public. Safe to run even if
+-- the bucket was already created public by the insert above or an earlier
+-- deploy — this just corrects it going forward.
+update storage.buckets set public = false where id = 'source-files';
+
 create policy "Preview images are publicly readable"
   on storage.objects for select
   using (bucket_id = 'previews');
@@ -417,9 +423,29 @@ create policy "Users can delete their own preview images"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
-create policy "Source files are publicly readable"
+-- Previously unconditionally public-read. Now: anyone can still read a
+-- source file EXCEPT when it's a contest entry (a remix of a contest's
+-- base_artwork_id) whose contest deadline hasn't passed yet — in that one
+-- case, only the file's owner or an admin can read it. This is enforced
+-- here in storage, not just hidden in the UI, since the bucket itself
+-- needs to stop serving the bytes, not merely stop showing a button.
+create policy "Source files are readable unless a locked contest entry"
   on storage.objects for select
-  using (bucket_id = 'source-files');
+  using (
+    bucket_id = 'source-files'
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+      or not exists (
+        select 1
+        from public.artworks a
+        join public.contests c on c.base_artwork_id = a.parent_artwork_id
+        where a.source_file_path = storage.objects.name
+        and c.deadline is not null
+        and c.deadline > now()
+      )
+    )
+  );
 
 create policy "Users can upload their own source files"
   on storage.objects for insert

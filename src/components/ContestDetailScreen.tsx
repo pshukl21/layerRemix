@@ -57,8 +57,12 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
       return;
     }
     if (!baseArtwork) return;
-    const { url, filename } = getDownloadTarget(baseArtwork);
-    triggerFileDownload(url, filename);
+    const downloadTarget = await getDownloadTarget(baseArtwork);
+    if (downloadTarget.error) {
+      window.alert(downloadTarget.error);
+      return;
+    }
+    triggerFileDownload(downloadTarget.url, downloadTarget.filename);
     incrementDownloads(baseArtwork.id);
   };
 

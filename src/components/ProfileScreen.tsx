@@ -141,11 +141,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     onToggleFavorite(id);
   };
 
-  const handleDownloadClick = (art: Artwork, e: React.MouseEvent) => {
+  const handleDownloadClick = async (art: Artwork, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const { url, filename } = getDownloadTarget(art);
-    triggerFileDownload(url, filename);
+    const downloadTarget = await getDownloadTarget(art);
+    if (downloadTarget.error) {
+      // A plain alert is enough here — this is a secondary download path
+      // (the primary one on the artwork detail page has full inline error
+      // handling); the only realistic way to hit this here is trying to
+      // grab a still-locked contest entry.
+      window.alert(downloadTarget.error);
+      return;
+    }
+    triggerFileDownload(downloadTarget.url, downloadTarget.filename);
     if (!art.isDemo) {
       incrementDownloads(art.id, Number(art.downloads) || 0);
     }
