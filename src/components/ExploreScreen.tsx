@@ -154,13 +154,13 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             </div>
           </div>
 
-          <div className="relative z-10 pr-6 md:pr-12 pl-6 sm:pl-20 md:pl-24 py-6 grid md:grid-cols-2 gap-6 md:gap-10 items-end">
+          <div className="relative z-10 pr-6 md:pr-12 pl-6 sm:pl-20 lg:pl-24 py-6 grid lg:grid-cols-2 gap-6 lg:gap-10 items-end">
             {/* Copy + CTAs */}
             <motion.div
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-            className="text-center md:text-left"
+            className="text-center lg:text-left"
           >
             <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-200/50 mb-3">
               🎨 Open-Source Artwork
@@ -195,7 +195,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             <p className="text-sm md:text-base text-slate-500 font-semibold leading-snug mb-5 max-w-sm mx-auto md:mx-0">
               Upload unfinished PSDs and let the LayerRemix community finish your art.
             </p>
-            <div className="flex flex-col sm:flex-row gap-2.5 justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row gap-2.5 justify-center lg:justify-start">
               <button
                 onClick={scrollToGrid}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
@@ -220,7 +220,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
             </div>
 
             {hotTags.length > 0 && (
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 mt-5">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5 mt-5">
                 <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold mr-1">Hot tags:</span>
                 {hotTags.map((tag) => {
                   const isActive = searchQuery.toLowerCase() === tag.toLowerCase();
