@@ -5,9 +5,12 @@ import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Laye
 import { Artwork } from '../types';
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
+import { Contest } from '../lib/contests';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ExploreScreenProps {
   artworks: Artwork[];
+  contests: Contest[];
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   onSelectArtwork: (artworkId: string) => void;
@@ -28,6 +31,7 @@ function formatFileSize(bytes: number): string {
 
 export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   artworks,
+  contests,
   searchQuery,
   setSearchQuery,
   onSelectArtwork,
@@ -37,6 +41,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
   heroAfterImageUrl,
   heroDownloadUrl,
 }) => {
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [activeChallengeFilter, setActiveChallengeFilter] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -90,6 +95,21 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
   // Filter and sort logic
   const filteredArtworks = artworks
+    .filter((art) => {
+      // Locked contest entries (remixes of a contest's base file, before
+      // that contest's deadline) don't show up on the main feed at all —
+      // not just download-blocked, genuinely hidden — except to their own
+      // creator and admins. This keeps entries from being visible for
+      // copying/inspiration before judging closes, matching the same
+      // protection already enforced on downloads.
+      if (!art.parentArtworkId) return true;
+      const isOwnArtwork = !!user && user.id === art.ownerId;
+      if (isOwnArtwork || profile?.isAdmin) return true;
+      const lockedContest = contests.find(
+        (c) => c.baseArtworkId === art.parentArtworkId && c.deadline && new Date(c.deadline).getTime() > Date.now()
+      );
+      return !lockedContest;
+    })
     .filter((art) => {
       if (activeTab === 'originals') return art.type === 'Original';
       if (activeTab === 'remixes') return art.type === 'Remix';

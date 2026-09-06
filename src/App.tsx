@@ -443,6 +443,7 @@ export default function App() {
                 element={
                   <ExploreScreen
                     artworks={artworks}
+                    contests={contests}
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
                     onSelectArtwork={handleSelectArtwork}
