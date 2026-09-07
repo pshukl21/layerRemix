@@ -219,7 +219,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
           ) : (
             <button
               onClick={onRequireAuth}
-              className="px-2.5 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase tracking-wide md:tracking-wider border border-slate-200 text-slate-700 hover:border-blue-600 hover:text-blue-600 transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
+              className="px-2.5 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase tracking-wide md:tracking-wider border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
             >
               Sign In
             </button>
