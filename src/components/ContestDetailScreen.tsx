@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Trophy, Clock, Download, GitFork, ArrowLeft, Loader2 } from 'lucide-react';
+import { Trophy, Clock, Download, GitFork, ArrowLeft, Loader2, X, Trash2, Eye } from 'lucide-react';
 import { fetchContestById, Contest } from '../lib/contests';
 import { Artwork } from '../types';
 import { getDownloadTarget, incrementDownloads, triggerFileDownload } from '../lib/artworks';
@@ -11,6 +11,7 @@ interface ContestDetailScreenProps {
   artworks: Artwork[];
   onSelectArtwork: (artworkId: string) => void;
   onRequireAuth: () => void;
+  onDeleteArtwork: (artworkId: string) => Promise<{ error: string | null }>;
 }
 
 interface EntryNode {
@@ -18,12 +19,20 @@ interface EntryNode {
   children: EntryNode[];
 }
 
-export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artworks, onSelectArtwork, onRequireAuth }) => {
+export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({
+  artworks,
+  onSelectArtwork,
+  onRequireAuth,
+  onDeleteArtwork,
+}) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [contest, setContest] = useState<Contest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAlreadyEnteredModal, setShowAlreadyEnteredModal] = useState(false);
+  const [deletingEntry, setDeletingEntry] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -51,6 +60,13 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
   const countEntries = (node: EntryNode): number =>
     node.children.reduce((acc, child) => acc + 1 + countEntries(child), 0);
 
+  // A contest entry is just a remix of the base file — so "already
+  // entered" means the current user owns some remix whose parent is this
+  // contest's base artwork.
+  const myExistingEntry = user
+    ? artworks.find((a) => a.ownerId === user.id && a.parentArtworkId === contest?.baseArtworkId)
+    : undefined;
+
   const handleDownload = async () => {
     if (!user) {
       onRequireAuth();
@@ -71,7 +87,26 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
       onRequireAuth();
       return;
     }
+    if (myExistingEntry) {
+      setDeleteError(null);
+      setShowAlreadyEnteredModal(true);
+      return;
+    }
     if (baseArtwork) navigate(`/art/${baseArtwork.id}?fork=true`);
+  };
+
+  const handleDeleteAndReenter = async () => {
+    if (!myExistingEntry || !baseArtwork) return;
+    setDeletingEntry(true);
+    setDeleteError(null);
+    const { error } = await onDeleteArtwork(myExistingEntry.id);
+    setDeletingEntry(false);
+    if (error) {
+      setDeleteError(error);
+      return;
+    }
+    setShowAlreadyEnteredModal(false);
+    navigate(`/art/${baseArtwork.id}?fork=true`);
   };
 
   if (loading) {
@@ -177,10 +212,14 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
               </button>
               <button
                 onClick={handleFork}
-                className="w-full py-3 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98]"
+                className={`w-full py-3 font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98] ${
+                  myExistingEntry
+                    ? 'bg-emerald-50 border-2 border-emerald-500 text-emerald-700 hover:bg-emerald-100'
+                    : 'border-2 border-blue-600 text-blue-600 hover:bg-blue-50'
+                }`}
               >
-                <GitFork className="w-4 h-4" />
-                Enter With Your Remix
+                {myExistingEntry ? <Trophy className="w-4 h-4" /> : <GitFork className="w-4 h-4" />}
+                {myExistingEntry ? "You've Entered — View or Change" : 'Enter With Your Remix'}
               </button>
             </div>
           </div>
@@ -201,6 +240,61 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({ artwor
           maxShow={20}
           onSelectArtwork={onSelectArtwork}
         />
+      )}
+
+      {showAlreadyEnteredModal && myExistingEntry && (
+        <div
+          className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-6"
+          onClick={() => setShowAlreadyEnteredModal(false)}
+        >
+          <div
+            className="relative w-full max-w-sm bg-white rounded-xl shadow-2xl border border-slate-200 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowAlreadyEnteredModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-2">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <h2 className="text-base font-black text-slate-900">You've already entered</h2>
+            </div>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-5">
+              You can only submit one entry per contest. Your current entry is{' '}
+              <span className="font-bold text-slate-700">"{myExistingEntry.title}"</span>. Delete it to submit a
+              different remix instead.
+            </p>
+
+            {deleteError && <p className="text-xs font-semibold text-red-600 mb-3">{deleteError}</p>}
+
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => {
+                  setShowAlreadyEnteredModal(false);
+                  onSelectArtwork(myExistingEntry.id);
+                }}
+                className="w-full py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                View My Entry
+              </button>
+              <button
+                onClick={handleDeleteAndReenter}
+                disabled={deletingEntry}
+                className="w-full py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {deletingEntry ? 'Deleting…' : 'Delete & Re-Enter'}
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-400 font-semibold text-center mt-3">
+              Deleting costs 1 credit, same as deleting any other upload.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
