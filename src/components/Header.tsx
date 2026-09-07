@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Upload, Search, LogOut, Coins, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR } from '../lib/artworks';
+import { NotificationBell } from './NotificationBell';
 
 interface HeaderProps {
   onSearch: (query: string) => void;
@@ -163,6 +164,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
 
           {user ? (
             <div ref={menuContainerRef} className="relative flex items-center gap-2.5">
+              <NotificationBell />
               <button
                 onClick={handleAvatarClick}
                 title="Download credits"

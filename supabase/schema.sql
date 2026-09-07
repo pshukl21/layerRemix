@@ -707,3 +707,78 @@ create policy "Only admins can delete contests"
 alter table public.contests add column if not exists prize_first text;
 alter table public.contests add column if not exists prize_second text;
 alter table public.contests add column if not exists prize_third text;
+
+-- ---------------------------------------------------------------------------
+-- In-app notifications
+--
+-- Separate from (but mirrors the same "who gets notified" logic as) the
+-- email notification edge function. This one populates a bell icon in the
+-- site itself; the email function handles the inbox side. Both fire
+-- independently off the same underlying event (a remix being published),
+-- so one can be active without the other.
+-- ---------------------------------------------------------------------------
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  recipient_id uuid not null references public.profiles(id) on delete cascade,
+  actor_id uuid references public.profiles(id) on delete set null,
+  type text not null,
+  artwork_id uuid references public.artworks(id) on delete cascade,
+  message text not null,
+  read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table public.notifications enable row level security;
+
+drop policy if exists "Users can view their own notifications" on public.notifications;
+create policy "Users can view their own notifications"
+  on public.notifications for select
+  using (auth.uid() = recipient_id);
+
+drop policy if exists "Users can mark their own notifications read" on public.notifications;
+create policy "Users can mark their own notifications read"
+  on public.notifications for update
+  using (auth.uid() = recipient_id)
+  with check (auth.uid() = recipient_id);
+
+-- No insert policy for regular users — notifications are only ever created
+-- by the trigger below, which runs as security definer and bypasses RLS
+-- entirely. This stops anyone from spoofing a notification to themselves
+-- or someone else via the API.
+
+create or replace function public.handle_new_remix_notification()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_parent_owner_id uuid;
+  v_parent_title text;
+  v_remixer_username text;
+begin
+  if new.type = 'Remix' and new.parent_artwork_id is not null then
+    select owner_id, title into v_parent_owner_id, v_parent_title
+    from public.artworks where id = new.parent_artwork_id;
+
+    -- Don't notify someone about remixing their own work.
+    if v_parent_owner_id is not null and v_parent_owner_id <> new.owner_id then
+      select username into v_remixer_username from public.profiles where id = new.owner_id;
+
+      insert into public.notifications (recipient_id, actor_id, type, artwork_id, message)
+      values (
+        v_parent_owner_id,
+        new.owner_id,
+        'remix',
+        new.id,
+        format('@%s remixed your artwork "%s"', coalesce(v_remixer_username, 'Someone'), coalesce(v_parent_title, 'your artwork'))
+      );
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_artwork_remix_notification on public.artworks;
+create trigger on_artwork_remix_notification
+  after insert on public.artworks
+  for each row execute function public.handle_new_remix_notification();
