@@ -115,7 +115,10 @@ create policy "Users can publish their own artworks"
 drop policy if exists "Users can update their own artworks" on public.artworks;
 create policy "Users can update their own artworks"
   on public.artworks for update
-  using (auth.uid() = owner_id);
+  using (
+    auth.uid() = owner_id
+    or exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );
 
 drop policy if exists "Users can delete their own artworks" on public.artworks;
 create policy "Users can delete their own artworks"
@@ -423,7 +426,10 @@ create policy "Users can upload their own preview images"
   on storage.objects for insert
   with check (
     bucket_id = 'previews'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+    )
   );
 
 drop policy if exists "Users can delete their own preview images" on storage.objects;
@@ -431,7 +437,10 @@ create policy "Users can delete their own preview images"
   on storage.objects for delete
   using (
     bucket_id = 'previews'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (
+      (storage.foldername(name))[1] = auth.uid()::text
+      or exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+    )
   );
 
 -- Previously unconditionally public-read. Now: anyone can still read a

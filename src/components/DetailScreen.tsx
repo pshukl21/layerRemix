@@ -10,6 +10,7 @@ import { OPEN_CHALLENGES } from '../lib/challenges';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { generateShareImage } from '../lib/shareImage';
 import { ReportModal } from './ReportModal';
+import { AdminReplacePreviewModal } from './AdminReplacePreviewModal';
 import { Contest } from '../lib/contests';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
@@ -53,6 +54,7 @@ interface DetailScreenProps {
     }
   ) => Promise<{ error: string | null }>;
   onDeleteArtwork?: (artworkId: string) => Promise<{ error: string | null }>;
+  onAdminReplacePreview?: (artworkId: string, file: File) => Promise<{ error: string | null }>;
 }
 
 // Decorative Photoshop-style rulers with real numbered ticks. Purely
@@ -152,6 +154,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   onPublishFork,
   onUpdateArtwork,
   onDeleteArtwork,
+  onAdminReplacePreview,
 }) => {
   const { user, profile, refreshProfile } = useAuth();
   const [viewMode, setViewMode] = useState<'showcase' | 'tree' | 'fork'>('showcase');
@@ -613,6 +616,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [sharePreviewFileName, setSharePreviewFileName] = useState('');
   const [shareError, setShareError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [adminPreviewModalOpen, setAdminPreviewModalOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const isOwnArtwork = !!user && user.id === artwork.ownerId;
@@ -1139,6 +1143,15 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <Flag className="w-3 h-3" />
                   Report this artwork
                 </button>
+                {profile?.isAdmin && !isOwnArtwork && onAdminReplacePreview && (
+                  <button
+                    onClick={() => setAdminPreviewModalOpen(true)}
+                    className="w-full text-[10px] font-bold text-amber-600 hover:text-amber-700 uppercase tracking-widest flex items-center justify-center gap-1.5 cursor-pointer pt-1"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Admin: Replace Preview Image
+                  </button>
+                )}
                 </div>
               </div>
 
@@ -1656,6 +1669,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         onClose={() => setReportModalOpen(false)}
         onRequireAuth={onRequireAuth}
       />
+      {onAdminReplacePreview && (
+        <AdminReplacePreviewModal
+          open={adminPreviewModalOpen}
+          artwork={artwork}
+          onClose={() => setAdminPreviewModalOpen(false)}
+          onSave={onAdminReplacePreview}
+        />
+      )}
     </div>
   );
 };

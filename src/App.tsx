@@ -58,6 +58,7 @@ function DetailRoute({
   onPublishFork,
   onUpdateArtwork,
   onDeleteArtwork,
+  onAdminReplacePreview,
   onRequireAuth,
   onRequireCredits,
   favoriteIds,
@@ -71,6 +72,7 @@ function DetailRoute({
   onPublishFork: (parentArtworkId: string, forkDetails: PublishInput) => Promise<{ error: string | null }>;
   onUpdateArtwork: (artworkId: string, updates: UpdateInput) => Promise<{ error: string | null }>;
   onDeleteArtwork: (artworkId: string) => Promise<{ error: string | null }>;
+  onAdminReplacePreview: (artworkId: string, file: File) => Promise<{ error: string | null }>;
   onRequireAuth: () => void;
   onRequireCredits: () => void;
   favoriteIds: Set<string>;
@@ -142,6 +144,7 @@ function DetailRoute({
       onPublishFork={onPublishFork}
       onUpdateArtwork={onUpdateArtwork}
       onDeleteArtwork={onDeleteArtwork}
+      onAdminReplacePreview={onAdminReplacePreview}
       onRequireAuth={onRequireAuth}
       onRequireCredits={onRequireCredits}
       favoriteIds={favoriteIds}
@@ -384,7 +387,11 @@ export default function App() {
     }
     const { artwork, error } = await updateArtwork({
       artworkId,
-      ownerId: user.id,
+      // The artwork's own owner, not necessarily the person clicking save —
+      // matters now that an admin can replace someone else's preview image;
+      // the file still needs to land in that owner's storage folder, not
+      // the admin's own, to keep the folder-per-user convention intact.
+      ownerId: current.ownerId,
       title: updates.title,
       description: updates.description,
       tags: updates.tags,
@@ -396,6 +403,36 @@ export default function App() {
     });
     if (error || !artwork) {
       return { error: error || 'Something went wrong updating this artwork.' };
+    }
+    setRealArtworks((prev) => prev.map((art) => (art.id === artworkId ? artwork : art)));
+    return { error: null };
+  };
+
+  // Admin-only: replaces just the preview image of someone else's artwork
+  // (e.g. a broken upload, a low-quality thumbnail). Reuses the same
+  // updateArtwork plumbing as the owner's own edit flow, just resubmitting
+  // that artwork's existing title/description/tags/challenges unchanged so
+  // only the image actually moves. Actual admin enforcement lives in the
+  // artworks table's RLS policy, not here — this is just the client call.
+  const handleAdminReplacePreview = async (artworkId: string, file: File): Promise<{ error: string | null }> => {
+    const current = realArtworks.find((art) => art.id === artworkId);
+    if (!current) {
+      return { error: 'Could not find that artwork.' };
+    }
+    const { artwork, error } = await updateArtwork({
+      artworkId,
+      ownerId: current.ownerId,
+      title: current.title,
+      description: current.description,
+      tags: current.tags,
+      openChallenges: current.openChallenges,
+      newPreviewFile: file,
+      previousImagePath: current.imagePath,
+      focalX: current.focalX,
+      focalY: current.focalY,
+    });
+    if (error || !artwork) {
+      return { error: error || 'Something went wrong replacing the preview image.' };
     }
     setRealArtworks((prev) => prev.map((art) => (art.id === artworkId ? artwork : art)));
     return { error: null };
@@ -568,6 +605,7 @@ export default function App() {
                     onPublishFork={handlePublishFork}
                     onUpdateArtwork={handleUpdateArtwork}
                     onDeleteArtwork={handleDeleteArtwork}
+                    onAdminReplacePreview={handleAdminReplacePreview}
                     onRequireAuth={() => openAuthModal('signIn')}
                     onRequireCredits={() => setNeedCreditsModalOpen(true)}
                     favoriteIds={favoriteIds}
