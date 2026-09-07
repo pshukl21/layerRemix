@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
   };
 
   return (
-    <header className="fixed top-0 w-full z-50 flex justify-between items-center px-4 md:px-12 h-16 bg-gradient-to-br from-white via-blue-100/90 to-blue-200/90 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
+    <header className="fixed top-0 w-full z-50 flex justify-between items-center px-4 md:px-12 h-16 bg-gradient-to-b from-[#eaeefd]/95 to-[#d9e2fc]/95 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
       <div className="flex items-center gap-3 md:gap-8">
         <button
           onClick={() => setMobileNavOpen((open) => !open)}
