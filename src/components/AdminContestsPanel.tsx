@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Trash2, Pencil, Loader2 } from 'lucide-react';
-import { fetchContests, createContest, updateContest, deleteContest, Contest } from '../lib/contests';
+import { Trophy, Trash2, Pencil, Loader2, Award } from 'lucide-react';
+import { fetchContests, createContest, updateContest, deleteContest, updateContestWinners, Contest } from '../lib/contests';
 import { Artwork } from '../types';
 
 const DEFAULT_DESCRIPTION = `How to enter:
@@ -31,6 +31,12 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [winnersOpenId, setWinnersOpenId] = useState<string | null>(null);
+  const [winnerFirst, setWinnerFirst] = useState('');
+  const [winnerSecond, setWinnerSecond] = useState('');
+  const [winnerThird, setWinnerThird] = useState('');
+  const [savingWinners, setSavingWinners] = useState(false);
+  const [winnersError, setWinnersError] = useState<string | null>(null);
 
   const ownArtworks = artworks.filter((a) => a.ownerId === currentUserId);
 
@@ -116,6 +122,37 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
     }
     setContests((prev) => prev.filter((c) => c.id !== id));
     if (editingId === id) resetForm();
+    if (winnersOpenId === id) setWinnersOpenId(null);
+  };
+
+  const handleToggleWinners = (contest: Contest) => {
+    if (winnersOpenId === contest.id) {
+      setWinnersOpenId(null);
+      return;
+    }
+    setWinnersOpenId(contest.id);
+    setWinnerFirst(contest.winnerFirstArtworkId || '');
+    setWinnerSecond(contest.winnerSecondArtworkId || '');
+    setWinnerThird(contest.winnerThirdArtworkId || '');
+    setWinnersError(null);
+  };
+
+  const handleSaveWinners = async (contestId: string) => {
+    setSavingWinners(true);
+    setWinnersError(null);
+    const { error: err } = await updateContestWinners(
+      contestId,
+      winnerFirst || null,
+      winnerSecond || null,
+      winnerThird || null
+    );
+    setSavingWinners(false);
+    if (err) {
+      setWinnersError(err);
+      return;
+    }
+    setWinnersOpenId(null);
+    loadContests();
   };
 
   return (
@@ -231,28 +268,88 @@ export const AdminContestsPanel: React.FC<AdminContestsPanelProps> = ({ artworks
       {loading && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
 
       <div className="flex flex-col gap-2">
-        {contests.map((contest) => (
-          <div key={contest.id} className="bg-white border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate">{contest.title}</p>
-              <p className="text-[10px] text-slate-400 font-semibold">Base: {contest.baseTitle}</p>
+        {contests.map((contest) => {
+          const entries = artworks.filter((a) => a.parentArtworkId === contest.baseArtworkId);
+          const hasWinners = contest.winnerFirstArtworkId || contest.winnerSecondArtworkId || contest.winnerThirdArtworkId;
+          return (
+            <div key={contest.id} className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+              <div className="p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-800 truncate">{contest.title}</p>
+                  <p className="text-[10px] text-slate-400 font-semibold">
+                    Base: {contest.baseTitle} · {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+                    {hasWinners && <span className="text-emerald-600"> · Winners set</span>}
+                  </p>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <button
+                    onClick={() => handleToggleWinners(contest)}
+                    title="Set winners"
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                      winnersOpenId === contest.id ? 'bg-amber-500' : 'bg-amber-50 hover:bg-amber-100'
+                    }`}
+                  >
+                    <Award className={`w-3.5 h-3.5 ${winnersOpenId === contest.id ? 'text-white' : 'text-amber-600'}`} />
+                  </button>
+                  <button
+                    onClick={() => handleEditClick(contest)}
+                    className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(contest.id)}
+                    className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                  </button>
+                </div>
+              </div>
+
+              {winnersOpenId === contest.id && (
+                <div className="bg-amber-50/50 border-t border-amber-100 p-3 flex flex-col gap-2">
+                  {entries.length === 0 ? (
+                    <p className="text-[11px] font-semibold text-slate-400">
+                      No entries submitted yet — nothing to pick a winner from.
+                    </p>
+                  ) : (
+                    <>
+                      {[
+                        { label: '🥇 1st Place', value: winnerFirst, setValue: setWinnerFirst },
+                        { label: '🥈 2nd Place', value: winnerSecond, setValue: setWinnerSecond },
+                        { label: '🥉 3rd Place', value: winnerThird, setValue: setWinnerThird },
+                      ].map((row) => (
+                        <div key={row.label} className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-slate-600 w-20 shrink-0">{row.label}</span>
+                          <select
+                            value={row.value}
+                            onChange={(e) => row.setValue(e.target.value)}
+                            className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
+                          >
+                            <option value="">— None —</option>
+                            {entries.map((entry) => (
+                              <option key={entry.id} value={entry.id}>
+                                {entry.title} (@{entry.author})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                      {winnersError && <p className="text-[11px] font-semibold text-red-600">{winnersError}</p>}
+                      <button
+                        onClick={() => handleSaveWinners(contest.id)}
+                        disabled={savingWinners}
+                        className="mt-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-bold text-xs rounded-lg cursor-pointer transition-all self-start"
+                      >
+                        {savingWinners ? 'Saving…' : 'Save Winners'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="flex gap-1.5 shrink-0">
-              <button
-                onClick={() => handleEditClick(contest)}
-                className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-all cursor-pointer"
-              >
-                <Pencil className="w-3.5 h-3.5 text-blue-600" />
-              </button>
-              <button
-                onClick={() => handleDelete(contest.id)}
-                className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-all cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-red-600" />
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

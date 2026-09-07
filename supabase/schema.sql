@@ -782,3 +782,11 @@ drop trigger if exists on_artwork_remix_notification on public.artworks;
 create trigger on_artwork_remix_notification
   after insert on public.artworks
   for each row execute function public.handle_new_remix_notification();
+
+-- Contest winners — admin-designated, one artwork (an entry) per place.
+-- Nullable since a contest may not have winners chosen yet; already covered
+-- by the existing "Only admins can update contests" policy since this is
+-- just another column on the same row.
+alter table public.contests add column if not exists winner_first_artwork_id uuid references public.artworks(id) on delete set null;
+alter table public.contests add column if not exists winner_second_artwork_id uuid references public.artworks(id) on delete set null;
+alter table public.contests add column if not exists winner_third_artwork_id uuid references public.artworks(id) on delete set null;

@@ -132,6 +132,17 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({
   const hasPrizes = contest.prizeFirst || contest.prizeSecond || contest.prizeThird;
   const entryCount = entryTree ? countEntries(entryTree) : 0;
 
+  const winnerMedals: Record<string, '🥇' | '🥈' | '🥉'> = {};
+  if (contest.winnerFirstArtworkId) winnerMedals[contest.winnerFirstArtworkId] = '🥇';
+  if (contest.winnerSecondArtworkId) winnerMedals[contest.winnerSecondArtworkId] = '🥈';
+  if (contest.winnerThirdArtworkId) winnerMedals[contest.winnerThirdArtworkId] = '🥉';
+  const hasWinners = Object.keys(winnerMedals).length > 0;
+  const winnerEntries = [
+    { medal: '🥇' as const, artwork: artworks.find((a) => a.id === contest.winnerFirstArtworkId) },
+    { medal: '🥈' as const, artwork: artworks.find((a) => a.id === contest.winnerSecondArtworkId) },
+    { medal: '🥉' as const, artwork: artworks.find((a) => a.id === contest.winnerThirdArtworkId) },
+  ].filter((w): w is { medal: '🥇' | '🥈' | '🥉'; artwork: Artwork } => !!w.artwork);
+
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
       <Link
@@ -226,6 +237,40 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({
         </div>
       </div>
 
+      {hasWinners && (
+        <div className="bg-gradient-to-br from-amber-50 to-white border-2 border-amber-200 rounded-xl p-6 shadow-sm mb-8">
+          <h3 className="text-sm font-black text-amber-700 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Trophy className="w-4 h-4" />
+            Winners Announced
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {winnerEntries.map(({ medal, artwork }) => (
+              <div
+                key={artwork.id}
+                onClick={() => onSelectArtwork(artwork.id)}
+                className="cursor-pointer group bg-white border border-amber-100 rounded-lg p-3 flex items-center gap-3 hover:shadow-md transition-all"
+              >
+                <div className="relative shrink-0">
+                  <img
+                    src={artwork.image}
+                    alt={artwork.title}
+                    className="w-14 h-14 rounded-md object-cover border border-slate-200"
+                    style={{ objectPosition: `${artwork.focalX ?? 50}% ${artwork.focalY ?? 50}%` }}
+                  />
+                  <span className="absolute -top-2 -right-2 text-xl leading-none drop-shadow">{medal}</span>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-black text-slate-800 truncate group-hover:text-blue-600 transition-colors">
+                    {artwork.title}
+                  </div>
+                  <div className="text-[10px] font-semibold text-slate-400 truncate">by @{artwork.author}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {entryCount === 0 ? (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3">Entries</h3>
@@ -239,6 +284,7 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({
           totalCount={entryCount}
           maxShow={20}
           onSelectArtwork={onSelectArtwork}
+          winnerMedals={winnerMedals}
         />
       )}
 

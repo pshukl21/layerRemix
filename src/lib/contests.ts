@@ -10,6 +10,9 @@ export interface Contest {
   prizeFirst: string | null;
   prizeSecond: string | null;
   prizeThird: string | null;
+  winnerFirstArtworkId: string | null;
+  winnerSecondArtworkId: string | null;
+  winnerThirdArtworkId: string | null;
   // Joined from the base artwork, for display without a second query.
   baseTitle: string;
   baseImage: string;
@@ -27,6 +30,9 @@ function rowToContest(row: any): Contest {
     prizeFirst: row.prize_first || null,
     prizeSecond: row.prize_second || null,
     prizeThird: row.prize_third || null,
+    winnerFirstArtworkId: row.winner_first_artwork_id || null,
+    winnerSecondArtworkId: row.winner_second_artwork_id || null,
+    winnerThirdArtworkId: row.winner_third_artwork_id || null,
     baseTitle: row.base?.title || '',
     baseImage: row.base?.image_path
       ? supabase.storage.from('previews').getPublicUrl(row.base.image_path).data.publicUrl
@@ -111,5 +117,26 @@ export async function updateContest(
 
 export async function deleteContest(id: string): Promise<{ error: string | null }> {
   const { error } = await supabase.from('contests').delete().eq('id', id);
+  return { error: error?.message || null };
+}
+
+// Admin-only in practice — enforced server-side by the same RLS policy
+// that governs any other update to a contest row. Any of the three can be
+// null to clear that place (e.g. an admin picks the wrong entry by
+// mistake, or a contest only awards 1st and 2nd).
+export async function updateContestWinners(
+  id: string,
+  winnerFirstArtworkId: string | null,
+  winnerSecondArtworkId: string | null,
+  winnerThirdArtworkId: string | null
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('contests')
+    .update({
+      winner_first_artwork_id: winnerFirstArtworkId,
+      winner_second_artwork_id: winnerSecondArtworkId,
+      winner_third_artwork_id: winnerThirdArtworkId,
+    })
+    .eq('id', id);
   return { error: error?.message || null };
 }
