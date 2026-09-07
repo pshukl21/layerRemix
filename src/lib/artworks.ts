@@ -155,6 +155,35 @@ export async function fetchArtworks(): Promise<Artwork[]> {
   );
 }
 
+// Fetches one specific artwork directly from the database, rather than
+// relying on it already being present in the client's in-memory list.
+// Needed for cases like a notification link to something someone else just
+// published — the recipient's own artworks array was fetched before that
+// existed, so it's genuinely missing locally until the next full refresh,
+// not actually gone. Used as a fallback when a direct id lookup misses.
+export async function fetchArtworkById(id: string): Promise<Artwork | null> {
+  const { data, error } = await supabase
+    .from('artworks')
+    .select('*, owner:profiles!artworks_owner_id_fkey(username, display_name, avatar_url)')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as ArtworkRow;
+  let parentAuthor: string | undefined;
+  if (row.parent_artwork_id) {
+    const { data: parent } = await supabase
+      .from('artworks')
+      .select('owner:profiles!artworks_owner_id_fkey(username)')
+      .eq('id', row.parent_artwork_id)
+      .maybeSingle();
+    parentAuthor = (parent as any)?.owner?.username;
+  }
+
+  return rowToArtwork(row, parentAuthor);
+}
+
 interface PublishInput {
   title: string;
   description: string;

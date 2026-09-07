@@ -17,7 +17,7 @@ import { NeedCreditsModal } from './components/NeedCreditsModal';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
-import { fetchArtworks, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds } from './lib/artworks';
+import { fetchArtworks, fetchArtworkById, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds } from './lib/artworks';
 import { fetchSiteSettings, updateHeroImage, updateHeroDownloadUrl, SiteSettings } from './lib/siteSettings';
 import { fetchContests, Contest } from './lib/contests';
 
@@ -77,10 +77,38 @@ function DetailRoute({
   onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
 }) {
   const { id } = useParams<{ id: string }>();
-  const artwork = artworks.find((art) => art.id === id);
+  const artworkFromList = artworks.find((art) => art.id === id);
+  const [fallbackArtwork, setFallbackArtwork] = useState<Artwork | null>(null);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
+  const [fallbackAttempted, setFallbackAttempted] = useState(false);
+
+  // Reset the fallback state whenever the id changes, so navigating from
+  // one direct link to another doesn't reuse a stale fallback result.
+  useEffect(() => {
+    setFallbackArtwork(null);
+    setFallbackAttempted(false);
+  }, [id]);
+
+  // If the artwork isn't in the client's already-loaded list, it might just
+  // be genuinely missing/removed — or it might be something that was
+  // published after this list was last fetched (e.g. arriving here via a
+  // notification about someone else's brand-new remix). Try one direct
+  // fetch before concluding it doesn't exist, rather than immediately
+  // showing "not found" and requiring a full page refresh to fix it.
+  useEffect(() => {
+    if (artworkFromList || loadingArtworks || fallbackAttempted || !id) return;
+    setFallbackLoading(true);
+    fetchArtworkById(id).then((result) => {
+      setFallbackArtwork(result);
+      setFallbackLoading(false);
+      setFallbackAttempted(true);
+    });
+  }, [artworkFromList, loadingArtworks, fallbackAttempted, id]);
+
+  const artwork = artworkFromList || fallbackArtwork || undefined;
 
   if (!artwork) {
-    if (loadingArtworks) {
+    if (loadingArtworks || fallbackLoading) {
       return (
         <div className="w-full min-h-screen flex items-center justify-center text-slate-400 text-sm font-semibold">
           Loading…
