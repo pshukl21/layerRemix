@@ -11,6 +11,62 @@ interface AuthModalProps {
 
 type Mode = 'signIn' | 'signUp' | 'forgotPassword';
 
+// A real format check — not just relying on the browser's own <input
+// type="email">, which is inconsistent across browsers and doesn't catch
+// things like double dots or a missing top-level domain.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Catches the single most common real-world cause of "user typo'd their
+// own email": fat-fingering a well-known provider's domain (gmial.com,
+// yahooo.com, etc.). Not exhaustive — this deliberately only flags the
+// handful of huge providers where a typo is overwhelmingly likely to be a
+// mistake rather than someone's actual (less common) domain.
+const COMMON_DOMAINS = [
+  'gmail.com',
+  'yahoo.com',
+  'outlook.com',
+  'hotmail.com',
+  'icloud.com',
+  'aol.com',
+  'live.com',
+  'msn.com',
+];
+
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost);
+    }
+  }
+  return matrix[a.length][b.length];
+}
+
+// Returns a suggested full email (with corrected domain) if the typed
+// domain is a near-miss of a well-known provider, or null if it looks
+// fine (either an exact match already, or too different to guess at).
+function suggestEmailCorrection(email: string): string | null {
+  const atIndex = email.lastIndexOf('@');
+  if (atIndex === -1) return null;
+  const localPart = email.slice(0, atIndex);
+  const domain = email.slice(atIndex + 1).toLowerCase();
+  if (!domain || COMMON_DOMAINS.includes(domain)) return null;
+
+  for (const candidate of COMMON_DOMAINS) {
+    const distance = levenshteinDistance(domain, candidate);
+    // Small edit distance relative to length — catches one or two
+    // mistyped/missing/swapped characters without flagging genuinely
+    // different (and possibly correct) domains.
+    if (distance > 0 && distance <= 2) {
+      return `${localPart}@${candidate}`;
+    }
+  }
+  return null;
+}
+
 export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode = 'signIn' }) => {
   const { signIn, signUp, sendPasswordResetEmail } = useAuth();
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -20,6 +76,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
 
   const reset = () => {
     setEmail('');
@@ -28,6 +85,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
     setError(null);
     setInfo(null);
     setSubmitting(false);
+    setEmailSuggestion(null);
   };
 
   const handleClose = () => {
@@ -46,6 +104,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
     e.preventDefault();
     setError(null);
     setInfo(null);
+
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setError('That email address doesn\'t look valid — double check it and try again.');
+      return;
+    }
+
     setSubmitting(true);
 
     if (mode === 'forgotPassword') {
@@ -154,12 +218,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
                 </label>
                 <input
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailSuggestion) setEmailSuggestion(null);
+                  }}
+                  onBlur={() => setEmailSuggestion(suggestEmailCorrection(email))}
                   required
                   className="w-full bg-slate-100/80 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-colors"
                   placeholder="you@example.com"
                   type="email"
                 />
+                {emailSuggestion && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail(emailSuggestion);
+                      setEmailSuggestion(null);
+                    }}
+                    className="text-[11px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
+                  >
+                    Did you mean <span className="underline">{emailSuggestion}</span>?
+                  </button>
+                )}
               </div>
 
               {mode !== 'forgotPassword' && (
