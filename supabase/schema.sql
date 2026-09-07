@@ -19,14 +19,17 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "Profiles are publicly readable" on public.profiles;
 create policy "Profiles are publicly readable"
   on public.profiles for select
   using (true);
 
+drop policy if exists "Users can insert their own profile" on public.profiles;
 create policy "Users can insert their own profile"
   on public.profiles for insert
   with check (auth.uid() = id);
 
+drop policy if exists "Users can update their own profile" on public.profiles;
 create policy "Users can update their own profile"
   on public.profiles for update
   using (auth.uid() = id);
@@ -99,18 +102,22 @@ create table if not exists public.artworks (
 
 alter table public.artworks enable row level security;
 
+drop policy if exists "Artworks are publicly readable" on public.artworks;
 create policy "Artworks are publicly readable"
   on public.artworks for select
   using (true);
 
+drop policy if exists "Users can publish their own artworks" on public.artworks;
 create policy "Users can publish their own artworks"
   on public.artworks for insert
   with check (auth.uid() = owner_id);
 
+drop policy if exists "Users can update their own artworks" on public.artworks;
 create policy "Users can update their own artworks"
   on public.artworks for update
   using (auth.uid() = owner_id);
 
+drop policy if exists "Users can delete their own artworks" on public.artworks;
 create policy "Users can delete their own artworks"
   on public.artworks for delete
   using (auth.uid() = owner_id);
@@ -155,6 +162,7 @@ create table if not exists public.favorites (
 
 alter table public.favorites enable row level security;
 
+drop policy if exists "Users can view their own favorites" on public.favorites;
 create policy "Users can view their own favorites"
   on public.favorites for select
   using (auth.uid() = user_id);
@@ -405,10 +413,12 @@ on conflict (id) do nothing;
 -- deploy — this just corrects it going forward.
 update storage.buckets set public = false where id = 'source-files';
 
+drop policy if exists "Preview images are publicly readable" on storage.objects;
 create policy "Preview images are publicly readable"
   on storage.objects for select
   using (bucket_id = 'previews');
 
+drop policy if exists "Users can upload their own preview images" on storage.objects;
 create policy "Users can upload their own preview images"
   on storage.objects for insert
   with check (
@@ -416,6 +426,7 @@ create policy "Users can upload their own preview images"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "Users can delete their own preview images" on storage.objects;
 create policy "Users can delete their own preview images"
   on storage.objects for delete
   using (
@@ -429,6 +440,7 @@ create policy "Users can delete their own preview images"
 -- case, only the file's owner or an admin can read it. This is enforced
 -- here in storage, not just hidden in the UI, since the bucket itself
 -- needs to stop serving the bytes, not merely stop showing a button.
+drop policy if exists "Source files are readable unless a locked contest entry" on storage.objects;
 create policy "Source files are readable unless a locked contest entry"
   on storage.objects for select
   using (
@@ -447,6 +459,7 @@ create policy "Source files are readable unless a locked contest entry"
     )
   );
 
+drop policy if exists "Users can upload their own source files" on storage.objects;
 create policy "Users can upload their own source files"
   on storage.objects for insert
   with check (
@@ -454,6 +467,7 @@ create policy "Users can upload their own source files"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "Users can delete their own source files" on storage.objects;
 create policy "Users can delete their own source files"
   on storage.objects for delete
   using (
@@ -467,10 +481,12 @@ insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Avatars are publicly readable" on storage.objects;
 create policy "Avatars are publicly readable"
   on storage.objects for select
   using (bucket_id = 'avatars');
 
+drop policy if exists "Users can upload their own avatar" on storage.objects;
 create policy "Users can upload their own avatar"
   on storage.objects for insert
   with check (
@@ -478,6 +494,7 @@ create policy "Users can upload their own avatar"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "Users can update their own avatar" on storage.objects;
 create policy "Users can update their own avatar"
   on storage.objects for update
   using (
@@ -485,6 +502,7 @@ create policy "Users can update their own avatar"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "Users can delete their own avatar" on storage.objects;
 create policy "Users can delete their own avatar"
   on storage.objects for delete
   using (
@@ -522,10 +540,12 @@ alter table public.site_settings add column if not exists hero_download_url text
 
 alter table public.site_settings enable row level security;
 
+drop policy if exists "Site settings are publicly readable" on public.site_settings;
 create policy "Site settings are publicly readable"
   on public.site_settings for select
   using (true);
 
+drop policy if exists "Only admins can update site settings" on public.site_settings;
 create policy "Only admins can update site settings"
   on public.site_settings for update
   using (
@@ -538,10 +558,12 @@ insert into storage.buckets (id, name, public)
 values ('site-assets', 'site-assets', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Site assets are publicly readable" on storage.objects;
 create policy "Site assets are publicly readable"
   on storage.objects for select
   using (bucket_id = 'site-assets');
 
+drop policy if exists "Only admins can upload site assets" on storage.objects;
 create policy "Only admins can upload site assets"
   on storage.objects for insert
   with check (
@@ -549,6 +571,7 @@ create policy "Only admins can upload site assets"
     and exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
   );
 
+drop policy if exists "Only admins can update site assets" on storage.objects;
 create policy "Only admins can update site assets"
   on storage.objects for update
   using (
@@ -577,16 +600,19 @@ create table if not exists public.reports (
 
 alter table public.reports enable row level security;
 
+drop policy if exists "Users can submit their own reports" on public.reports;
 create policy "Users can submit their own reports"
   on public.reports for insert
   with check (auth.uid() = reporter_id);
 
+drop policy if exists "Only admins can view reports" on public.reports;
 create policy "Only admins can view reports"
   on public.reports for select
   using (
     exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
   );
 
+drop policy if exists "Only admins can update report status" on public.reports;
 create policy "Only admins can update report status"
   on public.reports for update
   using (
@@ -651,22 +677,26 @@ create table if not exists public.contests (
 
 alter table public.contests enable row level security;
 
+drop policy if exists "Contests are publicly readable" on public.contests;
 create policy "Contests are publicly readable"
   on public.contests for select
   using (true);
 
+drop policy if exists "Only admins can create contests" on public.contests;
 create policy "Only admins can create contests"
   on public.contests for insert
   with check (
     exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
   );
 
+drop policy if exists "Only admins can update contests" on public.contests;
 create policy "Only admins can update contests"
   on public.contests for update
   using (
     exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
   );
 
+drop policy if exists "Only admins can delete contests" on public.contests;
 create policy "Only admins can delete contests"
   on public.contests for delete
   using (
