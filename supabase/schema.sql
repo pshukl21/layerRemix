@@ -182,6 +182,9 @@ security definer set search_path = public
 as $$
 declare
   v_already_favorited boolean;
+  v_owner_id uuid;
+  v_title text;
+  v_hearter_username text;
 begin
   if auth.uid() is null then
     raise exception 'Not authorized';
@@ -208,6 +211,25 @@ begin
     update public.artworks
     set hearts_count = hearts_count + 1
     where id = p_artwork_id;
+
+    -- Notify the artwork's owner — but not about their own hearts, and
+    -- only on a fresh heart, never on an un-heart (no one needs to know
+    -- someone changed their mind).
+    select owner_id, title into v_owner_id, v_title
+    from public.artworks where id = p_artwork_id;
+
+    if v_owner_id is not null and v_owner_id <> auth.uid() then
+      select username into v_hearter_username from public.profiles where id = auth.uid();
+
+      insert into public.notifications (recipient_id, actor_id, type, artwork_id, message)
+      values (
+        v_owner_id,
+        auth.uid(),
+        'favorite',
+        p_artwork_id,
+        format('@%s liked your artwork "%s"', coalesce(v_hearter_username, 'Someone'), coalesce(v_title, 'your artwork'))
+      );
+    end if;
 
     return true;
   end if;
