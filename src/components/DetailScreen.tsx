@@ -12,6 +12,7 @@ import { generateShareImage } from '../lib/shareImage';
 import { ReportModal } from './ReportModal';
 import { AdminReplacePreviewModal } from './AdminReplacePreviewModal';
 import { Contest } from '../lib/contests';
+import { parseTagsInput } from '../lib/tags';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { EditArtworkModal } from './EditArtworkModal';
 import { FocalPointPicker } from './FocalPointPicker';
@@ -516,7 +517,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       const { error } = await onPublishFork(artwork.id, {
         title: forkTitle,
         description: forkDescription,
-        tags: forkTags.split(',').map(t => t.trim()).filter(Boolean),
+        tags: parseTagsInput(forkTags),
         openChallenges: forkSelectedChallenges,
         layerCount: forkPublishLayerCount,
         fileSizeBytes: forkPublishFileSizeBytes,

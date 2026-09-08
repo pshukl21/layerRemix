@@ -799,3 +799,14 @@ create trigger on_artwork_remix_notification
 alter table public.contests add column if not exists winner_first_artwork_id uuid references public.artworks(id) on delete set null;
 alter table public.contests add column if not exists winner_second_artwork_id uuid references public.artworks(id) on delete set null;
 alter table public.contests add column if not exists winner_third_artwork_id uuid references public.artworks(id) on delete set null;
+
+-- One-time cleanup: strips any leading '#' from already-stored tags (from
+-- before the upload/edit/fork forms stopped allowing it). Safe to re-run —
+-- rows with no '#'-prefixed tags are left untouched, and stripping '#'
+-- from a tag that no longer has one is a no-op.
+update public.artworks
+set tags = (
+  select array_agg(regexp_replace(tag, '^#+', '') order by ord)
+  from unnest(tags) with ordinality as t(tag, ord)
+)
+where exists (select 1 from unnest(tags) as tag where tag like '#%');

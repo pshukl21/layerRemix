@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, FileUp, Image as ImageIcon, Sparkles, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT, getImageDimensions } from '../lib/psd';
 import { OPEN_CHALLENGES } from '../lib/challenges';
+import { parseTagsInput } from '../lib/tags';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { findDuplicateByHash } from '../lib/artworks';
@@ -79,10 +80,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const tagPresets = ['Illustration', 'Abstract', 'DigitalArt', 'Layered', 'Cyberpunk', '3D'];
 
   const handlePresetTagClick = (tag: string) => {
-    const currentTags = tagsInput
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t !== '');
+    const currentTags = parseTagsInput(tagsInput);
     if (!currentTags.includes(tag)) {
       currentTags.push(tag);
       setTagsInput(currentTags.join(', '));
@@ -307,10 +305,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       return;
     }
 
-    const tagsArray = tagsInput
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t !== '');
+    const tagsArray = parseTagsInput(tagsInput);
 
     if (tagsArray.length === 0) {
       alert('Please add at least one tag.');
@@ -351,7 +346,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     }
   };
 
-  const hasValidTags = tagsInput.split(',').map((t) => t.trim()).filter((t) => t !== '').length > 0;
+  const hasValidTags = parseTagsInput(tagsInput).length > 0;
   const effectivePreviewFile = manualPreviewFile || extractedThumbnail;
 
   const canPublish =

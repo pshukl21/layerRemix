@@ -5,6 +5,7 @@ import { Artwork } from '../types';
 import { FocalPointPicker } from './FocalPointPicker';
 import { useAuth } from '../contexts/AuthContext';
 import { OPEN_CHALLENGES } from '../lib/challenges';
+import { parseTagsInput } from '../lib/tags';
 
 interface EditArtworkModalProps {
   open: boolean;
@@ -64,10 +65,7 @@ export const EditArtworkModal: React.FC<EditArtworkModalProps> = ({ open, artwor
       alert('Please enter a title.');
       return;
     }
-    const tags = tagsInput
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
+    const tags = parseTagsInput(tagsInput);
 
     setSubmitting(true);
     // The cover image is never editable here — it's always the thumbnail
