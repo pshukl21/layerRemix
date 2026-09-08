@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, GitFork, Heart, Loader2 } from 'lucide-react';
+import { Bell, GitFork, Heart, Download, Loader2 } from 'lucide-react';
 import {
   fetchNotifications,
   fetchUnreadCount,
@@ -136,11 +136,13 @@ export const NotificationBell: React.FC = () => {
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                      n.type === 'favorite' ? 'bg-red-100' : 'bg-indigo-100'
+                      n.type === 'favorite' ? 'bg-red-100' : n.type === 'download' ? 'bg-emerald-100' : 'bg-indigo-100'
                     }`}
                   >
                     {n.type === 'favorite' ? (
                       <Heart className="w-3.5 h-3.5 text-red-500" fill="currentColor" />
+                    ) : n.type === 'download' ? (
+                      <Download className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <GitFork className="w-3.5 h-3.5 text-indigo-600" />
                     )}

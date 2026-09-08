@@ -269,11 +269,37 @@ security definer set search_path = public
 as $$
 declare
   new_count integer;
+  v_owner_id uuid;
+  v_title text;
+  v_downloader_username text;
 begin
   update public.artworks
   set downloads = downloads + 1
   where id = p_artwork_id
   returning downloads into new_count;
+
+  -- Notify the artwork's owner — but not about their own downloads (those
+  -- are already free and common, and telling someone "you downloaded your
+  -- own file" isn't useful). auth.uid() is always present here since
+  -- downloading requires being signed in on the client side already.
+  if auth.uid() is not null then
+    select owner_id, title into v_owner_id, v_title
+    from public.artworks where id = p_artwork_id;
+
+    if v_owner_id is not null and v_owner_id <> auth.uid() then
+      select username into v_downloader_username from public.profiles where id = auth.uid();
+
+      insert into public.notifications (recipient_id, actor_id, type, artwork_id, message)
+      values (
+        v_owner_id,
+        auth.uid(),
+        'download',
+        p_artwork_id,
+        format('@%s downloaded your artwork "%s"', coalesce(v_downloader_username, 'Someone'), coalesce(v_title, 'your artwork'))
+      );
+    end if;
+  end if;
+
   return new_count;
 end;
 $$;
