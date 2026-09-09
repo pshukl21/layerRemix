@@ -55,9 +55,15 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const [publishLayerCount, setPublishLayerCount] = useState<number | null>(null);
   const [publishFileSizeBytes, setPublishFileSizeBytes] = useState<number | null>(null);
   // Set only when the HD preview extraction hit the specific "collapsed to
-  // grayscale" failure mode — narrowly allows a manual preview override,
-  // unlike the general "no embedded preview at all" case which stays fully
-  // blocked (see lib/psd.ts for why this distinction matters).
+  // Gates the "want to upload a sharper preview?" override — true whenever
+  // the auto-extracted preview came from the PSD's low-res embedded
+  // thumbnail rather than the full HD composite, for any reason (a known
+  // color-rendering bug on some files, or the HD path just failing on a
+  // complex one). Deliberately broader than the old color-only check, since
+  // a generic extraction failure is the more common way to end up with a
+  // blurry preview. The general "no preview at all" case (compatibility
+  // was off when saved) still stays fully blocked — see lib/psd.ts.
+  const [usedLowResFallback, setUsedLowResFallback] = useState(false);
   const [hadColorIssue, setHadColorIssue] = useState(false);
   const [psdRealDimensions, setPsdRealDimensions] = useState<{ width: number; height: number } | null>(null);
   const [manualPreviewFile, setManualPreviewFile] = useState<File | null>(null);
@@ -142,6 +148,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     setPublishLayerCount(null);
     setPublishFileSizeBytes(null);
     setHadColorIssue(false);
+    setUsedLowResFallback(false);
     setPsdRealDimensions(null);
     setManualPreviewFile(null);
     setManualPreviewUrl(null);
@@ -172,11 +179,12 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       return;
     }
 
-    const { thumbnail, layerCount, hadColorIssue: colorIssue } = await analyzePsd(file);
+    const { thumbnail, layerCount, hadColorIssue: colorIssue, usedLowResFallback: lowRes } = await analyzePsd(file);
     setPublishLayerCount(layerCount);
     setPublishFileSizeBytes(file.size);
     setExtracting(false);
     setHadColorIssue(colorIssue);
+    setUsedLowResFallback(lowRes);
 
     if (colorIssue) {
       const psdInfo = await parsePsdHeader(file);
@@ -212,12 +220,13 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     startZipAndUpload(file);
   };
 
-  // Only reachable when hadColorIssue is true (see the gating in the JSX
-  // below) — narrow, specific override for the one failure mode that's
-  // genuinely hard to trigger on purpose. Still requires the replacement
-  // image's proportions to roughly match the PSD's own real dimensions,
-  // checked independently via the file's own header — so it can't be used
-  // to swap in a completely unrelated image.
+  // Only reachable when usedLowResFallback is true (see the gating in the
+  // JSX below) — covers both the narrow degenerate-grayscale bug and the
+  // more common case of the HD composite simply failing on a complex file.
+  // Still requires the replacement image's proportions to roughly match
+  // the PSD's own real dimensions, checked independently via the file's
+  // own header — so it can't be used to swap in a completely unrelated
+  // image.
   const handleManualPreviewChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -452,16 +461,16 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
                   }}
                 />
 
-                {hadColorIssue && (
+                {usedLowResFallback && (
                   <div className="mt-4 pt-4 border-t border-slate-100">
                     <div className="flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5">
                       <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                       <p className="text-[11px] font-semibold leading-relaxed">
-                        We had trouble rendering an accurate color preview for this file — it may look washed out
-                        or grayscale.{' '}
+                        This preview came out lower-resolution than usual — the file's layers were too complex for
+                        us to render a sharp version.{' '}
                         {manualPreviewUrl
                           ? 'Using your uploaded image instead.'
-                          : "You can upload your own accurate preview of this file below, or publish with what we generated."}
+                          : 'You can upload your own sharper preview of this file below, or publish with what we generated.'}
                       </p>
                     </div>
                     <label className="mt-2 flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-lg py-2.5 cursor-pointer transition-colors">
@@ -486,7 +495,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
                   </div>
                 )}
 
-                {!extracting && !extractionError && !hadColorIssue && (
+                {!extracting && !extractionError && !usedLowResFallback && (
                   <div className="flex flex-col items-center gap-2 text-slate-400 px-6">
                     <ImageIcon className="w-10 h-10 mb-2" />
                     <h3 className="font-bold text-sm text-slate-600">Preview appears automatically</h3>
@@ -497,12 +506,12 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
                   </div>
                 )}
 
-                {!extracting && hadColorIssue && !thumbnailPreviewUrl && (
+                {!extracting && usedLowResFallback && !thumbnailPreviewUrl && (
                   <div className="flex flex-col items-center gap-2 text-amber-700 px-6 w-full">
                     <AlertTriangle className="w-8 h-8 mb-1" />
-                    <h3 className="font-bold text-sm">Couldn't render an accurate preview</h3>
+                    <h3 className="font-bold text-sm">Couldn't render a sharp preview</h3>
                     <p className="text-xs leading-relaxed font-semibold max-w-sm text-amber-600 mb-2">
-                      This file's layers are complex enough that we couldn't generate a reliable color preview.
+                      This file's layers are complex enough that we couldn't generate a reliable HD preview.
                       Please upload your own accurate preview of this file.
                     </p>
                     <label className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-amber-200 hover:border-amber-400 rounded-lg py-2.5 cursor-pointer transition-colors bg-white">

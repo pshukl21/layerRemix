@@ -125,13 +125,19 @@ export interface PsdAnalysis {
   // null means we couldn't determine it (e.g. an unparseable file).
   layerCount: number | null;
   // True when the HD composite came back looking like a degenerate,
-  // collapsed-to-grayscale result (see isLikelyDegenerateGrayscale) —
-  // regardless of whether the embedded-thumbnail fallback below found
-  // something usable. Used to narrowly allow a manual preview override
-  // only for this specific, hard-to-manufacture-on-purpose failure mode —
-  // never for the general "no embedded preview at all" case, which stays
-  // fully blocked.
+  // collapsed-to-grayscale result (see isLikelyDegenerateGrayscale below).
+  // A narrower signal than usedLowResFallback — kept separate only in case
+  // the two ever need different messaging; for gating the manual-override
+  // UI, usedLowResFallback is the one to check.
   hadColorIssue: boolean;
+  // True whenever the returned thumbnail came from the low-res embedded
+  // Thumbnail Resource fallback rather than the full HD composite — for
+  // ANY reason (the degenerate-grayscale case above, or the HD path
+  // simply throwing on a complex file). This is deliberately broader than
+  // hadColorIssue: a generic extraction failure is a far more common way
+  // to end up with a blurry preview than the specific grayscale bug, and
+  // both deserve the same "want to upload a sharper one?" treatment.
+  usedLowResFallback: boolean;
 }
 
 // Detects an HD composite that's collapsed to flat grayscale — a known
@@ -298,7 +304,7 @@ export async function analyzePsd(file: File): Promise<PsdAnalysis> {
             outCtx.drawImage(sourceCanvas, 0, 0, outWidth, outHeight);
             const hdThumbnail = await canvasToJpegFile(outCanvas);
             if (hdThumbnail) {
-              return { thumbnail: hdThumbnail, layerCount, hadColorIssue: false };
+              return { thumbnail: hdThumbnail, layerCount, hadColorIssue: false, usedLowResFallback: false };
             }
           }
         }
@@ -315,7 +321,16 @@ export async function analyzePsd(file: File): Promise<PsdAnalysis> {
   // uses a completely different extraction method, so it isn't affected by
   // whatever caused the HD path to fail.
   const fallbackThumbnail = await extractEmbeddedThumbnailResource(file);
-  return { thumbnail: fallbackThumbnail, layerCount, hadColorIssue };
+  return {
+    thumbnail: fallbackThumbnail,
+    layerCount,
+    hadColorIssue,
+    // Only meaningfully "used" if there's actually a thumbnail to show —
+    // if this is also null, that's the separate "nothing to extract at
+    // all" case (compatibility was off when the file was saved), which
+    // stays fully blocked rather than offered a manual override.
+    usedLowResFallback: fallbackThumbnail !== null,
+  };
 }
 
 // Minimum real layer count to be accepted as genuine layered work — a

@@ -191,6 +191,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [forkPublishLayerCount, setForkPublishLayerCount] = useState<number | null>(null);
   const [forkPublishFileSizeBytes, setForkPublishFileSizeBytes] = useState<number | null>(null);
   const [forkHadColorIssue, setForkHadColorIssue] = useState(false);
+  const [forkUsedLowResFallback, setForkUsedLowResFallback] = useState(false);
   const [forkPsdRealDimensions, setForkPsdRealDimensions] = useState<{ width: number; height: number } | null>(null);
   const [forkManualPreviewFile, setForkManualPreviewFile] = useState<File | null>(null);
   const [forkManualPreviewUrl, setForkManualPreviewUrl] = useState<string | null>(null);
@@ -360,6 +361,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     setForkPublishLayerCount(null);
     setForkPublishFileSizeBytes(null);
     setForkHadColorIssue(false);
+    setForkUsedLowResFallback(false);
     setForkPsdRealDimensions(null);
     setForkManualPreviewFile(null);
     setForkManualPreviewUrl(null);
@@ -386,9 +388,10 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       return;
     }
 
-    const { thumbnail, layerCount, hadColorIssue: colorIssue } = await analyzePsd(file);
+    const { thumbnail, layerCount, hadColorIssue: colorIssue, usedLowResFallback: lowRes } = await analyzePsd(file);
     setForkExtracting(false);
     setForkHadColorIssue(colorIssue);
+    setForkUsedLowResFallback(lowRes);
     setForkPublishLayerCount(layerCount);
     setForkPublishFileSizeBytes(file.size);
 
@@ -1373,15 +1376,16 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                       }}
                     />
 
-                    {forkHadColorIssue && (
+                    {forkUsedLowResFallback && (
                       <div className="mt-4 pt-4 border-t border-slate-100">
                         <div className="flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5">
                           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                           <p className="text-[11px] font-semibold leading-relaxed">
-                            We had trouble rendering an accurate color preview for this file.{' '}
+                            This preview came out lower-resolution than usual — the file's layers were too complex
+                            for us to render a sharp version.{' '}
                             {forkManualPreviewUrl
                               ? 'Using your uploaded image instead.'
-                              : 'You can upload your own accurate preview below, or publish with what we generated.'}
+                              : 'You can upload your own sharper preview below, or publish with what we generated.'}
                           </p>
                         </div>
                         <label className="mt-2 flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-lg py-2.5 cursor-pointer transition-colors">
@@ -1406,7 +1410,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                       </div>
                     )}
 
-                    {!forkExtracting && !forkExtractionError && !forkHadColorIssue && (
+                    {!forkExtracting && !forkExtractionError && !forkUsedLowResFallback && (
                       <div className="flex flex-col items-center gap-2 text-slate-400 px-6">
                         <ImageIcon className="w-10 h-10 mb-2" />
                         <h3 className="font-bold text-sm text-slate-600">Preview appears automatically</h3>
@@ -1416,12 +1420,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                       </div>
                     )}
 
-                    {!forkExtracting && forkHadColorIssue && !forkThumbnailPreviewUrl && (
+                    {!forkExtracting && forkUsedLowResFallback && !forkThumbnailPreviewUrl && (
                       <div className="flex flex-col items-center gap-2 text-amber-700 px-6 w-full">
                         <AlertTriangle className="w-8 h-8 mb-1" />
-                        <h3 className="font-bold text-sm">Couldn't render an accurate preview</h3>
+                        <h3 className="font-bold text-sm">Couldn't render a sharp preview</h3>
                         <p className="text-xs leading-relaxed font-semibold max-w-sm text-amber-600 mb-2">
-                          This file's layers are complex enough that we couldn't generate a reliable color
+                          This file's layers are complex enough that we couldn't generate a reliable HD
                           preview. Please upload your own accurate preview of this file.
                         </p>
                         <label className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-amber-200 hover:border-amber-400 rounded-lg py-2.5 cursor-pointer transition-colors bg-white">
