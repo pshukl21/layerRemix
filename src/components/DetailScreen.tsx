@@ -483,6 +483,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   };
 
   const [showForkBlurryConfirm, setShowForkBlurryConfirm] = useState(false);
+  const [forkMissingRequirements, setForkMissingRequirements] = useState<string[]>([]);
 
   const performForkPublish = async () => {
     if (!onPublishFork) {
@@ -521,28 +522,21 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const handlePublishForkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setForkError(null);
-    if (!forkTitle.trim()) {
-      alert('Please enter a title for your fork/remix!');
-      return;
+
+    const missing: string[] = [];
+    if (!forkTitle.trim()) missing.push('Add a title for your fork/remix');
+    if (!forkDescription.trim()) missing.push('Describe what changes you made');
+    if (!forkPsdFile) missing.push('Upload your updated PSD file');
+    if (forkPsdFile && !forkManualPreviewFile && !forkThumbnail) {
+      missing.push('We need a valid preview for your PSD — see the message under the upload box');
     }
-    if (!forkDescription.trim()) {
-      alert('Please describe what changes you made — this field is required.');
-      return;
+    if (forkPsdFile && (forkUploadPhase !== 'done' || !forkUploadedSourcePath)) {
+      missing.push('Wait for your file to finish uploading');
     }
-    if (!forkPsdFile) {
-      alert('Please upload your updated PSD file.');
-      return;
-    }
-    if (!forkManualPreviewFile && !forkThumbnail) {
-      alert("We need a valid preview for your PSD before publishing — see the message under the upload box.");
-      return;
-    }
-    if (forkUploadPhase !== 'done' || !forkUploadedSourcePath) {
-      alert('Please wait for your file to finish uploading before publishing.');
-      return;
-    }
-    if (!forkCertified) {
-      alert('Please accept the certification policy.');
+    if (!forkCertified) missing.push('Accept the certification policy');
+
+    if (missing.length > 0) {
+      setForkMissingRequirements(missing);
       return;
     }
 
@@ -1569,11 +1563,17 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   </p>
                 )}
 
-                {/* Publish button */}
-                <button 
+                {/* Publish button — only truly disabled while actively
+                    processing; stays clickable when just incomplete so the
+                    submit handler's validation can show what's missing. */}
+                <button
                   type="submit"
-                  disabled={forkSubmitting || forkExtracting || (!forkThumbnail && !forkManualPreviewFile) || forkUploadPhase !== 'done' || !forkUploadedSourcePath}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-lg text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
+                  disabled={forkSubmitting || forkExtracting}
+                  className={`w-full py-4 rounded-lg font-bold text-sm tracking-widest uppercase transition-all shadow-sm flex items-center justify-center gap-2 active:scale-[0.98] ${
+                    !forkSubmitting && !forkExtracting && (forkThumbnail !== null || !!forkManualPreviewFile)
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md cursor-pointer'
+                      : 'bg-slate-300 text-slate-500 cursor-pointer disabled:opacity-60'
+                  }`}
                 >
                   <Sparkles className="w-4 h-4 fill-white/10" />
                   {forkSubmitting
@@ -1586,6 +1586,39 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
             </div>
           </form>
         </motion.div>
+      )}
+
+      {forkMissingRequirements.length > 0 && (
+        <div
+          className="fixed inset-0 z-[200] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-6"
+          onClick={() => setForkMissingRequirements([])}
+        >
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-5">
+              <AlertTriangle className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-xl font-black text-slate-900 mb-2 text-center">Almost there</h2>
+            <p className="text-sm text-slate-500 font-semibold leading-relaxed mb-5 text-center">
+              A few things need your attention before this can publish:
+            </p>
+            <ul className="flex flex-col gap-2.5 mb-7">
+              {forkMissingRequirements.map((item, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm font-semibold text-slate-700">
+                  <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => setForkMissingRequirements([])}
+              className="w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer active:scale-[0.98]"
+            >
+              Got It
+            </button>
+          </div>
+        </div>
       )}
 
       {onUpdateArtwork && (

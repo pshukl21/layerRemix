@@ -322,39 +322,32 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     }
   };
 
+  const [missingRequirements, setMissingRequirements] = useState<string[]>([]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
-    if (!title) {
-      alert('Please enter an artwork title.');
-      return;
+
+    const missing: string[] = [];
+    if (!title.trim()) missing.push('Add a title for your artwork');
+    if (!psdFile) missing.push('Upload your .psd file');
+    if (psdFile && !manualPreviewFile && !extractedThumbnail) {
+      missing.push('We need a valid preview for your PSD — see the message under the upload box');
     }
-    if (!psdFile) {
-      alert('Please upload your .psd file.');
-      return;
-    }
-    if (!manualPreviewFile && !extractedThumbnail) {
-      alert("We need a valid preview for your PSD before publishing — see the message under the upload box.");
-      return;
-    }
-    if (uploadPhase !== 'done' || !uploadedSourcePath) {
-      alert('Please wait for your file to finish uploading before publishing.');
-      return;
+    if (psdFile && (uploadPhase !== 'done' || !uploadedSourcePath)) {
+      missing.push('Wait for your file to finish uploading');
     }
     if (description.trim().length < MIN_DESCRIPTION_LENGTH) {
-      alert(`Please describe what needs work or could be remixed (at least ${MIN_DESCRIPTION_LENGTH} characters).`);
-      return;
+      missing.push(
+        `Describe what needs work or could be remixed (at least ${MIN_DESCRIPTION_LENGTH} characters — you have ${description.trim().length})`
+      );
     }
-
     const tagsArray = parseTagsInput(tagsInput);
+    if (tagsArray.length === 0) missing.push('Add at least one tag');
+    if (!certified) missing.push('Certify that you own the rights to upload this artwork');
 
-    if (tagsArray.length === 0) {
-      alert('Please add at least one tag.');
-      return;
-    }
-
-    if (!certified) {
-      alert('You must certify that you own the rights to upload this artwork.');
+    if (missing.length > 0) {
+      setMissingRequirements(missing);
       return;
     }
 
@@ -671,11 +664,19 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               </p>
             )}
 
-            {/* Action button */}
-            <button 
+            {/* Action button — only truly disabled while actively processing
+                (nothing actionable to tell the user then). When fields are
+                just incomplete, it stays clickable so handleSubmit's own
+                validation can run and show exactly what's missing, instead
+                of silently doing nothing. */}
+            <button
               type="submit"
-              disabled={!canPublish}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 active:scale-[0.98] py-4 rounded-lg text-white font-bold text-sm tracking-widest uppercase transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2"
+              disabled={submitting || extracting}
+              className={`w-full py-4 rounded-lg font-bold text-sm tracking-widest uppercase transition-all shadow-sm flex items-center justify-center gap-2 active:scale-[0.98] ${
+                canPublish
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md cursor-pointer'
+                  : 'bg-slate-300 text-slate-500 cursor-pointer disabled:opacity-60'
+              }`}
             >
               <Sparkles className="w-4 h-4 fill-white/10" />
               {submitting
@@ -687,6 +688,39 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
           </div>
         </div>
       </form>
+
+      {missingRequirements.length > 0 && (
+        <div
+          className="fixed inset-0 z-[200] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-6"
+          onClick={() => setMissingRequirements([])}
+        >
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-5">
+              <AlertTriangle className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-xl font-black text-slate-900 mb-2 text-center">Almost there</h2>
+            <p className="text-sm text-slate-500 font-semibold leading-relaxed mb-5 text-center">
+              A few things need your attention before this can publish:
+            </p>
+            <ul className="flex flex-col gap-2.5 mb-7">
+              {missingRequirements.map((item, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm font-semibold text-slate-700">
+                  <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => setMissingRequirements([])}
+              className="w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer active:scale-[0.98]"
+            >
+              Got It
+            </button>
+          </div>
+        </div>
+      )}
 
       {showBlurryConfirm && (
         <div className="fixed inset-0 z-[200] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-6">
