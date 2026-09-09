@@ -290,6 +290,38 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
 
   const MIN_DESCRIPTION_LENGTH = 15;
 
+  const [showBlurryConfirm, setShowBlurryConfirm] = useState(false);
+
+  const performPublish = async () => {
+    // Real dimensions come straight from the PSD's own header.
+    let resolution = 'Unknown dimensions';
+    const psdInfo = await parsePsdHeader(psdFile as File);
+    if (psdInfo) {
+      resolution = formatPsdResolution(psdInfo);
+    }
+
+    setSubmitting(true);
+    const { error } = await onPublish({
+      title,
+      description: description.trim(),
+      tags: parseTagsInput(tagsInput),
+      openChallenges: selectedChallenges,
+      layerCount: publishLayerCount,
+      fileSizeBytes: publishFileSizeBytes,
+      previewFile: (manualPreviewFile || extractedThumbnail) as File,
+      sourceFilePath: uploadedSourcePath as string,
+      sourceFileName: (psdFile as File).name,
+      resolution,
+      focalX,
+      focalY,
+      fileHash,
+    });
+    setSubmitting(false);
+    if (error) {
+      setSubmitError(error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
@@ -326,33 +358,17 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
       return;
     }
 
-    // Real dimensions come straight from the PSD's own header.
-    let resolution = 'Unknown dimensions';
-    const psdInfo = await parsePsdHeader(psdFile);
-    if (psdInfo) {
-      resolution = formatPsdResolution(psdInfo);
+    // Everything else checks out — but if we're still relying on the
+    // low-res fallback preview and they haven't provided their own sharper
+    // image, stop here with something impossible to miss (the inline
+    // amber notice earlier in the form is easy to scroll past) rather than
+    // silently publishing a blurry thumbnail.
+    if (usedLowResFallback && !manualPreviewFile) {
+      setShowBlurryConfirm(true);
+      return;
     }
 
-    setSubmitting(true);
-    const { error } = await onPublish({
-      title,
-      description: description.trim(),
-      tags: tagsArray,
-      openChallenges: selectedChallenges,
-      layerCount: publishLayerCount,
-      fileSizeBytes: publishFileSizeBytes,
-      previewFile: (manualPreviewFile || extractedThumbnail) as File,
-      sourceFilePath: uploadedSourcePath,
-      sourceFileName: psdFile.name,
-      resolution,
-      focalX,
-      focalY,
-      fileHash,
-    });
-    setSubmitting(false);
-    if (error) {
-      setSubmitError(error);
-    }
+    await performPublish();
   };
 
   const hasValidTags = parseTagsInput(tagsInput).length > 0;
@@ -671,6 +687,38 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
           </div>
         </div>
       </form>
+
+      {showBlurryConfirm && (
+        <div className="fixed inset-0 z-[200] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-5">
+              <AlertTriangle className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-black text-slate-900 mb-2">Your preview looks blurry</h2>
+            <p className="text-sm text-slate-500 font-semibold leading-relaxed mb-7">
+              We couldn't generate a sharp HD preview from this file, so what people will see in the gallery is a
+              low-resolution fallback. You can add your own clear image instead — it only takes a second.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => setShowBlurryConfirm(false)}
+                className="w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer active:scale-[0.98]"
+              >
+                Go Back &amp; Add a Better Image
+              </button>
+              <button
+                onClick={async () => {
+                  setShowBlurryConfirm(false);
+                  await performPublish();
+                }}
+                className="w-full py-3 rounded-lg text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
+              >
+                Publish Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

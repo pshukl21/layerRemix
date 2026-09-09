@@ -482,6 +482,42 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     }
   };
 
+  const [showForkBlurryConfirm, setShowForkBlurryConfirm] = useState(false);
+
+  const performForkPublish = async () => {
+    if (!onPublishFork) {
+      alert('Publish callback not found!');
+      return;
+    }
+    setForkSubmitting(true);
+    let resolution = 'Unknown dimensions';
+    const psdInfo = await parsePsdHeader(forkPsdFile as File);
+    if (psdInfo) {
+      resolution = formatPsdResolution(psdInfo);
+    }
+    const { error } = await onPublishFork(artwork.id, {
+      title: forkTitle,
+      description: forkDescription,
+      tags: parseTagsInput(forkTags),
+      openChallenges: forkSelectedChallenges,
+      layerCount: forkPublishLayerCount,
+      fileSizeBytes: forkPublishFileSizeBytes,
+      previewFile: (forkManualPreviewFile || forkThumbnail) as File,
+      sourceFilePath: forkUploadedSourcePath as string,
+      sourceFileName: (forkPsdFile as File).name,
+      resolution,
+      focalX: forkFocalX,
+      focalY: forkFocalY,
+      fileHash: forkFileHash,
+    });
+    setForkSubmitting(false);
+    if (error) {
+      setForkError(error);
+      return;
+    }
+    setViewMode('showcase');
+  };
+
   const handlePublishForkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setForkError(null);
@@ -510,37 +546,15 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
       return;
     }
 
-    if (onPublishFork) {
-      setForkSubmitting(true);
-      let resolution = 'Unknown dimensions';
-      const psdInfo = await parsePsdHeader(forkPsdFile);
-      if (psdInfo) {
-        resolution = formatPsdResolution(psdInfo);
-      }
-      const { error } = await onPublishFork(artwork.id, {
-        title: forkTitle,
-        description: forkDescription,
-        tags: parseTagsInput(forkTags),
-        openChallenges: forkSelectedChallenges,
-        layerCount: forkPublishLayerCount,
-        fileSizeBytes: forkPublishFileSizeBytes,
-        previewFile: (forkManualPreviewFile || forkThumbnail) as File,
-        sourceFilePath: forkUploadedSourcePath,
-        sourceFileName: forkPsdFile.name,
-        resolution,
-        focalX: forkFocalX,
-        focalY: forkFocalY,
-        fileHash: forkFileHash,
-      });
-      setForkSubmitting(false);
-      if (error) {
-        setForkError(error);
-        return;
-      }
-      setViewMode('showcase');
-    } else {
-      alert('Publish callback not found!');
+    // Same reasoning as the main Upload form — stop with something
+    // impossible to miss if we're still relying on the low-res fallback
+    // preview and they haven't provided their own sharper image.
+    if (forkUsedLowResFallback && !forkManualPreviewFile) {
+      setShowForkBlurryConfirm(true);
+      return;
     }
+
+    await performForkPublish();
   };
 
   const handleForkClick = () => {
@@ -1681,6 +1695,37 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           onClose={() => setAdminPreviewModalOpen(false)}
           onSave={onAdminReplacePreview}
         />
+      )}
+      {showForkBlurryConfirm && (
+        <div className="fixed inset-0 z-[200] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-5">
+              <AlertTriangle className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-black text-slate-900 mb-2">Your preview looks blurry</h2>
+            <p className="text-sm text-slate-500 font-semibold leading-relaxed mb-7">
+              We couldn't generate a sharp HD preview from this file, so what people will see in the gallery is a
+              low-resolution fallback. You can add your own clear image instead — it only takes a second.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => setShowForkBlurryConfirm(false)}
+                className="w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer active:scale-[0.98]"
+              >
+                Go Back &amp; Add a Better Image
+              </button>
+              <button
+                onClick={async () => {
+                  setShowForkBlurryConfirm(false);
+                  await performForkPublish();
+                }}
+                className="w-full py-3 rounded-lg text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
+              >
+                Publish Anyway
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
