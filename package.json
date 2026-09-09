@@ -15,6 +15,7 @@
     "@webtoon/psd": "^0.4.0",
     "fflate": "^0.8.2",
     "@supabase/supabase-js": "^2.45.4",
+    "@vercel/analytics": "^1.4.1",
     "react-router-dom": "^6.26.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
