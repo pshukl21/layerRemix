@@ -68,7 +68,7 @@ function suggestEmailCorrection(email: string): string | null {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode = 'signIn' }) => {
-  const { signIn, signUp, sendPasswordResetEmail } = useAuth();
+  const { signIn, signUp, sendPasswordResetEmail, resendConfirmationEmail } = useAuth();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,6 +77,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
   const [info, setInfo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const reset = () => {
     setEmail('');
@@ -86,6 +89,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
     setInfo(null);
     setSubmitting(false);
     setEmailSuggestion(null);
+    setUnconfirmedEmail(null);
+    setResendingConfirmation(false);
+    setResendSuccess(false);
   };
 
   const handleClose = () => {
@@ -104,6 +110,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
     e.preventDefault();
     setError(null);
     setInfo(null);
+    setUnconfirmedEmail(null);
+    setResendSuccess(false);
 
     if (!EMAIL_REGEX.test(email.trim())) {
       setError('That email address doesn\'t look valid — double check it and try again.');
@@ -143,6 +151,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
     const { error: signInError } = await signIn(email, password);
     setSubmitting(false);
     if (signInError) {
+      if (signInError.toLowerCase().includes('email not confirmed')) {
+        setUnconfirmedEmail(email);
+        setError(null);
+        return;
+      }
       setError(signInError);
       return;
     }
@@ -279,6 +292,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
                 <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5">
                   {info}
                 </p>
+              )}
+              {unconfirmedEmail && (
+                <div className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3.5 py-2.5">
+                  {resendSuccess ? (
+                    <p>Confirmation email resent — check your inbox (and spam folder).</p>
+                  ) : (
+                    <>
+                      <p className="mb-2">
+                        Your email hasn't been confirmed yet. Check your inbox for the link, or we can send a new one.
+                      </p>
+                      <button
+                        type="button"
+                        disabled={resendingConfirmation}
+                        onClick={async () => {
+                          setResendingConfirmation(true);
+                          const { error: resendError } = await resendConfirmationEmail(unconfirmedEmail);
+                          setResendingConfirmation(false);
+                          if (resendError) {
+                            setError(resendError);
+                            setUnconfirmedEmail(null);
+                            return;
+                          }
+                          setResendSuccess(true);
+                        }}
+                        className="font-bold underline hover:no-underline cursor-pointer disabled:opacity-60"
+                      >
+                        {resendingConfirmation ? 'Sending…' : 'Resend confirmation email'}
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
 
               <button

@@ -15,6 +15,7 @@ interface AuthContextValue {
   updateAvatar: (file: File) => Promise<{ error: string | null }>;
   updateBio: (bio: string) => Promise<{ error: string | null }>;
   sendPasswordResetEmail: (email: string) => Promise<{ error: string | null }>;
+  resendConfirmationEmail: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
 }
 
@@ -220,6 +221,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error: null };
   };
 
+  // Re-sends the "confirm your email" link for someone who signed up but
+  // never clicked it (or lost it) — surfaced when a sign-in attempt fails
+  // specifically because the email isn't confirmed yet.
+  const resendConfirmationEmail = async (email: string): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
   // Sets a new password for whoever's session is currently active — only
   // meaningful right after following a reset-password email link, which
   // establishes exactly that kind of temporary session.
@@ -243,6 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateAvatar,
         updateBio,
         sendPasswordResetEmail,
+        resendConfirmationEmail,
         updatePassword,
       }}
     >
