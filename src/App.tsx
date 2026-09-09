@@ -17,7 +17,7 @@ import { NeedCreditsModal } from './components/NeedCreditsModal';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
-import { fetchArtworks, fetchArtworkById, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds } from './lib/artworks';
+import { fetchArtworks, fetchArtworkById, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds, setRequiresRemixUnlock } from './lib/artworks';
 import { fetchSiteSettings, updateHeroImage, updateHeroDownloadUrl, SiteSettings } from './lib/siteSettings';
 import { fetchContests, Contest } from './lib/contests';
 
@@ -59,6 +59,7 @@ function DetailRoute({
   onUpdateArtwork,
   onDeleteArtwork,
   onAdminReplacePreview,
+  onToggleRemixGate,
   onRequireAuth,
   onRequireCredits,
   favoriteIds,
@@ -73,6 +74,7 @@ function DetailRoute({
   onUpdateArtwork: (artworkId: string, updates: UpdateInput) => Promise<{ error: string | null }>;
   onDeleteArtwork: (artworkId: string) => Promise<{ error: string | null }>;
   onAdminReplacePreview: (artworkId: string, file: File) => Promise<{ error: string | null }>;
+  onToggleRemixGate: (artworkId: string, value: boolean) => Promise<{ error: string | null }>;
   onRequireAuth: () => void;
   onRequireCredits: () => void;
   favoriteIds: Set<string>;
@@ -145,6 +147,7 @@ function DetailRoute({
       onUpdateArtwork={onUpdateArtwork}
       onDeleteArtwork={onDeleteArtwork}
       onAdminReplacePreview={onAdminReplacePreview}
+      onToggleRemixGate={onToggleRemixGate}
       onRequireAuth={onRequireAuth}
       onRequireCredits={onRequireCredits}
       favoriteIds={favoriteIds}
@@ -438,6 +441,21 @@ export default function App() {
     return { error: null };
   };
 
+  // Admin-only: marks (or unmarks) a specific artwork as requiring the
+  // downloader to have already published a remix of their own — a
+  // lightweight "contribute before you take" gate for whichever files are
+  // actively being promoted, rather than a site-wide rule. Real
+  // enforcement lives in storage RLS (see schema.sql); this just updates
+  // the flag and refreshes local state so the UI reflects it immediately.
+  const handleToggleRemixGate = async (artworkId: string, value: boolean): Promise<{ error: string | null }> => {
+    const { error } = await setRequiresRemixUnlock(artworkId, value);
+    if (error) return { error };
+    setRealArtworks((prev) =>
+      prev.map((art) => (art.id === artworkId ? { ...art, requiresRemixUnlock: value } : art))
+    );
+    return { error: null };
+  };
+
   // Permanently deletes one of the current user's own artworks. Costs 1
   // credit — enforced atomically server-side via the RPC, not just in the UI.
   const handleDeleteArtwork = async (artworkId: string): Promise<{ error: string | null }> => {
@@ -606,6 +624,7 @@ export default function App() {
                     onUpdateArtwork={handleUpdateArtwork}
                     onDeleteArtwork={handleDeleteArtwork}
                     onAdminReplacePreview={handleAdminReplacePreview}
+                    onToggleRemixGate={handleToggleRemixGate}
                     onRequireAuth={() => openAuthModal('signIn')}
                     onRequireCredits={() => setNeedCreditsModalOpen(true)}
                     favoriteIds={favoriteIds}

@@ -56,6 +56,7 @@ interface DetailScreenProps {
   ) => Promise<{ error: string | null }>;
   onDeleteArtwork?: (artworkId: string) => Promise<{ error: string | null }>;
   onAdminReplacePreview?: (artworkId: string, file: File) => Promise<{ error: string | null }>;
+  onToggleRemixGate?: (artworkId: string, value: boolean) => Promise<{ error: string | null }>;
 }
 
 // Decorative Photoshop-style rulers with real numbered ticks. Purely
@@ -156,6 +157,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   onUpdateArtwork,
   onDeleteArtwork,
   onAdminReplacePreview,
+  onToggleRemixGate,
 }) => {
   const { user, profile, refreshProfile } = useAuth();
   const [viewMode, setViewMode] = useState<'showcase' | 'tree' | 'fork'>('showcase');
@@ -629,6 +631,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [shareError, setShareError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [adminPreviewModalOpen, setAdminPreviewModalOpen] = useState(false);
+  const [togglingRemixGate, setTogglingRemixGate] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const isOwnArtwork = !!user && user.id === artwork.ownerId;
@@ -651,6 +654,15 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     : undefined;
   const isLockedEntry = !!lockedEntryContest && !isOwnArtwork && !profile?.isAdmin;
 
+  // A promotional gate an admin can set on any specific artwork — requires
+  // the downloader to have published at least one remix of their own
+  // first. Meant for whichever files are actively being advertised, so
+  // signing up and downloading isn't the entire interaction someone has
+  // with the site. Real enforcement lives in storage RLS (see schema.sql);
+  // this is just for a clear message instead of a raw permission error.
+  const hasPublishedRemix = !!user && artworks.some((a) => a.ownerId === user.id && a.type === 'Remix');
+  const isRemixGateLocked = !!artwork.requiresRemixUnlock && !isOwnArtwork && !profile?.isAdmin && !hasPublishedRemix;
+
   const handleDownloadClick = async () => {
     if (!user) {
       onRequireAuth();
@@ -663,6 +675,13 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
         `This is a contest entry — downloads unlock for everyone once judging closes on ${new Date(
           lockedEntryContest!.deadline!
         ).toLocaleDateString()}.`
+      );
+      return;
+    }
+
+    if (isRemixGateLocked) {
+      setDownloadError(
+        "This download unlocks once you've published your first remix — fork any piece on the site, make it your own, and publish it."
       );
       return;
     }
@@ -1086,16 +1105,18 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 <div className="p-6 flex flex-col gap-3">
                 <button
                   onClick={handleDownloadClick}
-                  disabled={downloading || isLockedEntry}
+                  disabled={downloading || isLockedEntry || isRemixGateLocked}
                   className={`w-full py-3.5 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-sm disabled:opacity-60 cursor-pointer ${
-                    isLockedEntry
+                    isLockedEntry || isRemixGateLocked
                       ? 'bg-slate-200 text-slate-500'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  {isLockedEntry ? <Lock className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+                  {isLockedEntry || isRemixGateLocked ? <Lock className="w-4 h-4" /> : <Download className="w-4 h-4" />}
                   {isLockedEntry
                     ? 'Locked Until Judging'
+                    : isRemixGateLocked
+                    ? 'Publish a Remix to Unlock'
                     : downloading
                     ? 'Downloading…'
                     : artwork.sourceFilePath
@@ -1105,6 +1126,8 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                 <p className="text-[11px] font-semibold text-slate-400 text-center -mt-1.5">
                   {isLockedEntry
                     ? `Unlocks ${new Date(lockedEntryContest!.deadline!).toLocaleDateString()}`
+                    : isRemixGateLocked
+                    ? 'Publish your first remix to unlock this download'
                     : downloadIsFree
                     ? isContestBase
                       ? 'Free — contest base file'
@@ -1162,6 +1185,25 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   >
                     <Pencil className="w-3 h-3" />
                     Admin: Replace Preview Image
+                  </button>
+                )}
+                {profile?.isAdmin && onToggleRemixGate && (
+                  <button
+                    onClick={async () => {
+                      setTogglingRemixGate(true);
+                      const { error } = await onToggleRemixGate(artwork.id, !artwork.requiresRemixUnlock);
+                      setTogglingRemixGate(false);
+                      if (error) window.alert(error);
+                    }}
+                    disabled={togglingRemixGate}
+                    className="w-full text-[10px] font-bold text-amber-600 hover:text-amber-700 uppercase tracking-widest flex items-center justify-center gap-1.5 cursor-pointer pt-1 disabled:opacity-60"
+                  >
+                    <Lock className="w-3 h-3" />
+                    {togglingRemixGate
+                      ? 'Saving…'
+                      : artwork.requiresRemixUnlock
+                      ? 'Admin: Remove Remix-to-Download Gate'
+                      : 'Admin: Require a Remix to Download This'}
                   </button>
                 )}
                 </div>

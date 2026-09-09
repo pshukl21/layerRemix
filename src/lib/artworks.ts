@@ -24,6 +24,7 @@ interface ArtworkRow {
   focal_y: number | null;
   created_at: string;
   owner_id: string;
+  requires_remix_unlock: boolean | null;
   owner: {
     username: string;
     display_name: string;
@@ -70,6 +71,7 @@ function rowToArtwork(row: ArtworkRow, parentUsername?: string): Artwork {
     imagePath: row.image_path,
     sourceFilePath: row.source_file_path || undefined,
     sourceFileName: row.source_file_name || undefined,
+    requiresRemixUnlock: !!row.requires_remix_unlock,
   };
 }
 
@@ -339,6 +341,18 @@ export async function updateArtwork(
 
 // Resolves a real, fetchable download URL + suggested filename for an artwork.
 // Falls back to the preview image if no source file was uploaded (e.g. demo seed art).
+// Admin-only in practice — enforced server-side by the artworks table's
+// UPDATE policy, which allows either the owner or an admin. Lets an admin
+// mark any specific artwork (their own or someone else's) as requiring a
+// published remix to download, and unmark it later.
+export async function setRequiresRemixUnlock(
+  artworkId: string,
+  value: boolean
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('artworks').update({ requires_remix_unlock: value }).eq('id', artworkId);
+  return { error: error?.message || null };
+}
+
 export async function getDownloadTarget(
   artwork: Artwork
 ): Promise<{ url: string; filename: string; error?: undefined } | { url?: undefined; filename?: undefined; error: string }> {

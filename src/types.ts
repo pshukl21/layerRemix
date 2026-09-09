@@ -29,6 +29,9 @@ export interface Artwork {
   sourceFilePath?: string;
   sourceFileName?: string;
   isDemo?: boolean;
+  // Admin-settable promotional gate: when true, downloading this file
+  // requires the caller to have published at least one remix of their own.
+  requiresRemixUnlock?: boolean;
 }
 
 export interface CreatorProfile {

@@ -498,6 +498,15 @@ create policy "Users can delete their own preview images"
 -- here in storage, not just hidden in the UI, since the bucket itself
 -- needs to stop serving the bytes, not merely stop showing a button.
 drop policy if exists "Source files are readable unless a locked contest entry" on storage.objects;
+-- Admin-settable per-artwork: when true, downloading this file requires
+-- the caller to have already published at least one remix of their own —
+-- a lightweight "contribute before you take" gate for whichever files the
+-- admin is actively promoting (contest base files, TikTok-advertised
+-- pieces, etc.), which would otherwise be free/unrestricted downloads for
+-- anyone who signs up and does nothing else.
+alter table public.artworks add column if not exists requires_remix_unlock boolean not null default false;
+
+drop policy if exists "Source files are readable unless a locked contest entry" on storage.objects;
 create policy "Source files are readable unless a locked contest entry"
   on storage.objects for select
   using (
@@ -505,13 +514,25 @@ create policy "Source files are readable unless a locked contest entry"
     and (
       (storage.foldername(name))[1] = auth.uid()::text
       or exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
-      or not exists (
-        select 1
-        from public.artworks a
-        join public.contests c on c.base_artwork_id = a.parent_artwork_id
-        where a.source_file_path = storage.objects.name
-        and c.deadline is not null
-        and c.deadline > now()
+      or (
+        not exists (
+          select 1
+          from public.artworks a
+          join public.contests c on c.base_artwork_id = a.parent_artwork_id
+          where a.source_file_path = storage.objects.name
+          and c.deadline is not null
+          and c.deadline > now()
+        )
+        and not exists (
+          select 1
+          from public.artworks a
+          where a.source_file_path = storage.objects.name
+          and a.requires_remix_unlock = true
+          and not exists (
+            select 1 from public.artworks r
+            where r.owner_id = auth.uid() and r.type = 'Remix'
+          )
+        )
       )
     )
   );
