@@ -132,6 +132,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
     }
 
     if (mode === 'signUp') {
+      if (!username.trim()) {
+        setError('Please choose a username.');
+        setSubmitting(false);
+        return;
+      }
       if (password.length < 6) {
         setError('Password must be at least 6 characters.');
         setSubmitting(false);
@@ -208,7 +213,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
               <p className="text-xs text-slate-500 font-semibold mt-1">{titles[mode].subtext}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               {mode === 'signUp' && (
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
@@ -217,7 +222,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
                   <input
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    required
                     className="w-full bg-slate-100/80 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-colors"
                     placeholder="e.g. luna_creative"
                     type="text"
@@ -236,7 +240,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
                     if (emailSuggestion) setEmailSuggestion(null);
                   }}
                   onBlur={() => setEmailSuggestion(suggestEmailCorrection(email))}
-                  required
                   className="w-full bg-slate-100/80 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-colors"
                   placeholder="you@example.com"
                   type="email"
@@ -274,7 +277,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialMode
                   <input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required
                     minLength={6}
                     className="w-full bg-slate-100/80 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-colors"
                     placeholder="At least 6 characters"

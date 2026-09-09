@@ -388,7 +388,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
         </p>
       </header>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <form onSubmit={handleSubmit} noValidate className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: File Drop-Zone + Auto-Generated Preview */}
         <div className="lg:col-span-7 space-y-6">
           {/* Source PSD upload box */}
@@ -559,7 +559,6 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                required
                 className="w-full bg-transparent border-b border-slate-200 focus:border-blue-600 focus:outline-none transition-colors text-sm text-slate-800 py-3 px-0 font-semibold placeholder-slate-400"
                 placeholder="Enter a name for your piece"
                 type="text"
@@ -574,7 +573,6 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                required
                 className="w-full bg-transparent border-b border-slate-200 focus:border-blue-600 focus:outline-none transition-colors text-sm text-slate-800 py-3 px-0 resize-none font-semibold placeholder-slate-400 min-h-[100px]"
                 placeholder="e.g., Background FX need work, missing text layers, lighting feels off, needs a 3D element..."
                 rows={4}
@@ -623,7 +621,6 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               <input
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
-                required
                 className="w-full bg-transparent border-b border-slate-200 focus:border-blue-600 focus:outline-none transition-colors text-sm text-slate-800 py-3 px-0 font-semibold placeholder-slate-400"
                 placeholder="Add at least one tag, separated by comma (e.g. Cyberpunk, 3D)"
                 type="text"

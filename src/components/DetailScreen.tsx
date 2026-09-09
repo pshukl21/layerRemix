@@ -1283,7 +1283,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
             </p>
           </header>
 
-          <form onSubmit={handlePublishForkSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <form onSubmit={handlePublishForkSubmit} noValidate className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Reference & File Uploader */}
             <div className="lg:col-span-7 space-y-6">
               
@@ -1488,7 +1488,6 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   <textarea
                     value={forkDescription}
                     onChange={(e) => setForkDescription(e.target.value)}
-                    required
                     className="w-full bg-transparent border-b border-slate-200 focus:border-blue-600 focus:outline-none transition-colors text-sm text-slate-800 py-3 px-0 resize-none font-semibold placeholder-slate-400 min-h-[100px]"
                     placeholder="Describe your design modifications, color alterations, layer overrides, or rendering upgrades..."
                     rows={4}
