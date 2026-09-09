@@ -1018,6 +1018,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                       <span className="text-xs font-bold text-slate-600 ps-stat">{artwork.hearts}</span>
                     </button>
                   </div>
+                  {artwork.requiresRemixUnlock && (
+                    <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md w-fit mt-2">
+                      <Lock className="w-3 h-3" />
+                      Remix Required to Download
+                    </div>
+                  )}
      
                   {/* Author Profile section */}
                   <div className="flex items-center gap-3 py-1 select-none">
