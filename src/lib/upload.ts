@@ -104,8 +104,9 @@ export async function uploadFileWithProgress(
   bucket: string,
   path: string,
   file: File,
-  onProgress: (percent: number) => void
-): Promise<{ error: string | null }> {
+  onProgress: (percent: number) => void,
+  signal?: AbortSignal
+): Promise<{ error: string | null; aborted?: boolean }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) {
@@ -128,13 +129,28 @@ export async function uploadFileWithProgress(
     xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
     xhr.setRequestHeader('x-upsert', 'false');
 
+    // If the caller supersedes this upload (e.g. the user picked a
+    // different file before this one finished), actually abort the
+    // in-flight network request rather than just ignoring its result —
+    // otherwise it keeps running in the background, still firing its own
+    // progress events, which race with whatever upload replaced it.
+    const handleAbort = () => xhr.abort();
+    signal?.addEventListener('abort', handleAbort);
+    const cleanup = () => signal?.removeEventListener('abort', handleAbort);
+
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         onProgress(Math.round((event.loaded / event.total) * 100));
       }
     };
 
+    xhr.onabort = () => {
+      cleanup();
+      resolve({ error: null, aborted: true });
+    };
+
     xhr.onload = () => {
+      cleanup();
       if (xhr.status >= 200 && xhr.status < 300) {
         onProgress(100);
         resolve({ error: null });
@@ -150,7 +166,10 @@ export async function uploadFileWithProgress(
       }
     };
 
-    xhr.onerror = () => resolve({ error: 'Network error during upload.' });
+    xhr.onerror = () => {
+      cleanup();
+      resolve({ error: 'Network error during upload.' });
+    };
     xhr.send(file);
   });
 }

@@ -81,6 +81,14 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadedSourcePath, setUploadedSourcePath] = useState<string | null>(null);
   const uploadedSourcePathRef = useRef<string | null>(null);
+  // Tracks whichever upload attempt is currently "live" — used both to
+  // actually cancel a superseded upload's network request, and as a
+  // belt-and-suspenders check so a stray progress event from an
+  // already-aborted attempt can never overwrite state for whatever upload
+  // replaced it (this is what caused the progress bar to visibly jump
+  // between two different uploads' percentages when a file was swapped
+  // out mid-upload).
+  const activeUploadControllerRef = useRef<AbortController | null>(null);
 
   // Selected tags preset
   const tagPresets = ['Illustration', 'Abstract', 'DigitalArt', 'Layered', 'Cyberpunk', '3D'];
@@ -95,6 +103,15 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
 
   const startZipAndUpload = async (file: File) => {
     if (!user) return;
+
+    // Cancel whatever upload is currently in flight, if any, before
+    // starting this one — otherwise its network request keeps running in
+    // the background and its progress events race with this new upload's,
+    // which is what caused the progress bar to visibly glitch between two
+    // different percentages when a file was swapped out mid-upload.
+    activeUploadControllerRef.current?.abort();
+    const controller = new AbortController();
+    activeUploadControllerRef.current = controller;
 
     // If a previous file was already uploaded (or is uploading), replacing
     // it means the old staged copy is now orphaned — clean it up.
@@ -112,16 +129,41 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     try {
       zipped = await zipFile(file);
     } catch {
-      setUploadPhase('error');
-      setUploadError('Could not prepare your file for upload. Please try again.');
+      if (activeUploadControllerRef.current === controller) {
+        setUploadPhase('error');
+        setUploadError('Could not prepare your file for upload. Please try again.');
+      }
       return;
     }
 
+    // The zip step above is async — if the file was swapped again while
+    // it ran, this attempt is already stale and shouldn't proceed at all.
+    if (activeUploadControllerRef.current !== controller) return;
+
     setUploadPhase('uploading');
     const path = buildSourceStagingPath(user.id);
-    const { error } = await uploadFileWithProgress(SOURCE_FILES_BUCKET, path, zipped, (pct) => {
-      setUploadProgress(pct);
-    });
+    const { error, aborted } = await uploadFileWithProgress(
+      SOURCE_FILES_BUCKET,
+      path,
+      zipped,
+      (pct) => {
+        // Only apply progress updates for whichever upload is still the
+        // current one — a stray event from an aborted attempt (there can
+        // be a brief window between calling .abort() and the browser
+        // actually stopping the request) is silently dropped instead of
+        // overwriting the real, current progress.
+        if (activeUploadControllerRef.current === controller) {
+          setUploadProgress(pct);
+        }
+      },
+      controller.signal
+    );
+
+    // This attempt was superseded by a newer one — whatever it returned
+    // (success, error, or its own abort) is irrelevant now; the newer
+    // attempt owns all the state from here.
+    if (activeUploadControllerRef.current !== controller) return;
+    if (aborted) return;
 
     if (error) {
       setUploadPhase('error');

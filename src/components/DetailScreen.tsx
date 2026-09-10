@@ -207,6 +207,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [forkUploadError, setForkUploadError] = useState<string | null>(null);
   const [forkUploadedSourcePath, setForkUploadedSourcePath] = useState<string | null>(null);
   const forkUploadedSourcePathRef = useRef<string | null>(null);
+  const activeForkUploadControllerRef = useRef<AbortController | null>(null);
 
   // Sync fork state values whenever active artwork changes
   React.useEffect(() => {
@@ -313,6 +314,10 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const startForkZipAndUpload = async (file: File) => {
     if (!user) return;
 
+    activeForkUploadControllerRef.current?.abort();
+    const controller = new AbortController();
+    activeForkUploadControllerRef.current = controller;
+
     if (forkUploadedSourcePathRef.current) {
       deleteStagedSourceFile(forkUploadedSourcePathRef.current);
       forkUploadedSourcePathRef.current = null;
@@ -327,16 +332,31 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     try {
       zipped = await zipFile(file);
     } catch {
-      setForkUploadPhase('error');
-      setForkUploadError('Could not prepare your file for upload. Please try again.');
+      if (activeForkUploadControllerRef.current === controller) {
+        setForkUploadPhase('error');
+        setForkUploadError('Could not prepare your file for upload. Please try again.');
+      }
       return;
     }
 
+    if (activeForkUploadControllerRef.current !== controller) return;
+
     setForkUploadPhase('uploading');
     const path = buildSourceStagingPath(user.id);
-    const { error } = await uploadFileWithProgress(SOURCE_FILES_BUCKET, path, zipped, (pct) => {
-      setForkUploadProgress(pct);
-    });
+    const { error, aborted } = await uploadFileWithProgress(
+      SOURCE_FILES_BUCKET,
+      path,
+      zipped,
+      (pct) => {
+        if (activeForkUploadControllerRef.current === controller) {
+          setForkUploadProgress(pct);
+        }
+      },
+      controller.signal
+    );
+
+    if (activeForkUploadControllerRef.current !== controller) return;
+    if (aborted) return;
 
     if (error) {
       setForkUploadPhase('error');
