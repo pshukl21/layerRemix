@@ -692,6 +692,31 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     }
 
     setDownloading(true);
+
+    // Spend the credit FIRST, and wait for server confirmation it actually
+    // went through, before generating the download link or notifying the
+    // owner. The check above only looks at the browser's cached credit
+    // count, which can be stale — spamming downloads across several
+    // pieces faster than that cache refreshes used to let every one of
+    // them through, since the file was already delivered and the owner
+    // already notified by the time the (also-safe, atomic) server-side
+    // spend actually ran. Charging first means a failed charge stops
+    // everything downstream, instead of just showing an error after the
+    // fact.
+    if (!downloadIsFree) {
+      const { error: spendError } = await spendDownloadCredit(user.id);
+      if (spendError) {
+        setDownloading(false);
+        if (spendError.includes('out of download credits')) {
+          onRequireCredits();
+        } else {
+          setDownloadError(spendError);
+        }
+        return;
+      }
+      refreshProfile();
+    }
+
     const downloadTarget = await getDownloadTarget(artwork);
     if (downloadTarget.error) {
       setDownloading(false);
@@ -706,23 +731,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     if (!artwork.isDemo) {
       incrementDownloads(artwork.id, Number(artwork.downloads) || 0);
     }
-
-    if (!downloadIsFree) {
-      spendDownloadCredit(user.id).then(({ error }) => {
-        setDownloading(false);
-        if (error) {
-          if (error.includes('out of download credits')) {
-            onRequireCredits();
-          } else {
-            setDownloadError(error);
-          }
-          return;
-        }
-        refreshProfile();
-      });
-    } else {
-      setDownloading(false);
-    }
+    setDownloading(false);
   };
 
   const renderTimeline = (compact: boolean = false) => {
