@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Download, GitFork, ArrowRight, Eye, Sparkles, ArrowLeft, Heart, FileUp, Image as ImageIcon, History, Layers, Pencil, ZoomIn, X, Loader2, AlertTriangle, Check, Share2, Flag, Lock } from 'lucide-react';
 import { Artwork } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { getDownloadTarget, incrementDownloads, spendDownloadCredit, incrementArtworkViews, findDuplicateByHash, triggerFileDownload } from '../lib/artworks';
+import { getDownloadTarget, incrementDownloads, incrementArtworkViews, findDuplicateByHash, triggerFileDownload } from '../lib/artworks';
 import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT, getImageDimensions } from '../lib/psd';
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
@@ -670,6 +670,12 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     }
     setDownloadError(null);
 
+    // These are just fast, proactive UX hints — showing a helpful message
+    // immediately without a network round trip for the common cases. The
+    // actual enforcement for all of this (plus the credit charge itself)
+    // now lives entirely in the authorize-download edge function, called
+    // via getDownloadTarget below, so these checks being skipped or wrong
+    // client-side can't actually let anything unauthorized through.
     if (isLockedEntry) {
       setDownloadError(
         `This is a contest entry — downloads unlock for everyone once judging closes on ${new Date(
@@ -692,35 +698,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     }
 
     setDownloading(true);
-
-    // Spend the credit FIRST, and wait for server confirmation it actually
-    // went through, before generating the download link or notifying the
-    // owner. The check above only looks at the browser's cached credit
-    // count, which can be stale — spamming downloads across several
-    // pieces faster than that cache refreshes used to let every one of
-    // them through, since the file was already delivered and the owner
-    // already notified by the time the (also-safe, atomic) server-side
-    // spend actually ran. Charging first means a failed charge stops
-    // everything downstream, instead of just showing an error after the
-    // fact.
-    if (!downloadIsFree) {
-      const { error: spendError } = await spendDownloadCredit(user.id);
-      if (spendError) {
-        setDownloading(false);
-        if (spendError.includes('out of download credits')) {
-          onRequireCredits();
-        } else {
-          setDownloadError(spendError);
-        }
-        return;
-      }
-      refreshProfile();
-    }
-
     const downloadTarget = await getDownloadTarget(artwork);
     if (downloadTarget.error) {
       setDownloading(false);
-      setDownloadError(downloadTarget.error);
+      if (downloadTarget.error.includes('out of download credits')) {
+        onRequireCredits();
+      } else {
+        setDownloadError(downloadTarget.error);
+      }
       return;
     }
 
@@ -730,6 +715,11 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
     triggerFileDownload(downloadTarget.url, downloadTarget.filename);
     if (!artwork.isDemo) {
       incrementDownloads(artwork.id, Number(artwork.downloads) || 0);
+    }
+    if (!downloadIsFree) {
+      // The edge function already charged the credit server-side — this
+      // just refreshes the client's cached balance to match.
+      refreshProfile();
     }
     setDownloading(false);
   };

@@ -1,5 +1,6 @@
 import { supabase, PREVIEWS_BUCKET, SOURCE_FILES_BUCKET } from './supabase';
 import { Artwork, Profile } from '../types';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 // Shape returned by a `select('*, owner:profiles(*)')` query against `artworks`.
 interface ArtworkRow {
@@ -357,25 +358,41 @@ export async function getDownloadTarget(
   artwork: Artwork
 ): Promise<{ url: string; filename: string; error?: undefined } | { url?: undefined; filename?: undefined; error: string }> {
   if (artwork.sourceFilePath) {
-    // The stored file is always a .zip (containing the original .psd) — the
-    // suggested download filename needs to match that, or the browser saves
-    // a file with a .psd extension that's actually zip-archive bytes inside.
-    const baseName = (artwork.sourceFileName || artwork.title).replace(/\.[^./\\]+$/, '');
-    const filename = `${baseName}.zip`;
-    // A signed URL (rather than a public one) is required now that the
-    // bucket is private — this is what actually makes the "contest entries
-    // are locked until judging" restriction real, since Storage checks the
-    // caller's own RLS-governed access before it will even issue the URL,
-    // not just before serving the bytes. `download` still gets Supabase's
-    // own server to set the Content-Disposition header, so the filename
-    // and instant-start behavior from before are both preserved.
-    const { data, error } = await supabase.storage
-      .from(SOURCE_FILES_BUCKET)
-      .createSignedUrl(artwork.sourceFilePath, 60, { download: filename });
-    if (error || !data) {
-      return { error: error?.message || 'This file is not available for download right now.' };
+    // Routed through the authorize-download edge function rather than
+    // generating a signed URL directly. This is what actually makes every
+    // download restriction (contest-locking, the remix-gate, and — this
+    // is the important one — the credit charge itself) real and
+    // unbypassable: a direct call to Supabase Storage's own API, skipping
+    // this site's code entirely, used to be able to get a valid signed
+    // URL for any non-locked, non-gated file without a credit ever being
+    // touched, since nothing in the database was actually checking
+    // credits. The edge function is now the only place a signed URL is
+    // ever generated, and it charges the credit itself, server-side,
+    // before it will hand one back.
+    const { data, error } = await supabase.functions.invoke('authorize-download', {
+      body: { artworkId: artwork.id },
+    });
+    if (error) {
+      // A non-2xx response from the function (locked entry, remix-gate,
+      // out of credits, etc.) always arrives as a FunctionsHttpError —
+      // the actual { error: "..." } body the function sent has to be
+      // read from error.context, not from `data` (data is null whenever
+      // error is set) and not from error.message (which is just a
+      // generic "non-2xx status code" string, not our own message).
+      if (error instanceof FunctionsHttpError) {
+        try {
+          const body = await error.context.json();
+          return { error: body?.error || 'This file is not available for download right now.' };
+        } catch {
+          return { error: 'This file is not available for download right now.' };
+        }
+      }
+      return { error: error.message || 'This file is not available for download right now.' };
     }
-    return { url: data.signedUrl, filename };
+    if (!data?.url) {
+      return { error: 'This file is not available for download right now.' };
+    }
+    return { url: data.url, filename: data.filename };
   }
   return { url: artwork.image, filename: `${artwork.title}.jpg` };
 }
@@ -415,20 +432,6 @@ export async function incrementArtworkViews(artworkId: string): Promise<void> {
   if (error) {
     console.error('Failed to bump view count:', error.message);
   }
-}
-
-// Atomically spends one download credit for the given user via the
-// `spend_credit` RPC (server-side guarded — see supabase/schema.sql).
-// Returns the new balance on success, or an error if they had none left.
-export async function spendDownloadCredit(userId: string): Promise<{ credits: number | null; error: string | null }> {
-  const { data, error } = await supabase.rpc('spend_credit', { p_user_id: userId });
-  if (error) {
-    if (error.message.includes('Not enough credits')) {
-      return { credits: null, error: "You're out of download credits. Publish an original piece or a remix to earn more." };
-    }
-    return { credits: null, error: error.message };
-  }
-  return { credits: data as number, error: null };
 }
 
 // Deletes an artwork row (RLS restricts this to the owner) and best-effort

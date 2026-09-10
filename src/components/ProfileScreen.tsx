@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { Check, Heart, Download, LogIn, Coins, Camera, Pencil, SearchX } from 'lucide-react';
 import { Artwork, Profile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername, triggerFileDownload, spendDownloadCredit } from '../lib/artworks';
+import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername, triggerFileDownload } from '../lib/artworks';
 import { Contest } from '../lib/contests';
 import { HeroSettingsPanel } from './HeroSettingsPanel';
 import { AdminReportsPanel } from './AdminReportsPanel';
@@ -155,6 +155,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       return;
     }
 
+    // These are just fast, proactive UX hints — the actual enforcement
+    // (plus the credit charge itself) lives entirely in the
+    // authorize-download edge function, called via getDownloadTarget
+    // below, so this check being skipped or wrong can't let anything
+    // unauthorized through.
     const isOwnArtwork = art.ownerId === user.id;
     const isContestBase = contests.some((c) => c.baseArtworkId === art.id);
     const downloadIsFree = isOwnArtwork || isContestBase;
@@ -164,36 +169,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       return;
     }
 
-    // Same charge-first ordering as the main artwork page — spend the
-    // credit and get server confirmation it actually went through BEFORE
-    // downloading anything or notifying the owner. This path previously
-    // had no credit check at all, meaning any artwork could be downloaded
-    // free from a profile page regardless of balance or ownership.
-    if (!downloadIsFree) {
-      const { error: spendError } = await spendDownloadCredit(user.id);
-      if (spendError) {
-        if (spendError.includes('out of download credits')) {
-          onRequireCredits();
-        } else {
-          window.alert(spendError);
-        }
-        return;
-      }
-      refreshProfile();
-    }
-
     const downloadTarget = await getDownloadTarget(art);
     if (downloadTarget.error) {
       // A plain alert is enough here — this is a secondary download path
       // (the primary one on the artwork detail page has full inline error
-      // handling); the only realistic way to hit this here is trying to
-      // grab a still-locked contest entry.
-      window.alert(downloadTarget.error);
+      // handling); the only realistic ways to hit this here are trying to
+      // grab a still-locked contest entry, or running low on credits.
+      if (downloadTarget.error.includes('out of download credits')) {
+        onRequireCredits();
+      } else {
+        window.alert(downloadTarget.error);
+      }
       return;
     }
     triggerFileDownload(downloadTarget.url, downloadTarget.filename);
     if (!art.isDemo) {
       incrementDownloads(art.id, Number(art.downloads) || 0);
+    }
+    if (!downloadIsFree) {
+      // The edge function already charged the credit server-side — this
+      // just refreshes the client's cached balance to match.
+      refreshProfile();
     }
   };
 
