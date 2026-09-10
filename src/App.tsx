@@ -159,14 +159,18 @@ function DetailRoute({
 // Resolves the :username route param and shows that user's public profile.
 function ProfileByUsernameRoute({
   artworks,
+  contests,
   onSelectArtwork,
   onRequireAuth,
+  onRequireCredits,
   favoriteIds,
   onToggleFavorite,
 }: {
   artworks: Artwork[];
+  contests: Contest[];
   onSelectArtwork: (id: string) => void;
   onRequireAuth: () => void;
+  onRequireCredits: () => void;
   favoriteIds: Set<string>;
   onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
 }) {
@@ -174,8 +178,10 @@ function ProfileByUsernameRoute({
   return (
     <ProfileScreen
       artworks={artworks}
+      contests={contests}
       onSelectArtwork={onSelectArtwork}
       onRequireAuth={onRequireAuth}
+      onRequireCredits={onRequireCredits}
       viewedUsername={username}
       favoriteIds={favoriteIds}
       onToggleFavorite={onToggleFavorite}
@@ -544,8 +550,10 @@ export default function App() {
                 element={
                   <ProfileScreen
                     artworks={artworks}
+                    contests={contests}
                     onSelectArtwork={handleSelectArtwork}
                     onRequireAuth={() => openAuthModal('signIn')}
+                    onRequireCredits={() => setNeedCreditsModalOpen(true)}
                     favoriteIds={favoriteIds}
                     onToggleFavorite={handleToggleFavorite}
                     heroBeforeImageUrl={siteSettings.heroBeforeImageUrl}
@@ -562,8 +570,10 @@ export default function App() {
                 element={
                   <ProfileByUsernameRoute
                     artworks={artworks}
+                    contests={contests}
                     onSelectArtwork={handleSelectArtwork}
                     onRequireAuth={() => openAuthModal('signIn')}
+                    onRequireCredits={() => setNeedCreditsModalOpen(true)}
                     favoriteIds={favoriteIds}
                     onToggleFavorite={handleToggleFavorite}
                   />

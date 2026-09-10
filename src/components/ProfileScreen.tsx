@@ -4,15 +4,18 @@ import { motion } from 'motion/react';
 import { Check, Heart, Download, LogIn, Coins, Camera, Pencil, SearchX } from 'lucide-react';
 import { Artwork, Profile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername, triggerFileDownload } from '../lib/artworks';
+import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername, triggerFileDownload, spendDownloadCredit } from '../lib/artworks';
+import { Contest } from '../lib/contests';
 import { HeroSettingsPanel } from './HeroSettingsPanel';
 import { AdminReportsPanel } from './AdminReportsPanel';
 import { AdminContestsPanel } from './AdminContestsPanel';
 
 interface ProfileScreenProps {
   artworks: Artwork[];
+  contests: Contest[];
   onSelectArtwork: (artworkId: string) => void;
   onRequireAuth: () => void;
+  onRequireCredits: () => void;
   favoriteIds: Set<string>;
   onToggleFavorite: (artworkId: string) => Promise<{ error: string | null }>;
   // When provided, shows that user's public profile (read-only) instead of
@@ -30,8 +33,10 @@ interface ProfileScreenProps {
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   artworks,
+  contests,
   onSelectArtwork,
   onRequireAuth,
+  onRequireCredits,
   favoriteIds,
   onToggleFavorite,
   viewedUsername,
@@ -41,7 +46,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onUpdateHeroImage,
   onUpdateHeroDownloadUrl,
 }) => {
-  const { user, profile: ownProfile, updateAvatar, updateBio } = useAuth();
+  const { user, profile: ownProfile, updateAvatar, updateBio, refreshProfile } = useAuth();
 
   const isOwnProfile = !viewedUsername || (!!ownProfile && viewedUsername === ownProfile.username);
 
@@ -144,6 +149,39 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const handleDownloadClick = async (art: Artwork, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    if (!user) {
+      onRequireAuth();
+      return;
+    }
+
+    const isOwnArtwork = art.ownerId === user.id;
+    const isContestBase = contests.some((c) => c.baseArtworkId === art.id);
+    const downloadIsFree = isOwnArtwork || isContestBase;
+
+    if (!downloadIsFree && (ownProfile?.credits ?? 0) < 1) {
+      onRequireCredits();
+      return;
+    }
+
+    // Same charge-first ordering as the main artwork page — spend the
+    // credit and get server confirmation it actually went through BEFORE
+    // downloading anything or notifying the owner. This path previously
+    // had no credit check at all, meaning any artwork could be downloaded
+    // free from a profile page regardless of balance or ownership.
+    if (!downloadIsFree) {
+      const { error: spendError } = await spendDownloadCredit(user.id);
+      if (spendError) {
+        if (spendError.includes('out of download credits')) {
+          onRequireCredits();
+        } else {
+          window.alert(spendError);
+        }
+        return;
+      }
+      refreshProfile();
+    }
+
     const downloadTarget = await getDownloadTarget(art);
     if (downloadTarget.error) {
       // A plain alert is enough here — this is a secondary download path
