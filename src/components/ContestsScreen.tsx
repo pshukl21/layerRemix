@@ -74,11 +74,11 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
           return (
             <div
               key={contest.id}
-              className="group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col sm:flex-row"
+              className="group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col sm:flex-row sm:items-start"
             >
               <Link
                 to={`/contests/${contest.id}`}
-                className="sm:w-56 shrink-0 aspect-[4/5] sm:aspect-auto overflow-hidden bg-slate-100 relative block"
+                className="sm:w-72 shrink-0 aspect-[4/5] overflow-hidden bg-slate-100 relative block"
               >
                 {contest.baseImage && (
                   <SkeletonImage
