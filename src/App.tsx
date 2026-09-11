@@ -14,6 +14,7 @@ import { TermsScreen } from './components/TermsScreen';
 import { ContestsScreen } from './components/ContestsScreen';
 import { ContestDetailScreen } from './components/ContestDetailScreen';
 import { NeedCreditsModal } from './components/NeedCreditsModal';
+import { ContestPromoModal } from './components/ContestPromoModal';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
@@ -674,6 +675,8 @@ export default function App() {
         open={needCreditsModalOpen}
         onClose={() => setNeedCreditsModalOpen(false)}
       />
+
+      <ContestPromoModal contests={contests} />
     </div>
   );
 }
