@@ -511,8 +511,16 @@ alter table public.artworks add column if not exists requires_remix_unlock boole
 -- get a valid signed URL for any non-locked, non-gated file without a
 -- credit ever being touched, since nothing in the database was checking
 -- credits at all.
-drop policy if exists "Source files are readable unless a locked contest entry" on storage.objects;
-create policy "Source files are only directly readable by their owner or an admin"
+-- One-time cleanup: an earlier version of this policy's name was 66
+-- characters, exceeding Postgres's 63-character identifier limit, so it
+-- got silently truncated on creation. That left a policy under a name
+-- this file's own drop/create pair (below) didn't know to look for,
+-- causing "already exists" on any re-run. Safe to re-run — a no-op once
+-- this specific stale policy is gone.
+drop policy if exists "Source files are only directly readable by their owner or an ad" on storage.objects;
+
+drop policy if exists "Source files readable by owner or admin only" on storage.objects;
+create policy "Source files readable by owner or admin only"
   on storage.objects for select
   using (
     bucket_id = 'source-files'
