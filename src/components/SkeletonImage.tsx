@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ImageOff } from 'lucide-react';
+import { Palette } from 'lucide-react';
 
 interface SkeletonImageProps {
   src: string;
@@ -25,9 +25,8 @@ export const SkeletonImage: React.FC<SkeletonImageProps> = ({ src, alt, classNam
     <div className="relative w-full h-full">
       {status === 'loading' && <div className="absolute inset-0 bg-slate-200 animate-pulse" />}
       {status === 'error' && (
-        <div className="absolute inset-0 bg-slate-100 flex flex-col items-center justify-center gap-1.5 text-slate-400">
-          <ImageOff className="w-5 h-5" />
-          <span className="text-[9px] font-bold uppercase tracking-wide">Image unavailable</span>
+        <div className="absolute inset-0 bg-slate-100 flex items-center justify-center text-slate-300">
+          <Palette className="w-7 h-7" />
         </div>
       )}
       {status !== 'error' && (
