@@ -177,12 +177,38 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({
             </div>
             {contest.deadline && (
               <div
-                className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md mb-4 ${
-                  isPastDeadline ? 'bg-slate-100 text-slate-500' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 mb-4 ${
+                  isPastDeadline
+                    ? 'bg-slate-100 border border-slate-200'
+                    : 'bg-gradient-to-r from-amber-50 to-amber-100/50 border-2 border-amber-300'
                 }`}
               >
-                <Clock className="w-3.5 h-3.5" />
-                {isPastDeadline ? 'Contest ended' : `Ends ${new Date(contest.deadline).toLocaleDateString()}`}
+                <Clock className={`w-6 h-6 shrink-0 ${isPastDeadline ? 'text-slate-400' : 'text-amber-600'}`} />
+                <div>
+                  <p
+                    className={`text-[11px] font-black uppercase tracking-widest ${
+                      isPastDeadline ? 'text-slate-400' : 'text-amber-600'
+                    }`}
+                  >
+                    {isPastDeadline ? 'Contest Ended' : 'Contest Ends'}
+                  </p>
+                  <p className={`text-xl font-black leading-tight ${isPastDeadline ? 'text-slate-500' : 'text-amber-800'}`}>
+                    {new Date(contest.deadline).toLocaleDateString(undefined, {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                  {!isPastDeadline &&
+                    (() => {
+                      const daysLeft = Math.ceil((new Date(contest.deadline).getTime() - Date.now()) / 86400000);
+                      return (
+                        <p className="text-xs font-bold text-amber-600 mt-0.5">
+                          {daysLeft <= 0 ? 'Ends today' : daysLeft === 1 ? '1 day left' : `${daysLeft} days left`}
+                        </p>
+                      );
+                    })()}
+                </div>
               </div>
             )}
 
