@@ -87,16 +87,6 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 )}
-                {deadline && (
-                  <div
-                    className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold ${
-                      deadline.isPast ? 'bg-slate-800/80 text-slate-300' : 'bg-amber-500/90 text-white'
-                    }`}
-                  >
-                    <Clock className="w-3 h-3" />
-                    {deadline.isPast ? 'Ended' : deadline.text}
-                  </div>
-                )}
               </Link>
               <div className="p-5 flex flex-col gap-3 flex-1 min-w-0">
                 <div>
@@ -107,6 +97,43 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
                   </Link>
                   <p className="text-[11px] text-slate-400 font-bold mt-1">Base file by @{contest.baseAuthor}</p>
                 </div>
+
+                {contest.deadline && (
+                  <div
+                    className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
+                      deadline?.isPast
+                        ? 'bg-slate-100 border border-slate-200'
+                        : 'bg-gradient-to-r from-amber-50 to-amber-100/50 border-2 border-amber-300'
+                    }`}
+                  >
+                    <Clock className={`w-6 h-6 shrink-0 ${deadline?.isPast ? 'text-slate-400' : 'text-amber-600'}`} />
+                    <div>
+                      <p
+                        className={`text-[11px] font-black uppercase tracking-widest ${
+                          deadline?.isPast ? 'text-slate-400' : 'text-amber-600'
+                        }`}
+                      >
+                        {deadline?.isPast ? 'Contest Ended' : 'Contest Ends'}
+                      </p>
+                      <p className={`text-xl font-black leading-tight ${deadline?.isPast ? 'text-slate-500' : 'text-amber-800'}`}>
+                        {new Date(contest.deadline).toLocaleDateString(undefined, {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                      {!deadline?.isPast &&
+                        (() => {
+                          const daysLeft = Math.ceil((new Date(contest.deadline!).getTime() - Date.now()) / 86400000);
+                          return (
+                            <p className="text-xs font-bold text-amber-600 mt-0.5">
+                              {daysLeft <= 0 ? 'Ends today' : daysLeft === 1 ? '1 day left' : `${daysLeft} days left`}
+                            </p>
+                          );
+                        })()}
+                    </div>
+                  </div>
+                )}
 
                 {hasPrizes && (
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-2">
