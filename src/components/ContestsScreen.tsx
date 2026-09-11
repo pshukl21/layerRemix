@@ -4,6 +4,7 @@ import { Trophy, Clock, Loader2, ArrowRight } from 'lucide-react';
 import { fetchContests, Contest } from '../lib/contests';
 import { Artwork } from '../types';
 import { ContestEntriesList } from './ContestEntriesList';
+import { SkeletonImage } from './SkeletonImage';
 
 interface ContestsScreenProps {
   artworks: Artwork[];
@@ -80,7 +81,7 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
                 className="sm:w-56 shrink-0 aspect-[4/5] sm:aspect-auto overflow-hidden bg-slate-100 relative block"
               >
                 {contest.baseImage && (
-                  <img
+                  <SkeletonImage
                     src={contest.baseImage}
                     alt={contest.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

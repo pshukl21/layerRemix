@@ -5,6 +5,7 @@ import { Search, Download, GitFork, ArrowDown, ExternalLink, Heart, Upload, Laye
 import { Artwork } from '../types';
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
+import { SkeletonImage } from './SkeletonImage';
 import { Contest } from '../lib/contests';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -400,7 +401,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
                   onClick={() => onSelectArtwork(art.id)}
                   className="aspect-[4/5] overflow-hidden relative cursor-pointer"
                 >
-                  <img
+                  <SkeletonImage
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     style={{ objectPosition: `${art.focalX ?? 50}% ${art.focalY ?? 50}%` }}
                     src={art.image}

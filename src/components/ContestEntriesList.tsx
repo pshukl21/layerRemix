@@ -1,5 +1,6 @@
 import React from 'react';
 import { Artwork } from '../types';
+import { SkeletonImage } from './SkeletonImage';
 
 interface ContestEntriesListProps {
   entries: Artwork[];
@@ -52,11 +53,11 @@ export const ContestEntriesList: React.FC<ContestEntriesListProps> = ({
                 medal ? 'bg-amber-50/60' : ''
               }`}
             >
-              <div className="relative shrink-0">
-                <img
+              <div className="relative shrink-0 w-9 h-9">
+                <SkeletonImage
                   src={artwork.image}
                   alt={artwork.title}
-                  className="w-9 h-9 rounded-md object-cover border border-slate-200"
+                  className="w-full h-full rounded-md object-cover border border-slate-200"
                   style={{ objectPosition: `${artwork.focalX ?? 50}% ${artwork.focalY ?? 50}%` }}
                 />
                 {medal && (

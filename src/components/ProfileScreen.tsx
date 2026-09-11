@@ -6,6 +6,7 @@ import { Artwork, Profile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_AVATAR, getDownloadTarget, incrementDownloads, fetchProfileByUsername, triggerFileDownload } from '../lib/artworks';
 import { Contest } from '../lib/contests';
+import { SkeletonImage } from './SkeletonImage';
 import { HeroSettingsPanel } from './HeroSettingsPanel';
 import { AdminReportsPanel } from './AdminReportsPanel';
 import { AdminContestsPanel } from './AdminContestsPanel';
@@ -274,7 +275,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 <span className="text-[9px] font-bold text-zinc-200 truncate ps-stat">{art.title}.psd</span>
               </div>
               <div className="aspect-[4/5] relative overflow-hidden ps-checkerboard p-1">
-              <img
+              <SkeletonImage
                 style={{ objectPosition: `${art.focalX ?? 50}% ${art.focalY ?? 50}%`, ...(isHovered ? tiltStyle : {}) }}
                 className="w-full h-full object-cover transition-transform duration-500 ease-out rounded-md"
                 src={art.image}
