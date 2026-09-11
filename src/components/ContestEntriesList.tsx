@@ -11,10 +11,6 @@ interface ContestEntriesListProps {
   // surfaced to the top. Optional — omitted entirely when a contest has no
   // winners set yet, which is the common case while judging is still open.
   winnerMedals?: Record<string, '🥇' | '🥈' | '🥉'>;
-  // Tighter padding, used on the contests list page where the card needs
-  // to fit within a properly-proportioned preview image's height. The
-  // detail page's spacious version is untouched by default.
-  compact?: boolean;
 }
 
 // The one shared "Entries" display — used identically on both the
@@ -27,7 +23,6 @@ export const ContestEntriesList: React.FC<ContestEntriesListProps> = ({
   maxShow,
   onSelectArtwork,
   winnerMedals,
-  compact = false,
 }) => {
   if (totalCount === 0) return null;
 
@@ -39,8 +34,8 @@ export const ContestEntriesList: React.FC<ContestEntriesListProps> = ({
     : entries;
 
   return (
-    <div className={`bg-white border border-slate-200 rounded-xl shadow-sm ${compact ? 'p-3' : 'p-5'}`}>
-      <div className={`flex items-center justify-between ${compact ? 'mb-2' : 'mb-3'}`}>
+    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Entries</h3>
         <span className="text-[10px] font-bold text-slate-400">{totalCount} submitted</span>
       </div>
