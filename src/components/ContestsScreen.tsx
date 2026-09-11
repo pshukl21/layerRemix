@@ -78,7 +78,7 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
             >
               <Link
                 to={`/contests/${contest.id}`}
-                className="sm:w-72 shrink-0 aspect-[4/5] overflow-hidden bg-slate-100 relative block"
+                className="sm:w-56 shrink-0 aspect-[4/5] overflow-hidden bg-slate-100 relative block"
               >
                 {contest.baseImage && (
                   <SkeletonImage
@@ -88,7 +88,7 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
                   />
                 )}
               </Link>
-              <div className="p-5 flex flex-col gap-3 flex-1 min-w-0">
+              <div className="p-4 flex flex-col gap-2.5 flex-1 min-w-0">
                 <div>
                   <Link to={`/contests/${contest.id}`}>
                     <h2 className="font-black text-lg text-slate-900 group-hover:text-blue-600 transition-colors">
@@ -100,34 +100,28 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
 
                 {contest.deadline && (
                   <div
-                    className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
+                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 ${
                       deadline?.isPast
                         ? 'bg-slate-100 border border-slate-200'
                         : 'bg-gradient-to-r from-amber-50 to-amber-100/50 border-2 border-amber-300'
                     }`}
                   >
-                    <Clock className={`w-6 h-6 shrink-0 ${deadline?.isPast ? 'text-slate-400' : 'text-amber-600'}`} />
-                    <div>
-                      <p
-                        className={`text-[11px] font-black uppercase tracking-widest ${
-                          deadline?.isPast ? 'text-slate-400' : 'text-amber-600'
-                        }`}
-                      >
-                        {deadline?.isPast ? 'Contest Ended' : 'Contest Ends'}
-                      </p>
-                      <p className={`text-xl font-black leading-tight ${deadline?.isPast ? 'text-slate-500' : 'text-amber-800'}`}>
-                        {new Date(contest.deadline).toLocaleDateString(undefined, {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
+                    <Clock className={`w-4 h-4 shrink-0 ${deadline?.isPast ? 'text-slate-400' : 'text-amber-600'}`} />
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <p className={`text-sm font-black leading-tight ${deadline?.isPast ? 'text-slate-500' : 'text-amber-800'}`}>
+                        {deadline?.isPast
+                          ? 'Contest ended'
+                          : new Date(contest.deadline).toLocaleDateString(undefined, {
+                              month: 'long',
+                              day: 'numeric',
+                            })}
                       </p>
                       {!deadline?.isPast &&
                         (() => {
                           const daysLeft = Math.ceil((new Date(contest.deadline!).getTime() - Date.now()) / 86400000);
                           return (
-                            <p className="text-xs font-bold text-amber-600 mt-0.5">
-                              {daysLeft <= 0 ? 'Ends today' : daysLeft === 1 ? '1 day left' : `${daysLeft} days left`}
+                            <p className="text-[11px] font-bold text-amber-600">
+                              ({daysLeft <= 0 ? 'ends today' : daysLeft === 1 ? '1 day left' : `${daysLeft} days left`})
                             </p>
                           );
                         })()}
@@ -136,7 +130,7 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
                 )}
 
                 {hasPrizes && (
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-1.5">
                     {contest.prizeFirst && (
                       <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
                         <span>🥇</span>
@@ -161,8 +155,9 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
                 <ContestEntriesList
                   entries={getEntries(contest.baseArtworkId)}
                   totalCount={countAllDescendants(contest.baseArtworkId)}
-                  maxShow={2}
+                  maxShow={1}
                   onSelectArtwork={onSelectArtwork}
+                  compact
                 />
 
                 <Link
