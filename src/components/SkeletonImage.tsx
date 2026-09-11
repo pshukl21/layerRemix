@@ -12,10 +12,8 @@ interface SkeletonImageProps {
 // Drop-in replacement for a plain <img> that shows a pulsing gray
 // placeholder — the same pattern YouTube, Instagram, etc. use — until the
 // real image has actually finished loading, instead of a blank/white gap.
-// If the image genuinely fails to load (a missing/broken file), shows an
-// explicit "unavailable" state rather than just revealing nothing — a
-// blank box reads as "still broken" with no way to tell it apart from a
-// slow-loading skeleton, whereas this makes a real failure obvious.
+// If the image fails to load, shows a soft palette-icon placeholder
+// instead of revealing nothing.
 // Assumes the parent element already establishes the sizing/aspect ratio
 // (e.g. via `aspect-[4/5]`), same as a plain <img> would.
 export const SkeletonImage: React.FC<SkeletonImageProps> = ({ src, alt, className, style, referrerPolicy }) => {
