@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ImageOff } from 'lucide-react';
 
 interface SkeletonImageProps {
   src: string;
@@ -11,23 +12,35 @@ interface SkeletonImageProps {
 // Drop-in replacement for a plain <img> that shows a pulsing gray
 // placeholder — the same pattern YouTube, Instagram, etc. use — until the
 // real image has actually finished loading, instead of a blank/white gap.
+// If the image genuinely fails to load (a missing/broken file), shows an
+// explicit "unavailable" state rather than just revealing nothing — a
+// blank box reads as "still broken" with no way to tell it apart from a
+// slow-loading skeleton, whereas this makes a real failure obvious.
 // Assumes the parent element already establishes the sizing/aspect ratio
 // (e.g. via `aspect-[4/5]`), same as a plain <img> would.
 export const SkeletonImage: React.FC<SkeletonImageProps> = ({ src, alt, className, style, referrerPolicy }) => {
-  const [loaded, setLoaded] = useState(false);
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
   return (
     <div className="relative w-full h-full">
-      {!loaded && <div className="absolute inset-0 bg-slate-200 animate-pulse" />}
-      <img
-        className={`${className || ''} transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-        style={style}
-        src={src}
-        alt={alt}
-        referrerPolicy={referrerPolicy}
-        onLoad={() => setLoaded(true)}
-        onError={() => setLoaded(true)}
-      />
+      {status === 'loading' && <div className="absolute inset-0 bg-slate-200 animate-pulse" />}
+      {status === 'error' && (
+        <div className="absolute inset-0 bg-slate-100 flex flex-col items-center justify-center gap-1.5 text-slate-400">
+          <ImageOff className="w-5 h-5" />
+          <span className="text-[9px] font-bold uppercase tracking-wide">Image unavailable</span>
+        </div>
+      )}
+      {status !== 'error' && (
+        <img
+          className={`${className || ''} transition-opacity duration-300 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+          style={style}
+          src={src}
+          alt={alt}
+          referrerPolicy={referrerPolicy}
+          onLoad={() => setStatus('loaded')}
+          onError={() => setStatus('error')}
+        />
+      )}
     </div>
   );
 };
