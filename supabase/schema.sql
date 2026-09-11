@@ -184,7 +184,6 @@ declare
   v_already_favorited boolean;
   v_owner_id uuid;
   v_title text;
-  v_hearter_username text;
 begin
   if auth.uid() is null then
     raise exception 'Not authorized';
@@ -219,15 +218,13 @@ begin
     from public.artworks where id = p_artwork_id;
 
     if v_owner_id is not null and v_owner_id <> auth.uid() then
-      select username into v_hearter_username from public.profiles where id = auth.uid();
-
       insert into public.notifications (recipient_id, actor_id, type, artwork_id, message)
       values (
         v_owner_id,
         auth.uid(),
         'favorite',
         p_artwork_id,
-        format('@%s liked your artwork "%s"', coalesce(v_hearter_username, 'Someone'), coalesce(v_title, 'your artwork'))
+        format('liked your artwork "%s"', coalesce(v_title, 'your artwork'))
       );
     end if;
 
@@ -271,7 +268,6 @@ declare
   new_count integer;
   v_owner_id uuid;
   v_title text;
-  v_downloader_username text;
 begin
   update public.artworks
   set downloads = downloads + 1
@@ -287,15 +283,13 @@ begin
     from public.artworks where id = p_artwork_id;
 
     if v_owner_id is not null and v_owner_id <> auth.uid() then
-      select username into v_downloader_username from public.profiles where id = auth.uid();
-
       insert into public.notifications (recipient_id, actor_id, type, artwork_id, message)
       values (
         v_owner_id,
         auth.uid(),
         'download',
         p_artwork_id,
-        format('@%s downloaded your artwork "%s"', coalesce(v_downloader_username, 'Someone'), coalesce(v_title, 'your artwork'))
+        format('downloaded your artwork "%s"', coalesce(v_title, 'your artwork'))
       );
     end if;
   end if;
@@ -823,7 +817,6 @@ as $$
 declare
   v_parent_owner_id uuid;
   v_parent_title text;
-  v_remixer_username text;
 begin
   if new.type = 'Remix' and new.parent_artwork_id is not null then
     select owner_id, title into v_parent_owner_id, v_parent_title
@@ -831,15 +824,13 @@ begin
 
     -- Don't notify someone about remixing their own work.
     if v_parent_owner_id is not null and v_parent_owner_id <> new.owner_id then
-      select username into v_remixer_username from public.profiles where id = new.owner_id;
-
       insert into public.notifications (recipient_id, actor_id, type, artwork_id, message)
       values (
         v_parent_owner_id,
         new.owner_id,
         'remix',
         new.id,
-        format('@%s remixed your artwork "%s"', coalesce(v_remixer_username, 'Someone'), coalesce(v_parent_title, 'your artwork'))
+        format('remixed your artwork "%s"', coalesce(v_parent_title, 'your artwork'))
       );
     end if;
   end if;
@@ -851,6 +842,16 @@ drop trigger if exists on_artwork_remix_notification on public.artworks;
 create trigger on_artwork_remix_notification
   after insert on public.artworks
   for each row execute function public.handle_new_remix_notification();
+
+-- One-time cleanup: strips a hardcoded "@username " prefix from any
+-- notification messages created before this change — the frontend now
+-- always prepends the actor's CURRENT username (via actor_id) at display
+-- time, so an old stored message still carrying its own frozen prefix
+-- would otherwise show doubled ("@newname @oldname liked..."). Safe to
+-- re-run — once cleaned, a message no longer matches the pattern below.
+update public.notifications
+set message = regexp_replace(message, '^@\S+ ', '')
+where message ~ '^@\S+ ';
 
 -- Contest winners — admin-designated, one artwork (an entry) per place.
 -- Nullable since a contest may not have winners chosen yet; already covered

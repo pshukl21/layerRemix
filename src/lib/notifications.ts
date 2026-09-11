@@ -10,11 +10,18 @@ export interface AppNotification {
 }
 
 function rowToNotification(row: any): AppNotification {
+  // The stored message no longer includes a username — it's prepended
+  // here from a live join instead, so it always reflects whatever that
+  // person is currently called, even if they've renamed since the
+  // notification was created. "Someone" covers the rare case where the
+  // actor's account no longer exists (actor_id set to null on delete).
+  const actorUsername = row.actor?.username;
+  const message = actorUsername ? `@${actorUsername} ${row.message}` : `Someone ${row.message}`;
   return {
     id: row.id,
     type: row.type,
     artworkId: row.artwork_id,
-    message: row.message,
+    message,
     read: row.read,
     createdAt: row.created_at,
   };
@@ -25,7 +32,7 @@ function rowToNotification(row: any): AppNotification {
 export async function fetchNotifications(): Promise<AppNotification[]> {
   const { data, error } = await supabase
     .from('notifications')
-    .select('*')
+    .select('*, actor:profiles!notifications_actor_id_fkey(username)')
     .order('created_at', { ascending: false })
     .limit(30);
 
