@@ -703,13 +703,15 @@ as $$
 declare
   v_image_path text;
   v_source_file_path text;
+  v_owner_id uuid;
+  v_title text;
 begin
   if not exists (select 1 from public.profiles where id = auth.uid() and is_admin = true) then
     raise exception 'Not authorized';
   end if;
 
-  select artworks.image_path, artworks.source_file_path
-    into v_image_path, v_source_file_path
+  select artworks.image_path, artworks.source_file_path, artworks.owner_id, artworks.title
+    into v_image_path, v_source_file_path, v_owner_id, v_title
     from public.artworks
     where id = p_artwork_id;
 
@@ -718,6 +720,33 @@ begin
   end if;
 
   delete from public.artworks where id = p_artwork_id;
+
+  -- Reverses the credit this artwork originally earned on publish — an
+  -- admin removal means it shouldn't have counted in the first place.
+  -- Deliberately allowed to go negative (no `where credits > 0` guard,
+  -- unlike spend_credit): this is a correction to the ledger, not a
+  -- voluntary action the owner gets to opt out of by having already
+  -- spent the credit elsewhere. A negative balance just means they need
+  -- to publish something legitimate before they can download again.
+  if v_owner_id is not null then
+    update public.profiles
+    set credits = credits - 1
+    where id = v_owner_id;
+
+    -- artwork_id is deliberately left null here — notifications.artwork_id
+    -- references artworks(id) on delete cascade, so a notification
+    -- pointing at the artwork just deleted above would itself be wiped
+    -- out immediately. The title is baked into the message text instead,
+    -- since there's no artwork left to look it up from afterward.
+    insert into public.notifications (recipient_id, actor_id, type, artwork_id, message)
+    values (
+      v_owner_id,
+      auth.uid(),
+      'admin_removal',
+      null,
+      format('removed your artwork "%s" — the credit it earned has been reversed', coalesce(v_title, 'Untitled'))
+    );
+  end if;
 
   return query select v_image_path, v_source_file_path;
 end;
