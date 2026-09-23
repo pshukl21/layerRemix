@@ -154,7 +154,10 @@ Deno.serve(async (req: Request) => {
       // Atomic on the database side (WHERE credits > 0), so this can't be
       // tricked into overdrawing even under concurrent requests. If this
       // fails, we stop here — no signed URL is ever generated.
-      const { error: spendError } = await supabaseAsCaller.rpc('spend_credit', { p_user_id: user.id });
+      const { error: spendError } = await supabaseAsCaller.rpc('spend_credit', {
+        p_user_id: user.id,
+        p_artwork_id: artworkId,
+      });
       if (spendError) {
         const message = spendError.message.includes('Not enough credits')
           ? 'out of download credits'

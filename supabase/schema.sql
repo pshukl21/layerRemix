@@ -336,12 +336,81 @@ grant execute on function public.increment_artwork_views(uuid) to authenticated,
 alter table public.profiles
   add column if not exists credits integer not null default 0;
 
+-- Full audit trail of every credit change, however it happens — through
+-- the app's own code, or a manual SQL edit run directly in the SQL
+-- Editor. Built after a real debugging session where reconstructing a
+-- user's credit history from scratch (published/downloaded counts, plus
+-- guessing when a manual reset happened) took a long back-and-forth that
+-- one query against a table like this would have settled immediately.
+create table if not exists public.credit_ledger (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  delta integer not null,
+  balance_after integer not null,
+  reason text not null,
+  related_artwork_id uuid references public.artworks(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.credit_ledger enable row level security;
+
+-- Admin-only — this is a debugging/audit tool, not a user-facing feature.
+drop policy if exists "Admins can view the credit ledger" on public.credit_ledger;
+create policy "Admins can view the credit ledger"
+  on public.credit_ledger for select
+  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
+
+-- No insert/update/delete policies — every row is written by the trigger
+-- below (which runs as security definer), never directly by any client.
+
+-- Fires on EVERY change to profiles.credits, regardless of source. Tags
+-- each row with whichever function changed it, by reading a per-transaction
+-- "reason" set immediately beforehand via set_config — see the four
+-- credit-changing functions below, each of which sets this right before
+-- its own update. A change with no reason set (e.g. a raw manual
+-- `update profiles set credits = ...` run directly in the SQL Editor)
+-- still gets logged, just tagged 'manual_adjustment' by the fallback —
+-- nothing that touches this column can happen invisibly again.
+create or replace function public.log_credit_change()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_artwork_id uuid;
+begin
+  if new.credits is distinct from old.credits then
+    begin
+      v_artwork_id := nullif(current_setting('layerremix.credit_artwork_id', true), '')::uuid;
+    exception when others then
+      v_artwork_id := null;
+    end;
+    insert into public.credit_ledger (user_id, delta, balance_after, reason, related_artwork_id)
+    values (
+      new.id,
+      new.credits - old.credits,
+      new.credits,
+      coalesce(nullif(current_setting('layerremix.credit_reason', true), ''), 'manual_adjustment'),
+      v_artwork_id
+    );
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_credits_changed on public.profiles;
+create trigger on_credits_changed
+  after update of credits on public.profiles
+  for each row execute function public.log_credit_change();
+
 create or replace function public.handle_new_artwork_credits()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
 begin
+  perform set_config('layerremix.credit_reason', 'publish', true);
+  perform set_config('layerremix.credit_artwork_id', new.id::text, true);
   update public.profiles
   set credits = credits + 1
   where id = new.owner_id;
@@ -357,7 +426,13 @@ create trigger on_artwork_published
 -- Atomically spends one credit for the currently authenticated user.
 -- Restricted to auth.uid() = p_user_id so nobody can spend down someone
 -- else's balance; raises an exception if they have no credits left.
-create or replace function public.spend_credit(p_user_id uuid)
+-- Dropped explicitly first: adding a parameter (even with a default)
+-- creates a separate overload in Postgres rather than replacing the
+-- original, and having both the old 1-arg and new 2-arg versions coexist
+-- would make any call with just p_user_id ambiguous between them.
+drop function if exists public.spend_credit(uuid);
+
+create or replace function public.spend_credit(p_user_id uuid, p_artwork_id uuid default null)
 returns integer
 language plpgsql
 security definer set search_path = public
@@ -367,6 +442,11 @@ declare
 begin
   if auth.uid() is null or auth.uid() <> p_user_id then
     raise exception 'Not authorized';
+  end if;
+
+  perform set_config('layerremix.credit_reason', 'download', true);
+  if p_artwork_id is not null then
+    perform set_config('layerremix.credit_artwork_id', p_artwork_id::text, true);
   end if;
 
   update public.profiles
@@ -382,7 +462,7 @@ begin
 end;
 $$;
 
-grant execute on function public.spend_credit(uuid) to authenticated;
+grant execute on function public.spend_credit(uuid, uuid) to authenticated;
 
 -- Atomically enforces the "deleting costs 1 credit" rule: checks ownership
 -- and that the owner has at least 1 credit, deducts it, then deletes the
@@ -418,6 +498,9 @@ begin
   if v_owner_id <> auth.uid() then
     raise exception 'Not authorized';
   end if;
+
+  perform set_config('layerremix.credit_reason', 'self_delete', true);
+  perform set_config('layerremix.credit_artwork_id', p_artwork_id::text, true);
 
   update public.profiles
   set credits = credits - 1
@@ -729,6 +812,14 @@ begin
   -- spent the credit elsewhere. A negative balance just means they need
   -- to publish something legitimate before they can download again.
   if v_owner_id is not null then
+    -- artwork_id deliberately left unset here (unlike the other three
+    -- credit-changing functions) — by this point the artwork row above
+    -- has already been deleted, and credit_ledger.related_artwork_id is a
+    -- real foreign key, so referencing an id that no longer exists would
+    -- fail the insert. The 'admin_removal' reason plus the timestamp is
+    -- enough context on its own.
+    perform set_config('layerremix.credit_reason', 'admin_removal', true);
+    perform set_config('layerremix.credit_artwork_id', '', true);
     update public.profiles
     set credits = credits - 1
     where id = v_owner_id;
