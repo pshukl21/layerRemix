@@ -11,6 +11,7 @@ import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSo
 import { generateShareImage } from '../lib/shareImage';
 import { ReportModal } from './ReportModal';
 import { AdminReplacePreviewModal } from './AdminReplacePreviewModal';
+import { AdminEditTitleModal } from './AdminEditTitleModal';
 import { Contest } from '../lib/contests';
 import { parseTagsInput } from '../lib/tags';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
@@ -57,6 +58,7 @@ interface DetailScreenProps {
   onDeleteArtwork?: (artworkId: string) => Promise<{ error: string | null }>;
   onAdminReplacePreview?: (artworkId: string, file: File) => Promise<{ error: string | null }>;
   onToggleRemixGate?: (artworkId: string, value: boolean) => Promise<{ error: string | null }>;
+  onAdminEditTitle?: (artworkId: string, newTitle: string) => Promise<{ error: string | null }>;
 }
 
 // Decorative Photoshop-style rulers with real numbered ticks. Purely
@@ -158,6 +160,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   onDeleteArtwork,
   onAdminReplacePreview,
   onToggleRemixGate,
+  onAdminEditTitle,
 }) => {
   const { user, profile, refreshProfile } = useAuth();
   const [viewMode, setViewMode] = useState<'showcase' | 'tree' | 'fork'>('showcase');
@@ -651,6 +654,7 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [shareError, setShareError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [adminPreviewModalOpen, setAdminPreviewModalOpen] = useState(false);
+  const [adminEditTitleModalOpen, setAdminEditTitleModalOpen] = useState(false);
   const [togglingRemixGate, setTogglingRemixGate] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -1210,6 +1214,15 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
                   >
                     <Pencil className="w-3 h-3" />
                     Admin: Replace Preview Image
+                  </button>
+                )}
+                {profile?.isAdmin && !isOwnArtwork && onAdminEditTitle && (
+                  <button
+                    onClick={() => setAdminEditTitleModalOpen(true)}
+                    className="w-full text-[10px] font-bold text-amber-600 hover:text-amber-700 uppercase tracking-widest flex items-center justify-center gap-1.5 cursor-pointer pt-1"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Admin: Edit Title
                   </button>
                 )}
                 {profile?.isAdmin && onToggleRemixGate && (
@@ -1793,6 +1806,14 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
           artwork={artwork}
           onClose={() => setAdminPreviewModalOpen(false)}
           onSave={onAdminReplacePreview}
+        />
+      )}
+      {onAdminEditTitle && (
+        <AdminEditTitleModal
+          open={adminEditTitleModalOpen}
+          artwork={artwork}
+          onClose={() => setAdminEditTitleModalOpen(false)}
+          onSave={onAdminEditTitle}
         />
       )}
       {showForkBlurryConfirm && (

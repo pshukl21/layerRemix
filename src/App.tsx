@@ -18,7 +18,7 @@ import { ContestPromoModal } from './components/ContestPromoModal';
 import { Artwork } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { isSupabaseConfigured } from './lib/supabase';
-import { fetchArtworks, fetchArtworkById, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds, setRequiresRemixUnlock } from './lib/artworks';
+import { fetchArtworks, fetchArtworkById, publishArtwork, updateArtwork, deleteArtwork, toggleFavorite, fetchMyFavoriteIds, setRequiresRemixUnlock, adminUpdateTitle } from './lib/artworks';
 import { fetchSiteSettings, updateHeroImage, updateHeroDownloadUrl, SiteSettings } from './lib/siteSettings';
 import { fetchContests, Contest } from './lib/contests';
 
@@ -61,6 +61,7 @@ function DetailRoute({
   onDeleteArtwork,
   onAdminReplacePreview,
   onToggleRemixGate,
+  onAdminEditTitle,
   onRequireAuth,
   onRequireCredits,
   favoriteIds,
@@ -76,6 +77,7 @@ function DetailRoute({
   onDeleteArtwork: (artworkId: string) => Promise<{ error: string | null }>;
   onAdminReplacePreview: (artworkId: string, file: File) => Promise<{ error: string | null }>;
   onToggleRemixGate: (artworkId: string, value: boolean) => Promise<{ error: string | null }>;
+  onAdminEditTitle: (artworkId: string, newTitle: string) => Promise<{ error: string | null }>;
   onRequireAuth: () => void;
   onRequireCredits: () => void;
   favoriteIds: Set<string>;
@@ -149,6 +151,7 @@ function DetailRoute({
       onDeleteArtwork={onDeleteArtwork}
       onAdminReplacePreview={onAdminReplacePreview}
       onToggleRemixGate={onToggleRemixGate}
+      onAdminEditTitle={onAdminEditTitle}
       onRequireAuth={onRequireAuth}
       onRequireCredits={onRequireCredits}
       favoriteIds={favoriteIds}
@@ -463,6 +466,19 @@ export default function App() {
     return { error: null };
   };
 
+  // Admin-only: fixes just the title of someone else's artwork (a typo, a
+  // misleading name, contest entry cleanup). Deliberately narrow — same
+  // reasoning as handleAdminReplacePreview/handleToggleRemixGate above.
+  // Real enforcement lives in the artworks table's RLS policy, not here.
+  const handleAdminEditTitle = async (artworkId: string, newTitle: string): Promise<{ error: string | null }> => {
+    const { error } = await adminUpdateTitle(artworkId, newTitle);
+    if (error) return { error };
+    setRealArtworks((prev) =>
+      prev.map((art) => (art.id === artworkId ? { ...art, title: newTitle.trim() } : art))
+    );
+    return { error: null };
+  };
+
   // Permanently deletes one of the current user's own artworks. Costs 1
   // credit — enforced atomically server-side via the RPC, not just in the UI.
   const handleDeleteArtwork = async (artworkId: string): Promise<{ error: string | null }> => {
@@ -636,6 +652,7 @@ export default function App() {
                     onDeleteArtwork={handleDeleteArtwork}
                     onAdminReplacePreview={handleAdminReplacePreview}
                     onToggleRemixGate={handleToggleRemixGate}
+                    onAdminEditTitle={handleAdminEditTitle}
                     onRequireAuth={() => openAuthModal('signIn')}
                     onRequireCredits={() => setNeedCreditsModalOpen(true)}
                     favoriteIds={favoriteIds}
