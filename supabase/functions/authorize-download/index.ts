@@ -101,17 +101,20 @@ Deno.serve(async (req: Request) => {
     const isAdmin = !!profile?.is_admin;
     const isOwner = artwork.owner_id === user.id;
 
-    // Contest base files are always free, regardless of credits — that's
-    // the whole point of a contest (get people downloading and remixing
-    // it). Also determines whether THIS artwork is a still-locked entry
-    // of some contest, in which case only the owner/admin may download it
-    // at all right now, free or not.
+    // A contest's base file is free to download only while the contest is
+    // still running — that's the whole point of a contest (get people
+    // downloading and remixing it while judging is open). Once the
+    // deadline passes, it goes back to costing a normal download credit
+    // like anything else; a null deadline means the contest never ends on
+    // its own, so it stays free indefinitely. Also determines whether THIS
+    // artwork is a still-locked entry of some contest, in which case only
+    // the owner/admin may download it at all right now, free or not.
     const { data: baseContest } = await supabaseAdmin
       .from('contests')
-      .select('id')
+      .select('id, deadline')
       .eq('base_artwork_id', artwork.id)
       .maybeSingle();
-    const isContestBase = !!baseContest;
+    const isContestBase = !!baseContest && (!baseContest.deadline || new Date(baseContest.deadline).getTime() > Date.now());
 
     if (!isOwner && !isAdmin && artwork.parent_artwork_id) {
       const { data: parentContest } = await supabaseAdmin

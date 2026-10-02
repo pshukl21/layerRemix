@@ -19,6 +19,13 @@ export interface Contest {
   baseAuthor: string;
 }
 
+// A contest is "ended" once its deadline has passed. No deadline means it
+// runs indefinitely (never ends on its own). Shared by every screen that
+// needs to tell active contests from past ones, so they never disagree.
+export function isContestEnded(contest: Pick<Contest, 'deadline'>): boolean {
+  return !!contest.deadline && new Date(contest.deadline).getTime() < Date.now();
+}
+
 function rowToContest(row: any): Contest {
   return {
     id: row.id,

@@ -610,6 +610,7 @@ export default function App() {
                     artworks={artworks}
                     onSelectArtwork={handleSelectArtwork}
                     onRequireAuth={() => openAuthModal('signIn')}
+                    onRequireCredits={() => setNeedCreditsModalOpen(true)}
                     onDeleteArtwork={handleDeleteArtwork}
                   />
                 }

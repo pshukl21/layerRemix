@@ -659,10 +659,13 @@ export const DetailScreen: React.FC<DetailScreenProps> = ({
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const isOwnArtwork = !!user && user.id === artwork.ownerId;
-  const isContestBase = contests.some((c) => c.baseArtworkId === artwork.id);
-  // Contest base files are always free to download (that's the whole point
-  // of a contest — get people downloading and remixing it), same as your
-  // own uploads already are.
+  // A contest base file is free to download only while that contest is
+  // still running — once the deadline passes it costs a normal download
+  // credit like anything else. Matches the authorize-download edge
+  // function's own check, which is what actually enforces this.
+  const isContestBase = contests.some(
+    (c) => c.baseArtworkId === artwork.id && (!c.deadline || new Date(c.deadline).getTime() > Date.now())
+  );
   const downloadIsFree = isOwnArtwork || isContestBase;
 
   // A contest entry (a remix of some contest's base file) is locked from
