@@ -11,7 +11,6 @@ interface ContestDetailScreenProps {
   artworks: Artwork[];
   onSelectArtwork: (artworkId: string) => void;
   onRequireAuth: () => void;
-  onRequireCredits: () => void;
   onDeleteArtwork: (artworkId: string) => Promise<{ error: string | null }>;
 }
 
@@ -24,19 +23,16 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({
   artworks,
   onSelectArtwork,
   onRequireAuth,
-  onRequireCredits,
   onDeleteArtwork,
 }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [contest, setContest] = useState<Contest | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAlreadyEnteredModal, setShowAlreadyEnteredModal] = useState(false);
   const [deletingEntry, setDeletingEntry] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -71,38 +67,19 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({
     ? artworks.find((a) => a.ownerId === user.id && a.parentArtworkId === contest?.baseArtworkId)
     : undefined;
 
-  // Free only while the contest is still running — once the deadline
-  // passes, the base file costs a normal download credit like anything
-  // else. Real enforcement lives in the authorize-download edge function;
-  // this is just for an upfront message and credit pre-check instead of a
-  // confusing round trip.
-  const isDownloadFree = !contest?.deadline || new Date(contest.deadline).getTime() > Date.now();
-
   const handleDownload = async () => {
     if (!user) {
       onRequireAuth();
       return;
     }
     if (!baseArtwork) return;
-    setDownloadError(null);
-    if (!isDownloadFree && (profile?.credits ?? 0) < 1) {
-      onRequireCredits();
-      return;
-    }
-    setDownloading(true);
     const downloadTarget = await getDownloadTarget(baseArtwork);
     if (downloadTarget.error) {
-      setDownloading(false);
-      if (downloadTarget.error.includes('out of download credits')) {
-        onRequireCredits();
-      } else {
-        setDownloadError(downloadTarget.error);
-      }
+      window.alert(downloadTarget.error);
       return;
     }
     triggerFileDownload(downloadTarget.url, downloadTarget.filename);
     incrementDownloads(baseArtwork.id);
-    setDownloading(false);
   };
 
   const handleFork = () => {
@@ -265,20 +242,11 @@ export const ContestDetailScreen: React.FC<ContestDetailScreenProps> = ({
             <div className="flex flex-col gap-2.5">
               <button
                 onClick={handleDownload}
-                disabled={downloading}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98]"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98]"
               >
                 <Download className="w-4 h-4" />
-                {downloading ? 'Downloading…' : 'Download Base PSD'}
+                Download Base PSD
               </button>
-              <p className="text-[11px] font-semibold text-slate-400 text-center -mt-1.5">
-                {isDownloadFree ? 'Free — contest base file' : 'Costs 1 download credit'}
-              </p>
-              {downloadError && (
-                <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">
-                  {downloadError}
-                </p>
-              )}
               <button
                 onClick={handleFork}
                 className={`w-full py-3 font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98] ${

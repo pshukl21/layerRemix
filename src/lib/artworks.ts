@@ -354,26 +354,6 @@ export async function setRequiresRemixUnlock(
   return { error: error?.message || null };
 }
 
-// Admin-only in practice — same RLS story as setRequiresRemixUnlock above:
-// the artworks table's UPDATE policy allows either the owner or an admin,
-// so this is just the client call, not the enforcement. Deliberately
-// narrow (title only) rather than folded into the owner's full edit flow —
-// same reasoning as AdminReplacePreviewModal: a single-purpose correction
-// tool (typos, misleading titles, contest entry cleanup) that can't quietly
-// grow into "admins can edit anyone's description/tags" without a separate
-// decision to do that.
-export async function adminUpdateTitle(
-  artworkId: string,
-  newTitle: string
-): Promise<{ error: string | null }> {
-  const trimmed = newTitle.trim();
-  if (!trimmed) {
-    return { error: 'Title cannot be empty.' };
-  }
-  const { error } = await supabase.from('artworks').update({ title: trimmed }).eq('id', artworkId);
-  return { error: error?.message || null };
-}
-
 export async function getDownloadTarget(
   artwork: Artwork
 ): Promise<{ url: string; filename: string; error?: undefined } | { url?: undefined; filename?: undefined; error: string }> {

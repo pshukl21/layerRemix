@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Clock, Loader2, ArrowRight } from 'lucide-react';
-import { fetchContests, Contest, isContestEnded } from '../lib/contests';
+import { fetchContests, Contest } from '../lib/contests';
 import { Artwork } from '../types';
 import { ContestEntriesList } from './ContestEntriesList';
 import { SkeletonImage } from './SkeletonImage';
@@ -43,105 +43,6 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
     return children.reduce((acc, child) => acc + 1 + countAllDescendants(child.id), 0);
   };
 
-  const activeContests = contests.filter((c) => !isContestEnded(c));
-  const pastContests = contests.filter((c) => isContestEnded(c));
-
-  const renderContestCard = (contest: Contest, ended: boolean) => {
-    const deadline = formatDeadline(contest.deadline);
-    const hasPrizes = contest.prizeFirst || contest.prizeSecond || contest.prizeThird;
-    return (
-      <div
-        key={contest.id}
-        className={`group bg-white border rounded-xl overflow-hidden shadow-sm transition-all flex flex-col sm:flex-row ${
-          ended
-            ? 'grayscale opacity-60 border-slate-200'
-            : 'border-slate-200 hover:shadow-md hover:border-blue-300'
-        }`}
-      >
-        <Link
-          to={`/contests/${contest.id}`}
-          className="sm:w-56 shrink-0 aspect-[4/5] sm:aspect-auto overflow-hidden bg-slate-100 relative block"
-        >
-          {contest.baseImage && (
-            <SkeletonImage
-              src={contest.baseImage}
-              alt={contest.title}
-              className={`w-full h-full object-cover transition-transform duration-500 ${
-                ended ? '' : 'group-hover:scale-105'
-              }`}
-            />
-          )}
-          {deadline && (
-            <div
-              className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold ${
-                deadline.isPast ? 'bg-slate-800/80 text-slate-300' : 'bg-amber-500/90 text-white'
-              }`}
-            >
-              <Clock className="w-3 h-3" />
-              {deadline.isPast ? 'Ended' : deadline.text}
-            </div>
-          )}
-        </Link>
-        <div className="p-5 flex flex-col gap-3 flex-1 min-w-0">
-          <div>
-            <Link to={`/contests/${contest.id}`}>
-              <h2
-                className={`font-black text-lg text-slate-900 transition-colors ${
-                  ended ? '' : 'group-hover:text-blue-600'
-                }`}
-              >
-                {contest.title}
-              </h2>
-            </Link>
-            <p className="text-[11px] text-slate-400 font-bold mt-1">Base file by @{contest.baseAuthor}</p>
-          </div>
-
-          {hasPrizes && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-2">
-              {contest.prizeFirst && (
-                <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
-                  <span>🥇</span>
-                  {contest.prizeFirst}
-                </div>
-              )}
-              {contest.prizeSecond && (
-                <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
-                  <span>🥈</span>
-                  {contest.prizeSecond}
-                </div>
-              )}
-              {contest.prizeThird && (
-                <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
-                  <span>🥉</span>
-                  {contest.prizeThird}
-                </div>
-              )}
-            </div>
-          )}
-
-          <ContestEntriesList
-            entries={getEntries(contest.baseArtworkId)}
-            totalCount={countAllDescendants(contest.baseArtworkId)}
-            maxShow={2}
-            onSelectArtwork={onSelectArtwork}
-          />
-
-          <Link
-            to={`/contests/${contest.id}`}
-            className={`mt-auto sm:w-fit sm:self-start px-6 py-2.5 font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              ended
-                ? 'bg-slate-200 text-slate-500'
-                : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.98]'
-            }`}
-          >
-            {ended ? 'View Contest' : 'Enter Contest'}
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
       <header className="mb-10 text-center md:text-left">
@@ -160,29 +61,95 @@ export const ContestsScreen: React.FC<ContestsScreenProps> = ({ artworks, onSele
         </div>
       )}
 
-      {!loading && (
-        <>
-          <section className="mb-4">
-            <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">
-              Active Contests
-            </h2>
-            {activeContests.length === 0 ? (
-              <div className="text-center py-16 bg-white border border-slate-200 rounded-xl">
-                <p className="text-sm font-bold text-slate-400">No contests running right now — check back soon.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-6">{activeContests.map((contest) => renderContestCard(contest, false))}</div>
-            )}
-          </section>
-
-          {pastContests.length > 0 && (
-            <section className="mt-12">
-              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Past Contests</h2>
-              <div className="flex flex-col gap-6">{pastContests.map((contest) => renderContestCard(contest, true))}</div>
-            </section>
-          )}
-        </>
+      {!loading && contests.length === 0 && (
+        <div className="text-center py-20">
+          <p className="text-sm font-bold text-slate-400">No contests running right now — check back soon.</p>
+        </div>
       )}
+
+      <div className="flex flex-col gap-6">
+        {contests.map((contest) => {
+          const deadline = formatDeadline(contest.deadline);
+          const hasPrizes = contest.prizeFirst || contest.prizeSecond || contest.prizeThird;
+          return (
+            <div
+              key={contest.id}
+              className="group bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col sm:flex-row"
+            >
+              <Link
+                to={`/contests/${contest.id}`}
+                className="sm:w-56 shrink-0 aspect-[4/5] sm:aspect-auto overflow-hidden bg-slate-100 relative block"
+              >
+                {contest.baseImage && (
+                  <SkeletonImage
+                    src={contest.baseImage}
+                    alt={contest.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                )}
+                {deadline && (
+                  <div
+                    className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold ${
+                      deadline.isPast ? 'bg-slate-800/80 text-slate-300' : 'bg-amber-500/90 text-white'
+                    }`}
+                  >
+                    <Clock className="w-3 h-3" />
+                    {deadline.isPast ? 'Ended' : deadline.text}
+                  </div>
+                )}
+              </Link>
+              <div className="p-5 flex flex-col gap-3 flex-1 min-w-0">
+                <div>
+                  <Link to={`/contests/${contest.id}`}>
+                    <h2 className="font-black text-lg text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {contest.title}
+                    </h2>
+                  </Link>
+                  <p className="text-[11px] text-slate-400 font-bold mt-1">Base file by @{contest.baseAuthor}</p>
+                </div>
+
+                {hasPrizes && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-2">
+                    {contest.prizeFirst && (
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
+                        <span>🥇</span>
+                        {contest.prizeFirst}
+                      </div>
+                    )}
+                    {contest.prizeSecond && (
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
+                        <span>🥈</span>
+                        {contest.prizeSecond}
+                      </div>
+                    )}
+                    {contest.prizeThird && (
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
+                        <span>🥉</span>
+                        {contest.prizeThird}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <ContestEntriesList
+                  entries={getEntries(contest.baseArtworkId)}
+                  totalCount={countAllDescendants(contest.baseArtworkId)}
+                  maxShow={2}
+                  onSelectArtwork={onSelectArtwork}
+                />
+
+                <Link
+                  to={`/contests/${contest.id}`}
+                  className="mt-auto sm:w-fit sm:self-start px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98]"
+                >
+                  Enter Contest
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
