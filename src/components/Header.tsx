@@ -17,8 +17,19 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const mobileNavRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // The search box keeps its own draft text so that on non-home pages (art
+  // detail, profile, etc.) typing doesn't do anything until the user submits.
+  // On the home page it still filters live as you type. The draft re-syncs
+  // whenever the shared query changes elsewhere (hot-tag clicks, "Reset all
+  // search filters", etc.).
+  const [searchDraft, setSearchDraft] = useState(searchQuery);
+  useEffect(() => {
+    setSearchDraft(searchQuery);
+  }, [searchQuery]);
 
   // Close the dropdown on any click outside it — a document-level listener
   // is more reliable than a full-screen overlay div, which can get covered
@@ -55,6 +66,27 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
   const isContests = location.pathname.startsWith('/contests');
   const isProfile = location.pathname === '/profile';
   const isUpload = location.pathname === '/upload';
+
+  const handleSearchChange = (value: string) => {
+    setSearchDraft(value);
+    if (isExplore) onSearch(value);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch(searchDraft.trim());
+    if (!isExplore) {
+      navigate('/');
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleSearchClear = () => {
+    setSearchDraft('');
+    onSearch('');
+    searchInputRef.current?.focus();
+  };
 
   const handleUploadClick = () => {
     if (!user) {
@@ -137,17 +169,39 @@ export const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery, onRequire
       )}
 
       <div className="flex items-center gap-3 md:gap-6">
-        {/* Header Search Bar (Only shown or styled nicely on md screens) */}
-        <div className="hidden md:flex relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-[18px] h-[18px] group-focus-within:text-blue-600" />
-          <input
-            value={searchQuery}
-            onChange={(e) => onSearch(e.target.value)}
-            className="bg-slate-100/80 border border-slate-200 rounded-full py-1.5 pl-9 pr-4 w-60 focus:outline-none focus:border-blue-600 text-xs font-semibold text-slate-800 placeholder-slate-400 transition-all duration-300"
-            placeholder="Search art tags or titles..."
-            type="text"
-          />
-        </div>
+        {/* Header Search Bar (desktop). A real form so Enter and the Search
+            button both submit; submitting from any non-home page sends the
+            user back to Explore to see the results. */}
+        <form onSubmit={handleSearchSubmit} role="search" className="hidden md:flex items-center gap-2">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-[18px] h-[18px] group-focus-within:text-blue-600 pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              value={searchDraft}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="bg-slate-100/80 border border-slate-200 rounded-full py-1.5 pl-9 pr-8 w-60 focus:outline-none focus:border-blue-600 text-xs font-semibold text-slate-800 placeholder-slate-400 transition-all duration-300"
+              placeholder="Search art tags or titles..."
+              type="text"
+            />
+            {searchDraft && (
+              <button
+                type="button"
+                onClick={handleSearchClear}
+                aria-label="Clear search"
+                title="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            className="px-3 py-1.5 rounded-full bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors active:scale-95 cursor-pointer shrink-0"
+          >
+            Search
+          </button>
+        </form>
 
         <div className="flex items-center gap-2 md:gap-4">
           <button
