@@ -3,6 +3,7 @@ import { Upload, FileUp, Image as ImageIcon, Sparkles, Check, Loader2, AlertTria
 import { parsePsdHeader, formatPsdResolution, analyzePsd, MIN_LAYER_COUNT, getImageDimensions } from '../lib/psd';
 import { OPEN_CHALLENGES } from '../lib/challenges';
 import { parseTagsInput } from '../lib/tags';
+import { getTextQualityIssue } from '../lib/textQuality';
 import { zipFile, uploadFileWithProgress, buildSourceStagingPath, deleteStagedSourceFile, validateSourceFileSize, hashFile } from '../lib/upload';
 import { SOURCE_FILES_BUCKET } from '../lib/supabase';
 import { findDuplicateByHash } from '../lib/artworks';
@@ -366,12 +367,25 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
 
   const [missingRequirements, setMissingRequirements] = useState<string[]>([]);
 
+  // Keyboard-mashing checks (see lib/textQuality.ts). Shown inline as the
+  // user types and re-checked on submit so junk can't be published.
+  const titleIssue = getTextQualityIssue(title, 'title');
+  const descriptionIssue = getTextQualityIssue(description, 'description', { minWords: 3 });
+  const tagsIssue = (() => {
+    for (const t of parseTagsInput(tagsInput)) {
+      const issue = getTextQualityIssue(t, 'tag', { minChars: 2 });
+      if (issue) return `"${t}" — ${issue}`;
+    }
+    return null;
+  })();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
 
     const missing: string[] = [];
     if (!title.trim()) missing.push('Add a title for your artwork');
+    else if (titleIssue) missing.push(titleIssue);
     if (!psdFile) missing.push('Upload your .psd file');
     if (psdFile && !manualPreviewFile && !extractedThumbnail) {
       missing.push('We need a valid preview for your PSD — see the message under the upload box');
@@ -386,6 +400,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     }
     const tagsArray = parseTagsInput(tagsInput);
     if (tagsArray.length === 0) missing.push('Add at least one tag');
+    if (descriptionIssue && description.trim().length >= MIN_DESCRIPTION_LENGTH) missing.push(descriptionIssue);
+    if (tagsIssue) missing.push(tagsIssue);
     if (!certified) missing.push('Certify that you own the rights to upload this artwork');
 
     if (missing.length > 0) {
@@ -417,7 +433,10 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
     uploadPhase === 'done' &&
     !!uploadedSourcePath &&
     description.trim().length >= MIN_DESCRIPTION_LENGTH &&
-    hasValidTags;
+    hasValidTags &&
+    !titleIssue &&
+    !descriptionIssue &&
+    !tagsIssue;
 
   return (
     <div className="w-full min-h-screen text-slate-900 pt-24 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
@@ -605,6 +624,9 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
                 placeholder="Enter a name for your piece"
                 type="text"
               />
+              {titleIssue && (
+                <p className="text-[11px] font-bold text-red-600">{titleIssue}</p>
+              )}
             </div>
 
             {/* "What needs work" Input — replaces the old generic Description */}
@@ -622,6 +644,9 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
               <p className={`text-[10px] font-bold ${description.trim().length < MIN_DESCRIPTION_LENGTH ? 'text-slate-400' : 'text-emerald-600'}`}>
                 {description.trim().length}/{MIN_DESCRIPTION_LENGTH} characters minimum
               </p>
+              {descriptionIssue && description.trim().length >= MIN_DESCRIPTION_LENGTH && (
+                <p className="text-[11px] font-bold text-red-600">{descriptionIssue}</p>
+              )}
             </div>
 
             {/* Open Challenges — structured flags for what's specifically needed,
@@ -667,6 +692,9 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ onPublish }) => {
                 placeholder="Add at least one tag, separated by comma (e.g. Cyberpunk, 3D)"
                 type="text"
               />
+              {tagsIssue && (
+                <p className="text-[11px] font-bold text-red-600">{tagsIssue}</p>
+              )}
               <div className="flex flex-wrap gap-1.5 pt-2 select-none">
                 {tagPresets.map((tag) => (
                   <span
